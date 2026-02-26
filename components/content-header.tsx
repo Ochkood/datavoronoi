@@ -20,7 +20,7 @@ export function ContentHeader({ activeTab, onTabChange }: ContentHeaderProps) {
 
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur-sm">
-      <div className="flex items-center justify-between px-4 py-3 md:px-6">
+      <div className="flex items-center justify-between px-4 py-3 pl-14 md:px-6 lg:pl-6">
         {/* Tabs */}
         <div className="flex items-center gap-1">
           {tabs.map((tab) => (
