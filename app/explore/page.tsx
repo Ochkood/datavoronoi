@@ -1,16 +1,26 @@
 "use client"
 
 import { useState } from "react"
-import { LayoutGrid, List } from "lucide-react"
+import { LayoutGrid, List, Filter } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { AppSidebar } from "@/components/app-sidebar"
 import { ContentHeader } from "@/components/content-header"
 import { PostCard, type PostData } from "@/components/post-card"
-import { TrendingSidebar } from "@/components/trending-sidebar"
 
-export const posts: PostData[] = [
+const categories = [
+  "Бүгд",
+  "Эдийн засаг",
+  "Технологи",
+  "Байгаль орчин",
+  "Эрүүл мэнд",
+  "Нийгэм",
+  "Дэлхий",
+  "Санхүү",
+]
+
+const explorePosts: PostData[] = [
   {
-    id: "1",
+    id: "e1",
     title: "Монголын ДНБ-ний өсөлт: Сүүлийн 10 жилийн дата шинжилгээ",
     excerpt:
       "Монголын эдийн засгийн өсөлтийн чиг хандлагыг тоон мэдээлэлд суурилсан инфографикаар харуулж байна.",
@@ -24,7 +34,7 @@ export const posts: PostData[] = [
     comments: 45,
   },
   {
-    id: "2",
+    id: "e2",
     title: "Дэлхийн сэргээгдэх эрчим хүчний хэрэглээ улс бүрээр",
     excerpt:
       "Сэргээгдэх эрчим хүчний тэргүүлэгч орнууд болон ирээдүйн хандлагын дата визуализаци.",
@@ -38,7 +48,7 @@ export const posts: PostData[] = [
     comments: 23,
   },
   {
-    id: "3",
+    id: "e3",
     title: "Дэлхийн хүн амын тархалт тив бүрээр: 2025 оны байдлаар",
     excerpt:
       "8 тэрбум давсан дэлхийн хүн амын статистик мэдээллийг тив болон бүс нутгаар ангилан харуулав.",
@@ -52,7 +62,7 @@ export const posts: PostData[] = [
     comments: 18,
   },
   {
-    id: "4",
+    id: "e4",
     title: "Технологийн компаниудын зах зээлийн үнэлгээний харьцуулалт",
     excerpt:
       "Apple, Microsoft, NVIDIA зэрэг дэлхийн том компаниудын зах зээлийн үнэлгээг хооронд нь жишив.",
@@ -66,7 +76,7 @@ export const posts: PostData[] = [
     comments: 56,
   },
   {
-    id: "5",
+    id: "e5",
     title: "Дэлхийн нүүрсхүчлийн хийн ялгарал салбар тус бүрээр",
     excerpt:
       "Эрчим хүч, тээвэр, үйлдвэрлэл зэрэг салбаруудын нүүрсхүчлийн хийн ялгарлын хэмжээг шинжлэв.",
@@ -80,7 +90,7 @@ export const posts: PostData[] = [
     comments: 12,
   },
   {
-    id: "6",
+    id: "e6",
     title: "Крипто зах зээлийн тойм: Bitcoin, Ethereum-ын үнийн чиг хандлага",
     excerpt:
       "2025 оны крипто зах зээлийн нөхцөл байдал, гол тоон үзүүлэлтүүдийг нэг дороос харна уу.",
@@ -94,7 +104,7 @@ export const posts: PostData[] = [
     comments: 34,
   },
   {
-    id: "7",
+    id: "e7",
     title: "Хиймэл оюуны салбарын өсөлт ба хөрөнгө оруулалтын чиг хандлага",
     excerpt:
       "AI стартап, том компаниудын хөрөнгө оруулалт, хэрэглээний статистикийн инфографик.",
@@ -108,7 +118,7 @@ export const posts: PostData[] = [
     comments: 67,
   },
   {
-    id: "8",
+    id: "e8",
     title: "Дэлхийн худалдааны зам: Импорт, экспортын гол урсгал",
     excerpt:
       "Олон улсын худалдааны гол маршрут, бараа бүтээгдэхүүний урсгалыг газрын зураг дээр харуулав.",
@@ -122,7 +132,7 @@ export const posts: PostData[] = [
     comments: 9,
   },
   {
-    id: "9",
+    id: "e9",
     title: "Эрүүл мэндийн зардал: Дэлхийн улсуудын харьцуулалт",
     excerpt:
       "Улс орнуудын эрүүл мэндийн салбарт зарцуулж буй хөрөнгийг ДНБ-д эзлэх хувиар нь жишив.",
@@ -137,9 +147,15 @@ export const posts: PostData[] = [
   },
 ]
 
-export default function HomePage() {
+export default function ExplorePage() {
   const [activeTab, setActiveTab] = useState("latest")
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
+  const [activeCategory, setActiveCategory] = useState("Бүгд")
+
+  const filteredPosts =
+    activeCategory === "Бүгд"
+      ? explorePosts
+      : explorePosts.filter((p) => p.category === activeCategory)
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -149,70 +165,86 @@ export default function HomePage() {
         <ContentHeader activeTab={activeTab} onTabChange={setActiveTab} />
 
         <div className="mx-auto max-w-7xl px-4 py-6 md:px-6 lg:px-8">
-          <div className="flex flex-col gap-8 xl:flex-row">
-            {/* Posts area */}
-            <div className="flex-1">
-              {/* Title + view toggle */}
-              <div className="mb-5 flex items-center justify-between">
-                <div>
-                  <h2 className="text-lg font-bold text-foreground">
-                    Newsfeed
-                  </h2>
-                  <p className="mt-0.5 text-xs text-muted-foreground">
-                    {posts.length} нийтлэл
-                  </p>
-                </div>
-                <div className="flex items-center gap-1 rounded-lg bg-secondary p-1">
-                  <button
-                    onClick={() => setViewMode("grid")}
-                    className={cn(
-                      "flex h-8 w-8 items-center justify-center rounded-md transition-colors",
-                      viewMode === "grid"
-                        ? "bg-card text-foreground shadow-sm"
-                        : "text-muted-foreground hover:text-foreground"
-                    )}
-                    aria-label="Grid view"
-                  >
-                    <LayoutGrid className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={() => setViewMode("list")}
-                    className={cn(
-                      "flex h-8 w-8 items-center justify-center rounded-md transition-colors",
-                      viewMode === "list"
-                        ? "bg-card text-foreground shadow-sm"
-                        : "text-muted-foreground hover:text-foreground"
-                    )}
-                    aria-label="List view"
-                  >
-                    <List className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
+          {/* Page heading */}
+          <div className="mb-6">
+            <h1 className="text-2xl font-bold text-foreground">Судлах</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Ангилал бүрээр инфографик, дата визуализаци судлах
+            </p>
+          </div>
 
-              {/* Posts */}
-              {viewMode === "grid" ? (
-                <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                  {posts.map((post) => (
-                    <PostCard key={post.id} post={post} variant="default" />
-                  ))}
-                </div>
-              ) : (
-                <div className="flex flex-col gap-4">
-                  {posts.map((post) => (
-                    <PostCard key={post.id} post={post} variant="list" />
-                  ))}
-                </div>
-              )}
+          {/* Category filter + view toggle */}
+          <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-wrap items-center gap-2">
+              <Filter className="h-4 w-4 text-muted-foreground" />
+              {categories.map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setActiveCategory(cat)}
+                  className={cn(
+                    "rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
+                    activeCategory === cat
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                  )}
+                >
+                  {cat}
+                </button>
+              ))}
             </div>
-
-            {/* Right sidebar */}
-            <div className="w-full flex-shrink-0 xl:w-[320px]">
-              <div className="sticky top-[65px]">
-                <TrendingSidebar />
-              </div>
+            <div className="flex items-center gap-1 rounded-lg bg-secondary p-1">
+              <button
+                onClick={() => setViewMode("grid")}
+                className={cn(
+                  "flex h-8 w-8 items-center justify-center rounded-md transition-colors",
+                  viewMode === "grid"
+                    ? "bg-card text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+                aria-label="Grid view"
+              >
+                <LayoutGrid className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => setViewMode("list")}
+                className={cn(
+                  "flex h-8 w-8 items-center justify-center rounded-md transition-colors",
+                  viewMode === "list"
+                    ? "bg-card text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+                aria-label="List view"
+              >
+                <List className="h-4 w-4" />
+              </button>
             </div>
           </div>
+
+          {/* Results count */}
+          <p className="mb-4 text-xs text-muted-foreground">
+            {filteredPosts.length} нийтлэл олдлоо
+          </p>
+
+          {/* Posts */}
+          {filteredPosts.length === 0 ? (
+            <div className="flex flex-col items-center justify-center rounded-xl bg-card py-20 ring-1 ring-border">
+              <p className="text-sm font-medium text-muted-foreground">
+                Энэ ангилалд нийтлэл олдсонгүй
+              </p>
+            </div>
+          ) : viewMode === "grid" ? (
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {filteredPosts.map((post) => (
+                <PostCard key={post.id} post={post} variant="default" />
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col gap-4">
+              {filteredPosts.map((post) => (
+                <PostCard key={post.id} post={post} variant="list" />
+              ))}
+            </div>
+          )}
         </div>
       </main>
     </div>

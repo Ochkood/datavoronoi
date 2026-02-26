@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
+import { usePathname } from "next/navigation"
 import {
   Home,
   Compass,
@@ -23,7 +24,7 @@ import {
 import { cn } from "@/lib/utils"
 
 const mainNavItems = [
-  { label: "Нүүр", icon: Home, href: "/", active: true },
+  { label: "Нүүр", icon: Home, href: "/" },
   { label: "Судлах", icon: Compass, href: "/explore" },
   { label: "Хадгалсан", icon: Bookmark, href: "/saved" },
   { label: "Дагаж буй", icon: Users, href: "/following" },
@@ -41,6 +42,7 @@ const categories = [
 ]
 
 export function AppSidebar() {
+  const pathname = usePathname()
   const [categoriesOpen, setCategoriesOpen] = useState(true)
   const [mobileOpen, setMobileOpen] = useState(false)
 
@@ -96,14 +98,16 @@ export function AppSidebar() {
 
         {/* Main nav */}
         <nav className="mt-6 flex flex-col gap-0.5 px-3">
-          {mainNavItems.map((item) => (
+          {mainNavItems.map((item) => {
+            const isActive = pathname === item.href
+            return (
             <Link
               key={item.label}
               href={item.href}
               onClick={() => setMobileOpen(false)}
               className={cn(
                 "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-                item.active
+                isActive
                   ? "bg-sidebar-accent text-sidebar-foreground"
                   : "text-sidebar-muted hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
               )}
@@ -111,7 +115,8 @@ export function AppSidebar() {
               <item.icon className="h-[18px] w-[18px]" />
               {item.label}
             </Link>
-          ))}
+            )
+          })}
         </nav>
 
         {/* Divider */}
