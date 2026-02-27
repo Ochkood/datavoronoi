@@ -15,7 +15,9 @@ import {
   Building2,
   Globe,
   X,
+  BarChart3,
 } from "lucide-react"
+import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { categories } from "@/lib/data"
 
@@ -117,6 +119,13 @@ export default function AdminCategoriesPage() {
                         <Edit className="h-4 w-4" />
                         Засах
                       </button>
+                      <Link
+                        href={`/admin/categories/${cat.slug}/stats`}
+                        className="flex w-full items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-secondary"
+                      >
+                        <BarChart3 className="h-4 w-4" />
+                        Статистик
+                      </Link>
                       <button className="flex w-full items-center gap-2 px-3 py-2 text-sm text-destructive hover:bg-destructive/10">
                         <Trash2 className="h-4 w-4" />
                         Устгах
