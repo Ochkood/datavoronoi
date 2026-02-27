@@ -19,6 +19,7 @@ import {
 import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { topics } from "@/lib/data"
+import { IconPicker, DynamicIcon } from "@/components/admin/icon-picker"
 
 // Extend topics with mock admin data
 const adminTopics = topics.map((topic, index) => ({

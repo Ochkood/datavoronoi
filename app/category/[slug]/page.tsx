@@ -2,8 +2,10 @@
 
 import { useState } from "react"
 import { useParams, notFound } from "next/navigation"
+import Image from "next/image"
 import { LayoutGrid, List, Newspaper, BarChart3 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { DynamicIcon } from "@/components/admin/icon-picker"
 import { AppSidebar } from "@/components/app-sidebar"
 import { PostCard } from "@/components/post-card"
 import { TrendingSidebar } from "@/components/trending-sidebar"
@@ -36,18 +38,39 @@ export default function CategoryPage() {
       <AppSidebar />
 
       <main className="flex-1 lg:ml-[260px]">
-        {/* Category Header */}
+        {/* Category Header with Banner */}
         <header className="sticky top-0 z-20 border-b border-border bg-card/95 backdrop-blur-sm">
-          <div className="mx-auto max-w-7xl px-4 py-4 pl-14 md:px-6 lg:pl-6">
+          {/* Banner Image */}
+          {category.bannerImage && (
+            <div className="relative h-32 w-full lg:h-40">
+              <Image
+                src={category.bannerImage}
+                alt={category.name}
+                fill
+                className="object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-card via-card/60 to-transparent" />
+            </div>
+          )}
+          
+          <div className={cn(
+            "mx-auto max-w-7xl px-4 py-4 pl-14 md:px-6 lg:pl-6",
+            category.bannerImage && "-mt-12 relative"
+          )}>
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-3">
                 <div
                   className={cn(
-                    "flex h-10 w-10 items-center justify-center rounded-xl",
-                    category.bgColor
+                    "flex h-12 w-12 items-center justify-center rounded-xl shadow-lg",
+                    category.bgColor,
+                    category.bannerImage && "border-2 border-card"
                   )}
                 >
-                  <Newspaper className="h-5 w-5 text-white" />
+                  <DynamicIcon 
+                    name={category.icon} 
+                    className="h-6 w-6 text-white" 
+                    fallback={Newspaper}
+                  />
                 </div>
                 <div>
                   <h1 className="text-xl font-bold text-foreground">

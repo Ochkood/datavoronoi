@@ -174,6 +174,8 @@ export interface CategoryInfo {
   description: string
   color: string
   bgColor: string
+  icon?: string
+  bannerImage?: string
 }
 
 export const categories: CategoryInfo[] = [
@@ -183,6 +185,8 @@ export const categories: CategoryInfo[] = [
     description: "Монгол болон дэлхийн эдийн засгийн мэдээ, шинжилгээ",
     color: "text-chart-1",
     bgColor: "bg-chart-1",
+    icon: "TrendingUp",
+    bannerImage: "/images/infographic-1.jpg",
   },
   {
     slug: "technology",
@@ -190,6 +194,8 @@ export const categories: CategoryInfo[] = [
     description: "Технологийн салбарын мэдээ, инноваци, стартап",
     color: "text-chart-2",
     bgColor: "bg-chart-2",
+    icon: "Cpu",
+    bannerImage: "/images/infographic-4.jpg",
   },
   {
     slug: "environment",
@@ -197,6 +203,8 @@ export const categories: CategoryInfo[] = [
     description: "Байгаль орчин, уур амьсгалын өөрчлөлт, тогтвортой хөгжил",
     color: "text-chart-4",
     bgColor: "bg-chart-4",
+    icon: "Leaf",
+    bannerImage: "/images/infographic-2.jpg",
   },
   {
     slug: "health",
@@ -204,6 +212,8 @@ export const categories: CategoryInfo[] = [
     description: "Эрүүл мэндийн салбарын мэдээ, судалгаа, статистик",
     color: "text-destructive",
     bgColor: "bg-destructive",
+    icon: "Heart",
+    bannerImage: "/images/infographic-9.jpg",
   },
   {
     slug: "finance",
@@ -211,6 +221,8 @@ export const categories: CategoryInfo[] = [
     description: "Санхүү, банк, хөрөнгийн зах зээлийн мэдээлэл",
     color: "text-chart-5",
     bgColor: "bg-chart-5",
+    icon: "Wallet",
+    bannerImage: "/images/infographic-6.jpg",
   },
   {
     slug: "world",
@@ -218,6 +230,8 @@ export const categories: CategoryInfo[] = [
     description: "Олон улсын мэдээ, геополитик, глобал хандлага",
     color: "text-chart-3",
     bgColor: "bg-chart-3",
+    icon: "Globe",
+    bannerImage: "/images/infographic-3.jpg",
   },
 ]
 
@@ -236,6 +250,7 @@ export interface StatItem {
   change?: string
   changeType?: "positive" | "negative" | "neutral"
   description?: string
+  icon?: string
 }
 
 export interface ChartDataPoint {
@@ -252,6 +267,7 @@ export interface CategoryStats {
     data: ChartDataPoint[]
     dataKey?: string
     dataKey2?: string
+    icon?: string
   }[]
 }
 

@@ -19,7 +19,8 @@ import {
   X,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { topics, topicStats, type CategoryStats } from "@/lib/data"
+import { topics, topicStats } from "@/lib/data"
+import { IconPicker, DynamicIcon } from "@/components/admin/icon-picker"
 
 type ChartType = "area" | "line" | "bar"
 type ChangeType = "positive" | "negative" | "neutral"
@@ -30,6 +31,7 @@ interface Highlight {
   change?: string
   changeType?: ChangeType
   description?: string
+  icon?: string
 }
 
 interface ChartData {
@@ -37,6 +39,7 @@ interface ChartData {
   type: ChartType
   data: { name: string; value: number }[]
   dataKey: string
+  icon?: string
 }
 
 export default function TopicStatsEditorPage() {
@@ -63,6 +66,7 @@ export default function TopicStatsEditorPage() {
     change: "",
     changeType: "neutral",
     description: "",
+    icon: "",
   })
 
   const [chartForm, setChartForm] = useState<ChartData>({
@@ -70,6 +74,7 @@ export default function TopicStatsEditorPage() {
     type: "area",
     data: [],
     dataKey: "value",
+    icon: "",
   })
   const [chartDataInput, setChartDataInput] = useState("")
 
@@ -89,6 +94,7 @@ export default function TopicStatsEditorPage() {
       change: "",
       changeType: "neutral",
       description: "",
+      icon: "",
     })
     setShowHighlightModal(true)
   }
@@ -121,6 +127,7 @@ export default function TopicStatsEditorPage() {
       type: "area",
       data: [],
       dataKey: "value",
+      icon: "",
     })
     setChartDataInput("")
     setShowChartModal(true)
@@ -128,9 +135,13 @@ export default function TopicStatsEditorPage() {
 
   const handleEditChart = (index: number) => {
     setEditingChart(index)
-    setChartForm(charts[index])
+    const chart = charts[index]
+    setChartForm({
+      ...chart,
+      icon: chart.icon || "",
+    })
     setChartDataInput(
-      charts[index].data.map((d) => `${d.name}:${d.value}`).join("\n")
+      chart.data.map((d) => `${d.name}:${d.value}`).join("\n")
     )
     setShowChartModal(true)
   }
@@ -248,7 +259,12 @@ export default function TopicStatsEditorPage() {
                   </button>
                 </div>
 
-                <p className="text-sm text-muted-foreground">{highlight.label}</p>
+                <div className="flex items-center gap-2">
+                  {highlight.icon && (
+                    <DynamicIcon name={highlight.icon} className="h-4 w-4 text-muted-foreground" />
+                  )}
+                  <p className="text-sm text-muted-foreground">{highlight.label}</p>
+                </div>
                 <p className="mt-1 text-2xl font-bold text-foreground">
                   {highlight.value}
                 </p>
@@ -335,9 +351,15 @@ export default function TopicStatsEditorPage() {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  {chart.type === "area" && <AreaChart className="h-4 w-4 text-primary" />}
-                  {chart.type === "line" && <LineChart className="h-4 w-4 text-primary" />}
-                  {chart.type === "bar" && <BarChart3 className="h-4 w-4 text-primary" />}
+                  {chart.icon ? (
+                    <DynamicIcon name={chart.icon} className="h-4 w-4 text-primary" />
+                  ) : (
+                    <>
+                      {chart.type === "area" && <AreaChart className="h-4 w-4 text-primary" />}
+                      {chart.type === "line" && <LineChart className="h-4 w-4 text-primary" />}
+                      {chart.type === "bar" && <BarChart3 className="h-4 w-4 text-primary" />}
+                    </>
+                  )}
                   <h3 className="font-medium text-foreground">{chart.title}</h3>
                 </div>
 
@@ -459,22 +481,36 @@ export default function TopicStatsEditorPage() {
                 </div>
               </div>
 
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-foreground">
-                  Тайлбар
-                </label>
-                <input
-                  type="text"
-                  value={highlightForm.description || ""}
-                  onChange={(e) =>
-                    setHighlightForm({
-                      ...highlightForm,
-                      description: e.target.value,
-                    })
-                  }
-                  placeholder="НҮБ-ын гишүүн орнууд"
-                  className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-foreground">
+                    Icon
+                  </label>
+                  <IconPicker
+                    value={highlightForm.icon || ""}
+                    onChange={(icon) =>
+                      setHighlightForm({ ...highlightForm, icon })
+                    }
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-foreground">
+                    Тайлбар
+                  </label>
+                  <input
+                    type="text"
+                    value={highlightForm.description || ""}
+                    onChange={(e) =>
+                      setHighlightForm({
+                        ...highlightForm,
+                        description: e.target.value,
+                      })
+                    }
+                    placeholder="НҮБ-ын гишүүн орнууд"
+                    className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  />
+                </div>
               </div>
 
               <div className="flex gap-3 pt-4">
@@ -515,19 +551,33 @@ export default function TopicStatsEditorPage() {
             </div>
 
             <div className="space-y-4">
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-foreground">
-                  Гарчиг
-                </label>
-                <input
-                  type="text"
-                  value={chartForm.title}
-                  onChange={(e) =>
-                    setChartForm({ ...chartForm, title: e.target.value })
-                  }
-                  placeholder="CO2 ялгарал (гигатонн)"
-                  className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-foreground">
+                    Гарчиг
+                  </label>
+                  <input
+                    type="text"
+                    value={chartForm.title}
+                    onChange={(e) =>
+                      setChartForm({ ...chartForm, title: e.target.value })
+                    }
+                    placeholder="CO2 ялгарал (гигатонн)"
+                    className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-foreground">
+                    Icon
+                  </label>
+                  <IconPicker
+                    value={chartForm.icon || ""}
+                    onChange={(icon) =>
+                      setChartForm({ ...chartForm, icon })
+                    }
+                  />
+                </div>
               </div>
 
               <div>

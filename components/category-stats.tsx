@@ -4,11 +4,12 @@ import {
   TrendingUp,
   TrendingDown,
   Minus,
-  ArrowUpRight,
   BarChart3,
+  ArrowUpRight,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { CategoryStats, StatItem, ChartDataPoint } from "@/lib/data"
+import { DynamicIcon } from "@/components/admin/icon-picker"
 import {
   AreaChart,
   Area,
@@ -33,7 +34,12 @@ function StatCard({ item }: { item: StatItem }) {
   return (
     <div className="rounded-xl bg-card p-4 ring-1 ring-border">
       <div className="flex items-start justify-between">
-        <p className="text-xs font-medium text-muted-foreground">{item.label}</p>
+        <div className="flex items-center gap-2">
+          {item.icon && (
+            <DynamicIcon name={item.icon} className="h-4 w-4 text-muted-foreground" />
+          )}
+          <p className="text-xs font-medium text-muted-foreground">{item.label}</p>
+        </div>
         {item.changeType && (
           <span
             className={cn(
@@ -65,9 +71,10 @@ interface ChartCardProps {
   dataKey?: string
   dataKey2?: string
   color: string
+  icon?: string
 }
 
-function ChartCard({ title, type, data, dataKey = "value", dataKey2, color }: ChartCardProps) {
+function ChartCard({ title, type, data, dataKey = "value", dataKey2, color, icon }: ChartCardProps) {
   const chartColor = color === "text-chart-1" ? "var(--chart-1)" :
                     color === "text-chart-2" ? "var(--chart-2)" :
                     color === "text-chart-3" ? "var(--chart-3)" :
@@ -81,7 +88,11 @@ function ChartCard({ title, type, data, dataKey = "value", dataKey2, color }: Ch
     <div className="rounded-xl bg-card p-4 ring-1 ring-border">
       <div className="mb-4 flex items-center justify-between">
         <h4 className="text-sm font-semibold text-card-foreground">{title}</h4>
-        <BarChart3 className="h-4 w-4 text-muted-foreground" />
+        {icon ? (
+          <DynamicIcon name={icon} className="h-4 w-4 text-muted-foreground" />
+        ) : (
+          <BarChart3 className="h-4 w-4 text-muted-foreground" />
+        )}
       </div>
       <div className="h-[200px] w-full">
         <ResponsiveContainer width="100%" height="100%">
@@ -204,7 +215,7 @@ export function CategoryStatsView({ stats, categoryColor }: CategoryStatsProps) 
       <section>
         <div className="mb-4 flex items-center gap-2">
           <ArrowUpRight className="h-5 w-5 text-primary" />
-          <h3 className="text-base font-bold text-foreground">Гол үзүүлэлтүүд</h3>
+          <h3 className="text-base font-bold text-foreground">Гол үзүүлэлт��үд</h3>
         </div>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {stats.highlights.map((item, idx) => (
@@ -229,6 +240,7 @@ export function CategoryStatsView({ stats, categoryColor }: CategoryStatsProps) 
               dataKey={chart.dataKey}
               dataKey2={chart.dataKey2}
               color={categoryColor}
+              icon={chart.icon}
             />
           ))}
         </div>

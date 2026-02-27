@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import Image from "next/image"
 import {
   Plus,
   Search,
@@ -8,27 +9,15 @@ import {
   Trash2,
   MoreHorizontal,
   FolderTree,
-  TrendingUp,
-  Cpu,
-  Leaf,
-  Heart,
-  Building2,
-  Globe,
   X,
   BarChart3,
+  ImageIcon,
+  Upload,
 } from "lucide-react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { categories } from "@/lib/data"
-
-const iconMap: Record<string, React.ElementType> = {
-  economy: TrendingUp,
-  technology: Cpu,
-  environment: Leaf,
-  health: Heart,
-  finance: Building2,
-  world: Globe,
-}
+import { IconPicker, DynamicIcon } from "@/components/admin/icon-picker"
 
 // Extend categories with mock data
 const adminCategories = categories.map((cat, index) => ({
@@ -38,10 +27,27 @@ const adminCategories = categories.map((cat, index) => ({
   createdAt: "2024-01-15",
 }))
 
+type EditCategoryForm = {
+  name: string
+  slug: string
+  description: string
+  color: string
+  icon: string
+  bannerImage: string
+}
+
 export default function AdminCategoriesPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [showModal, setShowModal] = useState(false)
   const [editingCategory, setEditingCategory] = useState<typeof adminCategories[0] | null>(null)
+  const [formData, setFormData] = useState<EditCategoryForm>({
+    name: "",
+    slug: "",
+    description: "",
+    color: "chart-1",
+    icon: "",
+    bannerImage: "",
+  })
 
   const filteredCategories = adminCategories.filter((cat) =>
     cat.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -88,22 +94,42 @@ export default function AdminCategoriesPage() {
 
         {/* Categories Grid */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {filteredCategories.map((cat) => {
-            const IconComponent = iconMap[cat.slug] || FolderTree
-            return (
+          {filteredCategories.map((cat) => (
               <div
                 key={cat.slug}
-                className="group rounded-xl border border-border bg-card p-5 transition-all hover:shadow-md"
+                className="group overflow-hidden rounded-xl border border-border bg-card transition-all hover:shadow-md"
               >
-                <div className="flex items-start justify-between">
-                  <div
-                    className={cn(
-                      "flex h-12 w-12 items-center justify-center rounded-xl",
-                      `${cat.bgColor}/10`
-                    )}
-                  >
-                    <IconComponent className={cn("h-6 w-6", cat.color)} />
+                {/* Banner Image */}
+                {cat.bannerImage ? (
+                  <div className="relative h-24 w-full">
+                    <Image
+                      src={cat.bannerImage}
+                      alt={cat.name}
+                      fill
+                      className="object-cover"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-foreground/60 to-transparent" />
                   </div>
+                ) : (
+                  <div className="flex h-24 w-full items-center justify-center bg-muted">
+                    <ImageIcon className="h-8 w-8 text-muted-foreground" />
+                  </div>
+                )}
+
+                <div className="p-5">
+                  <div className="flex items-start justify-between">
+                    <div
+                      className={cn(
+                        "flex h-12 w-12 items-center justify-center rounded-xl -mt-10 relative z-10 border-4 border-card",
+                        cat.bgColor
+                      )}
+                    >
+                      <DynamicIcon 
+                        name={cat.icon} 
+                        className="h-6 w-6 text-white" 
+                        fallback={FolderTree}
+                      />
+                    </div>
                   <div className="relative">
                     <button className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity hover:bg-secondary hover:text-foreground group-hover:opacity-100">
                       <MoreHorizontal className="h-4 w-4" />
@@ -112,6 +138,14 @@ export default function AdminCategoriesPage() {
                       <button
                         onClick={() => {
                           setEditingCategory(cat)
+                          setFormData({
+                            name: cat.name,
+                            slug: cat.slug,
+                            description: cat.description,
+                            color: cat.color.replace("text-", ""),
+                            icon: cat.icon || "",
+                            bannerImage: cat.bannerImage || "",
+                          })
                           setShowModal(true)
                         }}
                         className="flex w-full items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-secondary"
@@ -167,7 +201,7 @@ export default function AdminCategoriesPage() {
       {/* Modal */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/20 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-xl">
+          <div className="w-full max-w-lg rounded-xl border border-border bg-card p-6 shadow-xl max-h-[90vh] overflow-y-auto">
             <div className="mb-6 flex items-center justify-between">
               <h2 className="text-lg font-bold text-foreground">
                 {editingCategory ? "Ангилал засах" : "Шинэ ангилал"}
@@ -181,28 +215,71 @@ export default function AdminCategoriesPage() {
             </div>
 
             <form className="space-y-4">
+              {/* Banner Image */}
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-foreground">
-                  Нэр
+                  Banner зураг
                 </label>
+                <div className="relative">
+                  {formData.bannerImage ? (
+                    <div className="relative h-32 w-full overflow-hidden rounded-lg">
+                      <Image
+                        src={formData.bannerImage}
+                        alt="Banner"
+                        fill
+                        className="object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, bannerImage: "" })}
+                        className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-foreground/80 text-background hover:bg-foreground"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="flex h-32 w-full cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-input bg-background hover:bg-secondary/30">
+                      <Upload className="h-6 w-6 text-muted-foreground" />
+                      <span className="mt-2 text-sm text-muted-foreground">Зураг оруулах</span>
+                      <input type="file" className="hidden" accept="image/*" />
+                    </label>
+                  )}
+                </div>
                 <input
                   type="text"
-                  defaultValue={editingCategory?.name || ""}
-                  placeholder="Ангилалын нэр"
-                  className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  value={formData.bannerImage}
+                  onChange={(e) => setFormData({ ...formData, bannerImage: e.target.value })}
+                  placeholder="/images/banner.jpg"
+                  className="mt-2 h-9 w-full rounded-lg border border-input bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
                 />
               </div>
 
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-foreground">
-                  Slug
-                </label>
-                <input
-                  type="text"
-                  defaultValue={editingCategory?.slug || ""}
-                  placeholder="category-slug"
-                  className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-foreground">
+                    Нэр
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    placeholder="Ангилалын нэр"
+                    className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-foreground">
+                    Slug
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.slug}
+                    onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+                    placeholder="category-slug"
+                    className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  />
+                </div>
               </div>
 
               <div>
@@ -210,32 +287,47 @@ export default function AdminCategoriesPage() {
                   Тайлбар
                 </label>
                 <textarea
-                  rows={3}
-                  defaultValue={editingCategory?.description || ""}
+                  rows={2}
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   placeholder="Ангилалын тайлбар"
                   className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 />
               </div>
 
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-foreground">
-                  Өнгө
-                </label>
-                <div className="flex gap-2">
-                  {["chart-1", "chart-2", "chart-3", "chart-4", "chart-5", "primary"].map(
-                    (color) => (
-                      <button
-                        key={color}
-                        type="button"
-                        className={cn(
-                          "h-8 w-8 rounded-full border-2 border-transparent transition-all hover:scale-110",
-                          `bg-${color}`,
-                          editingCategory?.color.includes(color) &&
-                            "border-foreground"
-                        )}
-                      />
-                    )
-                  )}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-foreground">
+                    Icon
+                  </label>
+                  <IconPicker
+                    value={formData.icon}
+                    onChange={(icon) => setFormData({ ...formData, icon })}
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-foreground">
+                    Өнгө
+                  </label>
+                  <div className="flex h-10 items-center gap-2">
+                    {["chart-1", "chart-2", "chart-3", "chart-4", "chart-5", "primary", "destructive"].map(
+                      (color) => (
+                        <button
+                          key={color}
+                          type="button"
+                          onClick={() => setFormData({ ...formData, color })}
+                          className={cn(
+                            "h-7 w-7 rounded-full border-2 transition-all hover:scale-110",
+                            `bg-${color}`,
+                            formData.color === color
+                              ? "border-foreground"
+                              : "border-transparent"
+                          )}
+                        />
+                      )
+                    )}
+                  </div>
                 </div>
               </div>
 
