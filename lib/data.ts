@@ -796,3 +796,353 @@ export const categoryStats: Record<string, CategoryStats> = {
     ],
   },
 }
+
+// Topics - Dynamic themes/events (like COP17, Elections, etc.)
+export interface TopicInfo {
+  slug: string
+  name: string
+  description: string
+  image: string
+  color: string
+  bgColor: string
+  startDate?: string
+  endDate?: string
+  featured?: boolean
+}
+
+export const topics: TopicInfo[] = [
+  {
+    slug: "cop29",
+    name: "COP29 Уур амьсгалын бага хурал",
+    description: "2024 оны НҮБ-ын уур амьсгалын өөрчлөлтийн бага хурал, Азербайжан",
+    image: "/images/infographic-2.jpg",
+    color: "text-chart-4",
+    bgColor: "bg-chart-4",
+    startDate: "2024-11-11",
+    endDate: "2024-11-22",
+    featured: true,
+  },
+  {
+    slug: "mongolia-election-2024",
+    name: "Монголын Сонгууль 2024",
+    description: "УИХ-ын сонгуулийн үр дүн, статистик мэдээлэл",
+    image: "/images/infographic-3.jpg",
+    color: "text-primary",
+    bgColor: "bg-primary",
+    startDate: "2024-06-28",
+    featured: true,
+  },
+  {
+    slug: "ai-revolution",
+    name: "AI Хувьсгал",
+    description: "Хиймэл оюуны технологийн хөгжил, нөлөө, ирээдүй",
+    image: "/images/infographic-7.jpg",
+    color: "text-chart-2",
+    bgColor: "bg-chart-2",
+    featured: true,
+  },
+  {
+    slug: "global-economy-2025",
+    name: "Дэлхийн эдийн засаг 2025",
+    description: "2025 оны дэлхийн эдийн засгийн төлөв байдал, таамаглал",
+    image: "/images/infographic-8.jpg",
+    color: "text-chart-1",
+    bgColor: "bg-chart-1",
+    featured: false,
+  },
+  {
+    slug: "crypto-market",
+    name: "Крипто зах зээл",
+    description: "Криптовалют, блокчэйн технологийн мэдээ, шинжилгээ",
+    image: "/images/infographic-6.jpg",
+    color: "text-chart-5",
+    bgColor: "bg-chart-5",
+    featured: false,
+  },
+]
+
+export function getTopicBySlug(slug: string): TopicInfo | undefined {
+  return topics.find((topic) => topic.slug === slug)
+}
+
+export function getPostsByTopic(topicSlug: string): PostData[] {
+  // Map topic slugs to relevant categories/keywords
+  const topicCategoryMap: Record<string, string[]> = {
+    "cop29": ["environment", "Байгаль орчин"],
+    "mongolia-election-2024": ["world", "Дэлхий"],
+    "ai-revolution": ["technology", "Технологи"],
+    "global-economy-2025": ["economy", "Эдийн засаг"],
+    "crypto-market": ["finance", "Санхүү"],
+  }
+  
+  const relatedCategories = topicCategoryMap[topicSlug] || []
+  return posts.filter((post) => 
+    relatedCategories.includes(post.categorySlug || "") || 
+    relatedCategories.includes(post.category)
+  )
+}
+
+// Topic Statistics
+export const topicStats: Record<string, CategoryStats> = {
+  "cop29": {
+    highlights: [
+      {
+        label: "Оролцогч орон",
+        value: "197",
+        change: "+2",
+        changeType: "positive",
+        description: "НҮБ-ын гишүүн орнууд",
+      },
+      {
+        label: "Санхүүжилтийн зорилт",
+        value: "100 тэрбум $",
+        change: "Жил бүр",
+        changeType: "neutral",
+        description: "Хөгжиж буй орнуудад",
+      },
+      {
+        label: "Дулааралын зорилт",
+        value: "1.5°C",
+        description: "Парисын хэлэлцээр",
+      },
+      {
+        label: "CO2 бууралтын зорилт",
+        value: "45%",
+        change: "2030 он гэхэд",
+        changeType: "neutral",
+        description: "2010 оноос",
+      },
+    ],
+    charts: [
+      {
+        title: "Дэлхийн дундаж температурын өөрчлөлт (°C)",
+        type: "area",
+        data: [
+          { name: "1990", value: 0.45 },
+          { name: "2000", value: 0.42 },
+          { name: "2010", value: 0.72 },
+          { name: "2015", value: 0.90 },
+          { name: "2020", value: 1.02 },
+          { name: "2024", value: 1.15 },
+        ],
+        dataKey: "value",
+      },
+      {
+        title: "CO2 ялгарал (гигатонн)",
+        type: "line",
+        data: [
+          { name: "2015", value: 35.5 },
+          { name: "2018", value: 36.8 },
+          { name: "2020", value: 34.2 },
+          { name: "2022", value: 36.8 },
+          { name: "2024", value: 37.4 },
+        ],
+        dataKey: "value",
+      },
+    ],
+  },
+  "mongolia-election-2024": {
+    highlights: [
+      {
+        label: "Нийт сонгогч",
+        value: "2.1 сая",
+        description: "Бүртгэлтэй сонгогч",
+      },
+      {
+        label: "Оролцоо",
+        value: "73.2%",
+        change: "+5%",
+        changeType: "positive",
+        description: "2020 оноос",
+      },
+      {
+        label: "УИХ-ын гишүүн",
+        value: "126",
+        description: "Нийт суудал",
+      },
+      {
+        label: "Нам, эвсэл",
+        value: "28",
+        description: "Оролцсон",
+      },
+    ],
+    charts: [
+      {
+        title: "Сонгуулийн оролцоо (%) - Түүхээр",
+        type: "bar",
+        data: [
+          { name: "2008", value: 74.3 },
+          { name: "2012", value: 65.2 },
+          { name: "2016", value: 72.1 },
+          { name: "2020", value: 68.2 },
+          { name: "2024", value: 73.2 },
+        ],
+        dataKey: "value",
+      },
+    ],
+  },
+  "ai-revolution": {
+    highlights: [
+      {
+        label: "AI зах зээлийн хэмжээ",
+        value: "185 тэрбум $",
+        change: "+38%",
+        changeType: "positive",
+        description: "2025 он",
+      },
+      {
+        label: "AI стартап",
+        value: "15,000+",
+        change: "+25%",
+        changeType: "positive",
+        description: "Дэлхий даяар",
+      },
+      {
+        label: "AI-д хөрөнгө оруулалт",
+        value: "95 тэрбум $",
+        change: "+45%",
+        changeType: "positive",
+        description: "2024 онд",
+      },
+      {
+        label: "ChatGPT хэрэглэгч",
+        value: "200 сая+",
+        change: "7 хоногт",
+        changeType: "positive",
+        description: "Идэвхтэй хэрэглэгч",
+      },
+    ],
+    charts: [
+      {
+        title: "Глобал AI зах зээлийн хэмжээ (тэрбум $)",
+        type: "area",
+        data: [
+          { name: "2020", value: 50 },
+          { name: "2021", value: 65 },
+          { name: "2022", value: 87 },
+          { name: "2023", value: 120 },
+          { name: "2024", value: 155 },
+          { name: "2025", value: 185 },
+        ],
+        dataKey: "value",
+      },
+      {
+        title: "AI-д хөрөнгө оруулалт (тэрбум $)",
+        type: "bar",
+        data: [
+          { name: "2020", value: 36 },
+          { name: "2021", value: 52 },
+          { name: "2022", value: 68 },
+          { name: "2023", value: 75 },
+          { name: "2024", value: 95 },
+        ],
+        dataKey: "value",
+      },
+    ],
+  },
+  "global-economy-2025": {
+    highlights: [
+      {
+        label: "Дэлхийн ДНБ өсөлт",
+        value: "3.2%",
+        change: "+0.1%",
+        changeType: "positive",
+        description: "2025 оны таамаг",
+      },
+      {
+        label: "Глобал инфляци",
+        value: "5.8%",
+        change: "-1.5%",
+        changeType: "positive",
+        description: "Дундаж түвшин",
+      },
+      {
+        label: "Худалдааны өсөлт",
+        value: "3.5%",
+        change: "+1.2%",
+        changeType: "positive",
+        description: "Дэлхийн худалдаа",
+      },
+      {
+        label: "Ажилгүйдэл",
+        value: "5.2%",
+        change: "-0.3%",
+        changeType: "positive",
+        description: "Дэлхийн дундаж",
+      },
+    ],
+    charts: [
+      {
+        title: "Дэлхийн ДНБ өсөлт (%)",
+        type: "area",
+        data: [
+          { name: "2020", value: -3.1 },
+          { name: "2021", value: 6.0 },
+          { name: "2022", value: 3.4 },
+          { name: "2023", value: 3.0 },
+          { name: "2024", value: 3.1 },
+          { name: "2025", value: 3.2 },
+        ],
+        dataKey: "value",
+      },
+    ],
+  },
+  "crypto-market": {
+    highlights: [
+      {
+        label: "Bitcoin үнэ",
+        value: "$67,500",
+        change: "+120%",
+        changeType: "positive",
+        description: "Жилийн өсөлт",
+      },
+      {
+        label: "Нийт зах зээл",
+        value: "2.8 их наяд $",
+        change: "+85%",
+        changeType: "positive",
+        description: "Крипто зах зээл",
+      },
+      {
+        label: "Ethereum үнэ",
+        value: "$3,400",
+        change: "+65%",
+        changeType: "positive",
+        description: "Жилийн өсөлт",
+      },
+      {
+        label: "Идэвхтэй хэтэвч",
+        value: "420 сая",
+        change: "+35%",
+        changeType: "positive",
+        description: "Дэлхий даяар",
+      },
+    ],
+    charts: [
+      {
+        title: "Bitcoin үнэ ($)",
+        type: "line",
+        data: [
+          { name: "2020", value: 29000 },
+          { name: "2021", value: 47000 },
+          { name: "2022", value: 16500 },
+          { name: "2023", value: 42000 },
+          { name: "2024", value: 67500 },
+        ],
+        dataKey: "value",
+      },
+      {
+        title: "Крипто зах зээлийн хэмжээ (их наяд $)",
+        type: "area",
+        data: [
+          { name: "2020", value: 0.76 },
+          { name: "2021", value: 2.2 },
+          { name: "2022", value: 0.85 },
+          { name: "2023", value: 1.5 },
+          { name: "2024", value: 2.8 },
+        ],
+        dataKey: "value",
+      },
+    ],
+  },
+}
