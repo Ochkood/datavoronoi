@@ -130,7 +130,7 @@ export default function AdminCategoriesPage() {
                         fallback={FolderTree}
                       />
                     </div>
-                  <div className="relative">
+                    <div className="relative">
                     <button className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity hover:bg-secondary hover:text-foreground group-hover:opacity-100">
                       <MoreHorizontal className="h-4 w-4" />
                     </button>
@@ -165,36 +165,36 @@ export default function AdminCategoriesPage() {
                         Устгах
                       </button>
                     </div>
+                    </div>
                   </div>
-                </div>
 
-                <div className="mt-4">
-                  <h3 className="text-lg font-semibold text-foreground">
-                    {cat.name}
-                  </h3>
+                  <div className="mt-4">
+                    <h3 className="text-lg font-semibold text-foreground">
+                      {cat.name}
+                    </h3>
                   <p className="mt-1 text-sm text-muted-foreground line-clamp-2">
-                    {cat.description}
-                  </p>
-                </div>
-
-                <div className="mt-4 flex items-center gap-4 border-t border-border pt-4">
-                  <div>
-                    <p className="text-lg font-semibold text-foreground">
-                      {cat.postCount}
+                      {cat.description}
                     </p>
-                    <p className="text-xs text-muted-foreground">Нийтлэл</p>
                   </div>
-                  <div className="h-8 w-px bg-border" />
-                  <div>
-                    <p className="text-lg font-semibold text-foreground">
-                      {cat.views}
-                    </p>
-                    <p className="text-xs text-muted-foreground">Үзэлт</p>
+
+                  <div className="mt-4 flex items-center gap-4 border-t border-border pt-4">
+                    <div>
+                      <p className="text-lg font-semibold text-foreground">
+                        {cat.postCount}
+                      </p>
+                      <p className="text-xs text-muted-foreground">Нийтлэл</p>
+                    </div>
+                    <div className="h-8 w-px bg-border" />
+                    <div>
+                      <p className="text-lg font-semibold text-foreground">
+                        {cat.views}
+                      </p>
+                      <p className="text-xs text-muted-foreground">Үзэлт</p>
+                    </div>
                   </div>
                 </div>
               </div>
-            )
-          })}
+          ))}
         </div>
       </div>
 
