@@ -32,13 +32,12 @@ const mainNavItems = [
 ]
 
 const categories = [
-  { label: "Эдийн засаг", icon: TrendingUp, color: "text-chart-1" },
-  { label: "Технологи", icon: Cpu, color: "text-chart-2" },
-  { label: "Байгаль орчин", icon: Leaf, color: "text-chart-4" },
-  { label: "Эрүүл мэнд", icon: Heart, color: "text-destructive" },
-  { label: "Нийгэм", icon: Building2, color: "text-chart-5" },
-  { label: "Дэлхий", icon: Globe, color: "text-chart-3" },
-  { label: "Статистик", icon: BarChart3, color: "text-primary" },
+  { label: "Эдийн засаг", slug: "economy", icon: TrendingUp, color: "text-chart-1" },
+  { label: "Технологи", slug: "technology", icon: Cpu, color: "text-chart-2" },
+  { label: "Байгаль орчин", slug: "environment", icon: Leaf, color: "text-chart-4" },
+  { label: "Эрүүл мэнд", slug: "health", icon: Heart, color: "text-destructive" },
+  { label: "Санхүү", slug: "finance", icon: Building2, color: "text-chart-5" },
+  { label: "Дэлхий", slug: "world", icon: Globe, color: "text-chart-3" },
 ]
 
 export function AppSidebar() {
@@ -137,15 +136,25 @@ export function AppSidebar() {
           </button>
           {categoriesOpen && (
             <div className="flex flex-col gap-0.5">
-              {categories.map((cat) => (
-                <button
-                  key={cat.label}
-                  className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-sidebar-muted transition-colors hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
-                >
-                  <cat.icon className={cn("h-4 w-4", cat.color)} />
-                  {cat.label}
-                </button>
-              ))}
+              {categories.map((cat) => {
+                const isCatActive = pathname === `/category/${cat.slug}`
+                return (
+                  <Link
+                    key={cat.label}
+                    href={`/category/${cat.slug}`}
+                    onClick={() => setMobileOpen(false)}
+                    className={cn(
+                      "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                      isCatActive
+                        ? "bg-sidebar-accent text-sidebar-foreground"
+                        : "text-sidebar-muted hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+                    )}
+                  >
+                    <cat.icon className={cn("h-4 w-4", cat.color)} />
+                    {cat.label}
+                  </Link>
+                )
+              })}
             </div>
           )}
         </div>

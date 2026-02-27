@@ -10,6 +10,7 @@ export interface PostData {
   title: string
   excerpt: string
   category: string
+  categorySlug?: string
   categoryColor: string
   image: string
   author: string
