@@ -20,6 +20,9 @@ import {
   ChevronRight,
   X,
   Menu,
+  Hash,
+  Flame,
+  PenTool,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -32,18 +35,24 @@ const mainNavItems = [
 ]
 
 const categories = [
-  { label: "Эдийн засаг", icon: TrendingUp, color: "text-chart-1" },
-  { label: "Технологи", icon: Cpu, color: "text-chart-2" },
-  { label: "Байгаль орчин", icon: Leaf, color: "text-chart-4" },
-  { label: "Эрүүл мэнд", icon: Heart, color: "text-destructive" },
-  { label: "Нийгэм", icon: Building2, color: "text-chart-5" },
-  { label: "Дэлхий", icon: Globe, color: "text-chart-3" },
-  { label: "Статистик", icon: BarChart3, color: "text-primary" },
+  { label: "Эдийн засаг", slug: "economy", icon: TrendingUp, color: "text-chart-1" },
+  { label: "Технологи", slug: "technology", icon: Cpu, color: "text-chart-2" },
+  { label: "Байгаль орчин", slug: "environment", icon: Leaf, color: "text-chart-4" },
+  { label: "Эрүүл мэнд", slug: "health", icon: Heart, color: "text-destructive" },
+  { label: "Санхүү", slug: "finance", icon: Building2, color: "text-chart-5" },
+  { label: "Дэлхий", slug: "world", icon: Globe, color: "text-chart-3" },
+]
+
+const featuredTopics = [
+  { label: "COP29 Бага хурал", slug: "cop29", color: "text-chart-4" },
+  { label: "Сонгууль 2024", slug: "mongolia-election-2024", color: "text-primary" },
+  { label: "AI Хувьсгал", slug: "ai-revolution", color: "text-chart-2" },
 ]
 
 export function AppSidebar() {
   const pathname = usePathname()
   const [categoriesOpen, setCategoriesOpen] = useState(true)
+  const [topicsOpen, setTopicsOpen] = useState(true)
   const [mobileOpen, setMobileOpen] = useState(false)
 
   return (
@@ -137,24 +146,105 @@ export function AppSidebar() {
           </button>
           {categoriesOpen && (
             <div className="flex flex-col gap-0.5">
-              {categories.map((cat) => (
-                <button
-                  key={cat.label}
-                  className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-sidebar-muted transition-colors hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
-                >
-                  <cat.icon className={cn("h-4 w-4", cat.color)} />
-                  {cat.label}
-                </button>
-              ))}
+              {categories.map((cat) => {
+                const isCatActive = pathname === `/category/${cat.slug}`
+                return (
+                  <Link
+                    key={cat.label}
+                    href={`/category/${cat.slug}`}
+                    onClick={() => setMobileOpen(false)}
+                    className={cn(
+                      "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                      isCatActive
+                        ? "bg-sidebar-accent text-sidebar-foreground"
+                        : "text-sidebar-muted hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+                    )}
+                  >
+                    <cat.icon className={cn("h-4 w-4", cat.color)} />
+                    {cat.label}
+                  </Link>
+                )
+              })}
             </div>
           )}
         </div>
 
+        {/* Divider */}
+        <div className="mx-5 my-4 h-px bg-sidebar-border" />
+
+        {/* Topics */}
+        <div className="px-3">
+          <button
+            onClick={() => setTopicsOpen(!topicsOpen)}
+            className="flex w-full items-center justify-between px-3 py-2 text-xs font-semibold uppercase tracking-wider text-sidebar-muted"
+          >
+            <span className="flex items-center gap-2">
+              <Flame className="h-3 w-3" />
+              Сэдэв
+            </span>
+            {topicsOpen ? (
+              <ChevronDown className="h-3.5 w-3.5" />
+            ) : (
+              <ChevronRight className="h-3.5 w-3.5" />
+            )}
+          </button>
+          {topicsOpen && (
+            <div className="flex flex-col gap-0.5">
+              {featuredTopics.map((topic) => {
+                const isTopicActive = pathname === `/topic/${topic.slug}`
+                return (
+                  <Link
+                    key={topic.slug}
+                    href={`/topic/${topic.slug}`}
+                    onClick={() => setMobileOpen(false)}
+                    className={cn(
+                      "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                      isTopicActive
+                        ? "bg-sidebar-accent text-sidebar-foreground"
+                        : "text-sidebar-muted hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+                    )}
+                  >
+                    <Hash className={cn("h-4 w-4", topic.color)} />
+                    {topic.label}
+                  </Link>
+                )
+              })}
+              <Link
+                href="/topics"
+                onClick={() => setMobileOpen(false)}
+                className="mt-1 flex items-center gap-3 rounded-lg px-3 py-2 text-xs text-sidebar-muted hover:text-sidebar-foreground"
+              >
+                Бүх сэдвүүд...
+              </Link>
+            </div>
+          )}
+        </div>
+
+        {/* Become Publisher CTA */}
+        <div className="mx-3 mt-4">
+          <Link
+            href="/become-publisher"
+            onClick={() => setMobileOpen(false)}
+            className="flex items-center justify-center gap-2 rounded-lg bg-primary/10 px-4 py-3 text-sm font-medium text-primary transition-colors hover:bg-primary/20"
+          >
+            <PenTool className="h-4 w-4" />
+            Нийтлэгч болох
+          </Link>
+        </div>
+
         {/* Footer */}
         <div className="mt-auto border-t border-sidebar-border px-5 py-4">
-          <p className="text-[11px] text-sidebar-muted">
-            &copy; 2026 Datanews.mn
-          </p>
+          <div className="flex items-center justify-between">
+            <p className="text-[11px] text-sidebar-muted">
+              &copy; 2026 Datanews.mn
+            </p>
+            <Link
+              href="/login"
+              className="text-[11px] font-medium text-sidebar-muted hover:text-sidebar-foreground"
+            >
+              Нэвтрэх
+            </Link>
+          </div>
         </div>
       </aside>
     </>

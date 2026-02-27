@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import Image from "next/image"
+import Link from "next/link"
 import { Bookmark, Share2, Eye, MessageCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -10,6 +11,7 @@ export interface PostData {
   title: string
   excerpt: string
   category: string
+  categorySlug?: string
   categoryColor: string
   image: string
   author: string
@@ -31,7 +33,7 @@ export function PostCard({ post, variant = "default" }: PostCardProps) {
   if (variant === "list") {
     return (
       <article className="group flex gap-4 rounded-xl bg-card p-4 ring-1 ring-border transition-all hover:shadow-md hover:ring-border/80">
-        <div className="relative h-28 w-44 flex-shrink-0 overflow-hidden rounded-lg sm:h-32 sm:w-52">
+        <Link href={`/post/${post.id}`} className="relative h-28 w-44 flex-shrink-0 overflow-hidden rounded-lg sm:h-32 sm:w-52">
           <Image
             src={post.image}
             alt={post.title}
@@ -46,12 +48,14 @@ export function PostCard({ post, variant = "default" }: PostCardProps) {
           >
             {post.category}
           </span>
-        </div>
+        </Link>
         <div className="flex flex-1 flex-col justify-between py-0.5">
           <div>
-            <h3 className="line-clamp-2 text-[15px] font-bold leading-snug text-card-foreground text-pretty">
-              {post.title}
-            </h3>
+            <Link href={`/post/${post.id}`}>
+              <h3 className="line-clamp-2 text-[15px] font-bold leading-snug text-card-foreground text-pretty hover:text-primary">
+                {post.title}
+              </h3>
+            </Link>
             <p className="mt-1.5 line-clamp-2 text-[13px] leading-relaxed text-muted-foreground">
               {post.excerpt}
             </p>
@@ -139,7 +143,7 @@ export function PostCard({ post, variant = "default" }: PostCardProps) {
 
   return (
     <article className="group overflow-hidden rounded-xl bg-card shadow-sm ring-1 ring-border transition-all hover:shadow-md hover:ring-border/80">
-      <div className="relative aspect-[16/10] w-full overflow-hidden">
+      <Link href={`/post/${post.id}`} className="relative block aspect-[16/10] w-full overflow-hidden">
         <Image
           src={post.image}
           alt={post.title}
@@ -154,11 +158,13 @@ export function PostCard({ post, variant = "default" }: PostCardProps) {
         >
           {post.category}
         </span>
-      </div>
+      </Link>
       <div className="p-4">
-        <h3 className="line-clamp-2 text-[15px] font-bold leading-snug text-card-foreground text-pretty">
-          {post.title}
-        </h3>
+        <Link href={`/post/${post.id}`}>
+          <h3 className="line-clamp-2 text-[15px] font-bold leading-snug text-card-foreground text-pretty hover:text-primary">
+            {post.title}
+          </h3>
+        </Link>
         <p className="mt-1.5 line-clamp-2 text-[13px] leading-relaxed text-muted-foreground">
           {post.excerpt}
         </p>
