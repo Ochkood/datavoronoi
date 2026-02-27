@@ -2,7 +2,7 @@ import type { AuthUser } from "@/lib/auth"
 import { getAccessToken } from "@/lib/auth"
 import type { PostData } from "@/components/post-card"
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api"
 const API_ORIGIN = API_BASE.replace(/\/api\/?$/, "")
 
 type ApiResponse<T> = {
