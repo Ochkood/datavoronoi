@@ -14,6 +14,7 @@ const listPosts = asyncHandler(async (req, res) => {
     limit = 10,
     status = 'published',
     sort = 'latest',
+    featured = 'all',
     category,
     topic,
     q,
@@ -23,6 +24,9 @@ const listPosts = asyncHandler(async (req, res) => {
   const filter = {};
 
   if (status !== 'all') filter.status = status;
+  if (featured !== 'all') {
+    filter.featured = featured === 'true';
+  }
   if (category) filter.category = category;
   if (topic) filter.topics = topic;
   if (author) filter.author = author;

@@ -18,11 +18,25 @@ export default function HomePage() {
 
   useEffect(() => {
     setLoading(true)
-    getPosts()
+    const params =
+      activeTab === "popular"
+        ? { sort: "popular" as const }
+        : activeTab === "featured"
+          ? { featured: "true" as const, sort: "latest" as const }
+          : { sort: "latest" as const }
+
+    getPosts(params)
       .then(setPosts)
       .catch(() => setPosts([]))
       .finally(() => setLoading(false))
-  }, [])
+  }, [activeTab])
+
+  const tabTitle =
+    activeTab === "popular"
+      ? "Шилдэг мэдээ"
+      : activeTab === "featured"
+        ? "Онцлох мэдээ"
+        : "Шинэ мэдээ"
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -39,7 +53,7 @@ export default function HomePage() {
               <div className="mb-5 flex items-center justify-between">
                 <div>
                   <h2 className="text-lg font-bold text-foreground">
-                    Newsfeed
+                    {tabTitle}
                   </h2>
                   <p className="mt-0.5 text-xs text-muted-foreground">
                     {loading ? "..." : posts.length} нийтлэл

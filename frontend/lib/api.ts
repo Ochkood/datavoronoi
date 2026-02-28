@@ -455,6 +455,7 @@ export async function getPosts(params?: {
   topic?: string
   q?: string
   status?: "all" | "draft" | "pending" | "published" | "rejected"
+  featured?: "all" | "true" | "false"
   author?: string
   sort?: "latest" | "popular"
   page?: number
@@ -465,6 +466,7 @@ export async function getPosts(params?: {
   if (params?.topic) search.set("topic", params.topic)
   if (params?.q) search.set("q", params.q)
   if (params?.status) search.set("status", params.status)
+  if (params?.featured) search.set("featured", params.featured)
   if (params?.author) search.set("author", params.author)
   if (params?.sort) search.set("sort", params.sort)
   if (params?.page) search.set("page", String(params.page))

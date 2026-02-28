@@ -37,8 +37,8 @@ import {
 
 const tabs = [
   { id: "latest", label: "Шинэ" },
-  { id: "popular", label: "Эрэлттэй" },
-  { id: "editor", label: "Сонголт" },
+  { id: "popular", label: "Шилдэг" },
+  { id: "featured", label: "Онцлох" },
 ]
 
 const typeConfig = {
