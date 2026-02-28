@@ -11,10 +11,12 @@ const mongoose = require('mongoose');
 function buildPostIdentifierQuery(id) {
   const value = String(id || '').trim();
   if (!value) return null;
+  const escaped = value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const shortIdQuery = { shortId: new RegExp(`^${escaped}$`, 'i') };
   if (mongoose.Types.ObjectId.isValid(value)) {
-    return { $or: [{ _id: value }, { shortId: value }] };
+    return { $or: [{ _id: value }, shortIdQuery] };
   }
-  return { shortId: value };
+  return shortIdQuery;
 }
 
 async function ensurePostShortId(post) {

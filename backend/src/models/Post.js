@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const SHORT_ID_LENGTH = 5;
-const SHORT_ID_CHARS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+const SHORT_ID_CHARS = 'abcdefghijklmnopqrstuvwxyz0123456789';
 
 function generateShortId(length = SHORT_ID_LENGTH) {
   let out = '';
@@ -20,7 +20,7 @@ const postSchema = new mongoose.Schema(
       index: true,
       minlength: SHORT_ID_LENGTH,
       maxlength: SHORT_ID_LENGTH,
-      match: /^[A-Za-z0-9]{5}$/,
+      match: /^[a-z0-9]{5}$/i,
     },
     title: { type: String, required: true, trim: true },
     excerpt: { type: String, default: '' },
@@ -51,6 +51,9 @@ const postSchema = new mongoose.Schema(
 postSchema.index({ title: 'text', excerpt: 'text' });
 
 postSchema.pre('validate', async function ensureShortId(next) {
+  if (this.shortId) {
+    this.shortId = String(this.shortId).trim().toLowerCase();
+  }
   if (this.shortId) return next();
 
   let tries = 0;
