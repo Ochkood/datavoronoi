@@ -30,6 +30,41 @@ import { clearAuth, isAuthenticated } from "@/lib/auth"
 import { getCategories, getTopics, type BackendCategory, type BackendTopic } from "@/lib/api"
 import { DynamicIcon } from "@/components/admin/icon-picker"
 
+let categoriesCache: BackendCategory[] | null = null
+let topicsCache: BackendTopic[] | null = null
+let categoriesInFlight: Promise<BackendCategory[]> | null = null
+let topicsInFlight: Promise<BackendTopic[]> | null = null
+
+async function getCategoriesCached() {
+  if (categoriesCache) return categoriesCache
+  if (!categoriesInFlight) {
+    categoriesInFlight = getCategories()
+      .then((items) => {
+        categoriesCache = items
+        return items
+      })
+      .finally(() => {
+        categoriesInFlight = null
+      })
+  }
+  return categoriesInFlight
+}
+
+async function getTopicsCached() {
+  if (topicsCache) return topicsCache
+  if (!topicsInFlight) {
+    topicsInFlight = getTopics()
+      .then((items) => {
+        topicsCache = items
+        return items
+      })
+      .finally(() => {
+        topicsInFlight = null
+      })
+  }
+  return topicsInFlight
+}
+
 const mainNavItems = [
   { label: "Нүүр", icon: Home, href: "/" },
   { label: "Судлах", icon: Compass, href: "/explore" },
@@ -87,7 +122,7 @@ export function AppSidebar() {
   useEffect(() => {
     let cancelled = false
 
-    getCategories()
+    getCategoriesCached()
       .then((items) => {
         if (cancelled) return
         setCategories(items)
@@ -105,7 +140,7 @@ export function AppSidebar() {
   useEffect(() => {
     let cancelled = false
 
-    getTopics()
+    getTopicsCached()
       .then((items) => {
         if (cancelled) return
         setTopics(items)
