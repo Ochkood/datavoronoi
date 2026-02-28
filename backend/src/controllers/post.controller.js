@@ -201,6 +201,26 @@ const listTopAuthors = asyncHandler(async (req, res) => {
   res.json({ success: true, data: { items } });
 });
 
+const getPostMetaById = asyncHandler(async (req, res) => {
+  const post = await Post.findById(req.params.id)
+    .populate('author', 'name')
+    .populate('category', 'name slug')
+    .populate('topics', 'name slug')
+    .select(
+      'title excerpt content featuredImage status visibility createdAt publishedAt author category topics'
+    );
+
+  if (!post) {
+    throw new ApiError(404, 'Post not found');
+  }
+
+  if (post.status !== 'published' || post.visibility !== 'public') {
+    throw new ApiError(404, 'Post not found');
+  }
+
+  res.json({ success: true, data: { post } });
+});
+
 const getPostById = asyncHandler(async (req, res) => {
   const post = await Post.findByIdAndUpdate(
     req.params.id,
@@ -481,6 +501,7 @@ module.exports = {
   listPosts,
   listAdminPosts,
   listTopAuthors,
+  getPostMetaById,
   getPostById,
   createPost,
   updatePost,

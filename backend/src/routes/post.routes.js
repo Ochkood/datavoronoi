@@ -13,6 +13,7 @@ const {
   getMyEngagement,
   listAdminPosts,
   listTopAuthors,
+  getPostMetaById,
 } = require('../controllers/post.controller');
 const { protect, requireRole } = require('../middlewares/auth.middleware');
 const validate = require('../middlewares/validate.middleware');
@@ -28,6 +29,7 @@ router.get('/', listPosts);
 router.get('/admin/list', protect, requireRole('admin'), listAdminPosts);
 router.get('/top-authors', listTopAuthors);
 router.get('/bookmarks/me', protect, myBookmarks);
+router.get('/:id/meta', getPostMetaById);
 router.get('/:id', getPostById);
 router.get('/:id/engagement', protect, getMyEngagement);
 router.post('/', protect, validate(createPostSchema), createPost);

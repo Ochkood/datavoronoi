@@ -14,7 +14,12 @@ const playfair = Playfair_Display({
   variable: '--font-playfair',
 })
 
+const siteUrl =
+  process.env.NEXT_PUBLIC_SITE_URL ||
+  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000")
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: 'Datanews.mn - Data-Driven Visual Stories',
   description: 'Монголын анхны дата сэтгүүл зүйн платформ. Мэдээллийн инфографик, дата визуализаци, шинжилгээ.',
   icons: {
