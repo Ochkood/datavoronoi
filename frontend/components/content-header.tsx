@@ -278,20 +278,32 @@ export function ContentHeader({ activeTab, onTabChange }: ContentHeaderProps) {
           )}
 
           {!user ? (
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => router.push("/login")}
-                className="rounded-lg border border-border px-3 py-1.5 text-sm text-foreground hover:bg-secondary"
-              >
-                Нэвтрэх
-              </button>
-              <button
-                onClick={() => router.push("/register")}
-                className="rounded-lg bg-primary px-3 py-1.5 text-sm text-primary-foreground hover:bg-primary/90"
-              >
-                Бүртгүүлэх
-              </button>
-            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-primary/10 text-primary transition-colors hover:bg-primary/20"
+                  aria-label="Guest menu"
+                >
+                  <User className="h-[18px] w-[18px]" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-52">
+                <DropdownMenuLabel>Тавтай морил</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={() => router.push("/login")}>
+                  <User className="h-4 w-4" />
+                  Нэвтрэх
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => router.push("/register")}>
+                  <User className="h-4 w-4" />
+                  Бүртгүүлэх
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => router.push("/become-publisher")}>
+                  <LayoutDashboard className="h-4 w-4" />
+                  Нийтлэгч болох
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           ) : (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
