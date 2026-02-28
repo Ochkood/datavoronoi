@@ -9,6 +9,16 @@ const topicSchema = new mongoose.Schema(
     featured: { type: Boolean, default: false },
     startDate: { type: Date },
     endDate: { type: Date },
+    stats: {
+      highlights: {
+        type: [mongoose.Schema.Types.Mixed],
+        default: [],
+      },
+      charts: {
+        type: [mongoose.Schema.Types.Mixed],
+        default: [],
+      },
+    },
   },
   { timestamps: true }
 );

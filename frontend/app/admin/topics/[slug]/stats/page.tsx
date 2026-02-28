@@ -1,9 +1,8 @@
 "use client"
 
-import { useState } from "react"
-import { useParams, useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
+import { useParams } from "next/navigation"
 import Link from "next/link"
-import Image from "next/image"
 import {
   ArrowLeft,
   Plus,
@@ -19,7 +18,13 @@ import {
   X,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { topics, topicStats } from "@/lib/data"
+import type { CategoryStats } from "@/lib/data"
+import {
+  getTopicStatsApi,
+  getTopics,
+  updateTopicStatsApi,
+  type BackendTopic,
+} from "@/lib/api"
 import { IconPicker, DynamicIcon } from "@/components/admin/icon-picker"
 
 type ChartType = "area" | "line" | "bar" | "pie"
@@ -32,33 +37,40 @@ interface Highlight {
   changeType?: ChangeType
   description?: string
   icon?: string
+  link?: string
 }
 
 interface ChartData {
   title: string
   type: ChartType
-  data: { name: string; value: number }[]
+  data: { name: string; value: number; value2?: number; value3?: number; value4?: number }[]
   dataKey?: string
+  dataKey2?: string
+  dataKey3?: string
+  dataKey4?: string
+  dataLabel?: string
+  dataLabel2?: string
+  dataLabel3?: string
+  dataLabel4?: string
   icon?: string
+  link?: string
 }
 
 export default function TopicStatsEditorPage() {
   const params = useParams()
   const slug = params.slug as string
-  
-  const topic = topics.find((t) => t.slug === slug)
-  const existingStats = topicStats[slug]
 
-  const [highlights, setHighlights] = useState<Highlight[]>(
-    existingStats?.highlights || []
-  )
-  const [charts, setCharts] = useState<ChartData[]>(
-    existingStats?.charts || []
-  )
+  const [topic, setTopic] = useState<BackendTopic | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
+
+  const [highlights, setHighlights] = useState<Highlight[]>([])
+  const [charts, setCharts] = useState<ChartData[]>([])
   const [editingHighlight, setEditingHighlight] = useState<number | null>(null)
   const [editingChart, setEditingChart] = useState<number | null>(null)
   const [showHighlightModal, setShowHighlightModal] = useState(false)
   const [showChartModal, setShowChartModal] = useState(false)
+  const [savingAll, setSavingAll] = useState(false)
 
   const [highlightForm, setHighlightForm] = useState<Highlight>({
     label: "",
@@ -67,6 +79,7 @@ export default function TopicStatsEditorPage() {
     changeType: "neutral",
     description: "",
     icon: "",
+    link: "",
   })
 
   const [chartForm, setChartForm] = useState<ChartData>({
@@ -74,11 +87,43 @@ export default function TopicStatsEditorPage() {
     type: "area",
     data: [],
     dataKey: "value",
+    dataLabel: "",
+    dataLabel2: "",
+    dataLabel3: "",
+    dataLabel4: "",
     icon: "",
+    link: "",
   })
   const [chartDataInput, setChartDataInput] = useState("")
 
-  if (!topic) {
+  useEffect(() => {
+    let cancelled = false
+    setLoading(true)
+    setError("")
+
+    Promise.all([getTopics(), getTopicStatsApi(slug)])
+      .then(([topics, stats]) => {
+        if (cancelled) return
+        const found = topics.find((t) => t.slug === slug) || null
+        setTopic(found)
+        setHighlights((stats?.highlights || []) as Highlight[])
+        setCharts((stats?.charts || []) as ChartData[])
+      })
+      .catch((e) => {
+        if (cancelled) return
+        setError(e instanceof Error ? e.message : "Статистик ачаалж чадсангүй")
+      })
+      .finally(() => {
+        if (cancelled) return
+        setLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [slug])
+
+  if (!loading && !topic) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <p className="text-muted-foreground">Сэдэв олдсонгүй</p>
@@ -95,6 +140,7 @@ export default function TopicStatsEditorPage() {
       changeType: "neutral",
       description: "",
       icon: "",
+      link: "",
     })
     setShowHighlightModal(true)
   }
@@ -127,7 +173,15 @@ export default function TopicStatsEditorPage() {
       type: "area",
       data: [],
       dataKey: "value",
+      dataKey2: undefined,
+      dataKey3: undefined,
+      dataKey4: undefined,
+      dataLabel: "",
+      dataLabel2: "",
+      dataLabel3: "",
+      dataLabel4: "",
       icon: "",
+      link: "",
     })
     setChartDataInput("")
     setShowChartModal(true)
@@ -141,7 +195,15 @@ export default function TopicStatsEditorPage() {
       icon: chart.icon || "",
     })
     setChartDataInput(
-      chart.data.map((d) => `${d.name}:${d.value}`).join("\n")
+      chart.data
+        .map((d) => {
+          const parts = [d.name, d.value]
+          if (d.value2 !== undefined) parts.push(d.value2)
+          if (d.value3 !== undefined) parts.push(d.value3)
+          if (d.value4 !== undefined) parts.push(d.value4)
+          return parts.join(":")
+        })
+        .join("\n")
     )
     setShowChartModal(true)
   }
@@ -151,11 +213,35 @@ export default function TopicStatsEditorPage() {
       .split("\n")
       .filter((line) => line.trim())
       .map((line) => {
-        const [name, value] = line.split(":")
-        return { name: name.trim(), value: parseFloat(value) || 0 }
+        const [name, value, value2, value3, value4] = line.split(":")
+        const second = value2 !== undefined ? parseFloat(value2) : undefined
+        const third = value3 !== undefined ? parseFloat(value3) : undefined
+        const fourth = value4 !== undefined ? parseFloat(value4) : undefined
+        return {
+          name: (name || "").trim(),
+          value: parseFloat(value) || 0,
+          ...(second !== undefined && !Number.isNaN(second) ? { value2: second } : {}),
+          ...(third !== undefined && !Number.isNaN(third) ? { value3: third } : {}),
+          ...(fourth !== undefined && !Number.isNaN(fourth) ? { value4: fourth } : {}),
+        }
       })
 
-    const newChart = { ...chartForm, data }
+    const hasSecondSeries = data.some((d) => d.value2 !== undefined)
+    const hasThirdSeries = data.some((d) => d.value3 !== undefined)
+    const hasFourthSeries = data.some((d) => d.value4 !== undefined)
+    const newChart = {
+      ...chartForm,
+      data,
+      dataKey: chartForm.dataKey || "value",
+      dataKey2: hasSecondSeries ? (chartForm.dataKey2 || "value2") : undefined,
+      dataKey3: hasThirdSeries ? (chartForm.dataKey3 || "value3") : undefined,
+      dataKey4: hasFourthSeries ? (chartForm.dataKey4 || "value4") : undefined,
+      dataLabel: chartForm.dataLabel || "",
+      dataLabel2: hasSecondSeries ? (chartForm.dataLabel2 || "") : undefined,
+      dataLabel3: hasThirdSeries ? (chartForm.dataLabel3 || "") : undefined,
+      dataLabel4: hasFourthSeries ? (chartForm.dataLabel4 || "") : undefined,
+      link: chartForm.link || "",
+    }
 
     if (editingChart !== null) {
       const updated = [...charts]
@@ -172,13 +258,24 @@ export default function TopicStatsEditorPage() {
   }
 
   const handleSaveAll = () => {
-    console.log("Saving topic stats:", { highlights, charts })
-    alert("Статистик амжилттай хадгалагдлаа!")
+    setSavingAll(true)
+    setError("")
+    const payload: CategoryStats = {
+      highlights,
+      charts,
+    }
+    updateTopicStatsApi(slug, payload)
+      .then(() => {
+        alert("Статистик амжилттай хадгалагдлаа!")
+      })
+      .catch((e) => {
+        setError(e instanceof Error ? e.message : "Статистик хадгалахад алдаа гарлаа")
+      })
+      .finally(() => setSavingAll(false))
   }
 
   return (
     <div className="min-h-screen">
-      {/* Header */}
       <header className="sticky top-0 z-30 border-b border-border bg-card/80 backdrop-blur-sm">
         <div className="flex h-16 items-center justify-between px-6">
           <div className="flex items-center gap-4">
@@ -188,46 +285,43 @@ export default function TopicStatsEditorPage() {
             >
               <ArrowLeft className="h-4 w-4" />
             </Link>
-            <div className="flex items-center gap-3">
-              <div className="relative h-10 w-10 overflow-hidden rounded-lg">
-                <Image
-                  src={topic.image}
-                  alt={topic.name}
-                  fill
-                  className="object-cover"
-                />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold text-foreground">
-                  {topic.name}
-                </h1>
-                <p className="text-sm text-muted-foreground">
-                  Статистик удирдах
-                </p>
-              </div>
+            <div>
+              <h1 className="text-xl font-bold text-foreground">
+                {topic?.name || slug} - Статистик
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                Гол үзүүлэлт болон график удирдах
+              </p>
             </div>
           </div>
           <button
             onClick={handleSaveAll}
-            className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+            disabled={savingAll}
+            className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
           >
             <Save className="h-4 w-4" />
-            Хадгалах
+            {savingAll ? "Хадгалж байна..." : "Хадгалах"}
           </button>
         </div>
       </header>
 
-      <div className="p-6 space-y-8">
-        {/* Highlights Section */}
+      <div className="space-y-8 p-6">
+        {error && (
+          <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            {error}
+          </div>
+        )}
+        {loading && (
+          <div className="rounded-lg border border-border bg-card px-3 py-2 text-sm text-muted-foreground">
+            Статистик ачаалж байна...
+          </div>
+        )}
+
         <section>
           <div className="mb-4 flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-semibold text-foreground">
-                Гол үзүүлэлтүүд
-              </h2>
-              <p className="text-sm text-muted-foreground">
-                Дээд хэсэгт харагдах статистик карт
-              </p>
+              <h2 className="text-lg font-semibold text-foreground">Гол үзүүлэлтүүд</h2>
+              <p className="text-sm text-muted-foreground">Дээд хэсэгт харагдах статистик карт</p>
             </div>
             <button
               onClick={handleAddHighlight}
@@ -240,10 +334,7 @@ export default function TopicStatsEditorPage() {
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {highlights.map((highlight, index) => (
-              <div
-                key={index}
-                className="group relative rounded-xl border border-border bg-card p-4"
-              >
+              <div key={index} className="group relative rounded-xl border border-border bg-card p-4">
                 <div className="absolute right-2 top-2 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
                   <button
                     onClick={() => handleEditHighlight(index)}
@@ -265,20 +356,12 @@ export default function TopicStatsEditorPage() {
                   )}
                   <p className="text-sm text-muted-foreground">{highlight.label}</p>
                 </div>
-                <p className="mt-1 text-2xl font-bold text-foreground">
-                  {highlight.value}
-                </p>
+                <p className="mt-1 text-2xl font-bold text-foreground">{highlight.value}</p>
                 {highlight.change && (
                   <div className="mt-2 flex items-center gap-1">
-                    {highlight.changeType === "positive" && (
-                      <TrendingUp className="h-4 w-4 text-chart-4" />
-                    )}
-                    {highlight.changeType === "negative" && (
-                      <TrendingDown className="h-4 w-4 text-destructive" />
-                    )}
-                    {highlight.changeType === "neutral" && (
-                      <Minus className="h-4 w-4 text-muted-foreground" />
-                    )}
+                    {highlight.changeType === "positive" && <TrendingUp className="h-4 w-4 text-chart-4" />}
+                    {highlight.changeType === "negative" && <TrendingDown className="h-4 w-4 text-destructive" />}
+                    {highlight.changeType === "neutral" && <Minus className="h-4 w-4 text-muted-foreground" />}
                     <span
                       className={cn(
                         "text-sm font-medium",
@@ -292,33 +375,24 @@ export default function TopicStatsEditorPage() {
                   </div>
                 )}
                 {highlight.description && (
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {highlight.description}
-                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">{highlight.description}</p>
                 )}
               </div>
             ))}
 
             {highlights.length === 0 && (
               <div className="col-span-full flex h-32 items-center justify-center rounded-xl border-2 border-dashed border-border">
-                <p className="text-sm text-muted-foreground">
-                  Гол үзүүлэлт нэмэгдээгүй байна
-                </p>
+                <p className="text-sm text-muted-foreground">Гол үзүүлэлт нэмэгдээгүй байна</p>
               </div>
             )}
           </div>
         </section>
 
-        {/* Charts Section */}
         <section>
           <div className="mb-4 flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-semibold text-foreground">
-                Графикууд
-              </h2>
-              <p className="text-sm text-muted-foreground">
-                Статистик дата харуулах chart
-              </p>
+              <h2 className="text-lg font-semibold text-foreground">Графикууд</h2>
+              <p className="text-sm text-muted-foreground">Статистик дата харуулах chart</p>
             </div>
             <button
               onClick={handleAddChart}
@@ -331,10 +405,7 @@ export default function TopicStatsEditorPage() {
 
           <div className="grid gap-4 lg:grid-cols-2">
             {charts.map((chart, index) => (
-              <div
-                key={index}
-                className="group relative rounded-xl border border-border bg-card p-4"
-              >
+              <div key={index} className="group relative rounded-xl border border-border bg-card p-4">
                 <div className="absolute right-2 top-2 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
                   <button
                     onClick={() => handleEditChart(index)}
@@ -364,15 +435,12 @@ export default function TopicStatsEditorPage() {
                 </div>
 
                 <div className="mt-4">
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
                     Дата ({chart.data.length} оруулга)
                   </p>
                   <div className="mt-2 flex flex-wrap gap-2">
                     {chart.data.slice(0, 6).map((d, i) => (
-                      <span
-                        key={i}
-                        className="rounded-full bg-secondary px-2 py-1 text-xs text-foreground"
-                      >
+                      <span key={i} className="rounded-full bg-secondary px-2 py-1 text-xs text-foreground">
                         {d.name}: {d.value}
                       </span>
                     ))}
@@ -388,16 +456,13 @@ export default function TopicStatsEditorPage() {
 
             {charts.length === 0 && (
               <div className="col-span-full flex h-32 items-center justify-center rounded-xl border-2 border-dashed border-border">
-                <p className="text-sm text-muted-foreground">
-                  График нэмэгдээгүй байна
-                </p>
+                <p className="text-sm text-muted-foreground">График нэмэгдээгүй байна</p>
               </div>
             )}
           </div>
         </section>
       </div>
 
-      {/* Highlight Modal */}
       {showHighlightModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/20 backdrop-blur-sm">
           <div className="w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-xl">
@@ -415,55 +480,41 @@ export default function TopicStatsEditorPage() {
 
             <div className="space-y-4">
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-foreground">
-                  Гарчиг
-                </label>
+                <label className="mb-1.5 block text-sm font-medium text-foreground">Гарчиг</label>
                 <input
                   type="text"
                   value={highlightForm.label}
-                  onChange={(e) =>
-                    setHighlightForm({ ...highlightForm, label: e.target.value })
-                  }
-                  placeholder="Оролцогч орон"
+                  onChange={(e) => setHighlightForm({ ...highlightForm, label: e.target.value })}
+                  placeholder="ДНБ өсөлт"
                   className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 />
               </div>
 
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-foreground">
-                  Утга
-                </label>
+                <label className="mb-1.5 block text-sm font-medium text-foreground">Утга</label>
                 <input
                   type="text"
                   value={highlightForm.value}
-                  onChange={(e) =>
-                    setHighlightForm({ ...highlightForm, value: e.target.value })
-                  }
-                  placeholder="197"
+                  onChange={(e) => setHighlightForm({ ...highlightForm, value: e.target.value })}
+                  placeholder="5.2%"
                   className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="mb-1.5 block text-sm font-medium text-foreground">
-                    Өөрчлөлт
-                  </label>
+                  <label className="mb-1.5 block text-sm font-medium text-foreground">Өөрчлөлт</label>
                   <input
                     type="text"
                     value={highlightForm.change || ""}
-                    onChange={(e) =>
-                      setHighlightForm({ ...highlightForm, change: e.target.value })
-                    }
-                    placeholder="+2"
+                    onChange={(e) => setHighlightForm({ ...highlightForm, change: e.target.value })}
+                    placeholder="+0.8%"
                     className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                   />
                 </div>
 
                 <div>
-                  <label className="mb-1.5 block text-sm font-medium text-foreground">
-                    Төрөл
-                  </label>
+                  <label className="mb-1.5 block text-sm font-medium text-foreground">Төрөл</label>
                   <select
                     value={highlightForm.changeType}
                     onChange={(e) =>
@@ -483,21 +534,15 @@ export default function TopicStatsEditorPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="mb-1.5 block text-sm font-medium text-foreground">
-                    Icon
-                  </label>
+                  <label className="mb-1.5 block text-sm font-medium text-foreground">Icon</label>
                   <IconPicker
                     value={highlightForm.icon || ""}
-                    onChange={(icon) =>
-                      setHighlightForm({ ...highlightForm, icon })
-                    }
+                    onChange={(icon) => setHighlightForm({ ...highlightForm, icon })}
                   />
                 </div>
 
                 <div>
-                  <label className="mb-1.5 block text-sm font-medium text-foreground">
-                    Тайлбар
-                  </label>
+                  <label className="mb-1.5 block text-sm font-medium text-foreground">Тайлбар</label>
                   <input
                     type="text"
                     value={highlightForm.description || ""}
@@ -507,10 +552,21 @@ export default function TopicStatsEditorPage() {
                         description: e.target.value,
                       })
                     }
-                    placeholder="НҮБ-ын гишүүн орнууд"
+                    placeholder="Өмнөх жилтэй харьцуулахад"
                     className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-foreground">Дэлгэрэнгүй линк</label>
+                <input
+                  type="text"
+                  value={highlightForm.link || ""}
+                  onChange={(e) => setHighlightForm({ ...highlightForm, link: e.target.value })}
+                  placeholder="/post/123 эсвэл https://example.com/..."
+                  className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                />
               </div>
 
               <div className="flex gap-3 pt-4">
@@ -534,10 +590,9 @@ export default function TopicStatsEditorPage() {
         </div>
       )}
 
-      {/* Chart Modal */}
       {showChartModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/20 backdrop-blur-sm">
-          <div className="w-full max-w-lg rounded-xl border border-border bg-card p-6 shadow-xl max-h-[90vh] overflow-y-auto">
+          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl border border-border bg-card p-6 shadow-xl">
             <div className="mb-6 flex items-center justify-between">
               <h2 className="text-lg font-bold text-foreground">
                 {editingChart !== null ? "График засах" : "Шинэ график"}
@@ -553,37 +608,27 @@ export default function TopicStatsEditorPage() {
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="mb-1.5 block text-sm font-medium text-foreground">
-                    Гарчиг
-                  </label>
+                  <label className="mb-1.5 block text-sm font-medium text-foreground">Гарчиг</label>
                   <input
                     type="text"
                     value={chartForm.title}
-                    onChange={(e) =>
-                      setChartForm({ ...chartForm, title: e.target.value })
-                    }
-                    placeholder="CO2 ялгарал (гигатонн)"
+                    onChange={(e) => setChartForm({ ...chartForm, title: e.target.value })}
+                    placeholder="ДНБ өсөлт (тэрбум төгрөг)"
                     className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                   />
                 </div>
 
                 <div>
-                  <label className="mb-1.5 block text-sm font-medium text-foreground">
-                    Icon
-                  </label>
+                  <label className="mb-1.5 block text-sm font-medium text-foreground">Icon</label>
                   <IconPicker
                     value={chartForm.icon || ""}
-                    onChange={(icon) =>
-                      setChartForm({ ...chartForm, icon })
-                    }
+                    onChange={(icon) => setChartForm({ ...chartForm, icon })}
                   />
                 </div>
               </div>
 
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-foreground">
-                  Графикийн төрөл
-                </label>
+                <label className="mb-1.5 block text-sm font-medium text-foreground">Графикийн төрөл</label>
                 <div className="flex gap-2">
                   {[
                     { value: "area", icon: AreaChart, label: "Area" },
@@ -614,17 +659,63 @@ export default function TopicStatsEditorPage() {
               </div>
 
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-foreground">
-                  Дата оруулга
-                </label>
+                <label className="mb-1.5 block text-sm font-medium text-foreground">Цувааны нэршил</label>
                 <p className="mb-2 text-xs text-muted-foreground">
-                  Мөр бүрт "нэр:утга" форматаар оруулна. Жишээ: 2020:35.5
+                  Legend дээр харагдах value/value2/value3/value4 нэр
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <input
+                    type="text"
+                    value={chartForm.dataLabel || ""}
+                    onChange={(e) => setChartForm({ ...chartForm, dataLabel: e.target.value })}
+                    placeholder="value: 1-р улирал"
+                    className="h-10 rounded-lg border border-input bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  />
+                  <input
+                    type="text"
+                    value={chartForm.dataLabel2 || ""}
+                    onChange={(e) => setChartForm({ ...chartForm, dataLabel2: e.target.value })}
+                    placeholder="value2: 2-р улирал"
+                    className="h-10 rounded-lg border border-input bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  />
+                  <input
+                    type="text"
+                    value={chartForm.dataLabel3 || ""}
+                    onChange={(e) => setChartForm({ ...chartForm, dataLabel3: e.target.value })}
+                    placeholder="value3: 3-р улирал"
+                    className="h-10 rounded-lg border border-input bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  />
+                  <input
+                    type="text"
+                    value={chartForm.dataLabel4 || ""}
+                    onChange={(e) => setChartForm({ ...chartForm, dataLabel4: e.target.value })}
+                    placeholder="value4: 4-р улирал"
+                    className="h-10 rounded-lg border border-input bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-foreground">Дэлгэрэнгүй линк</label>
+                <input
+                  type="text"
+                  value={chartForm.link || ""}
+                  onChange={(e) => setChartForm({ ...chartForm, link: e.target.value })}
+                  placeholder="/post/123 эсвэл https://example.com/..."
+                  className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-foreground">Дата оруулга</label>
+                <p className="mb-2 text-xs text-muted-foreground">
+                  Мөр бүрт "нэр:утга[:утга2[:утга3[:утга4]]]" форматаар оруулна.
                 </p>
                 <textarea
                   rows={8}
                   value={chartDataInput}
                   onChange={(e) => setChartDataInput(e.target.value)}
-                  placeholder="2020:35.5&#10;2021:36.2&#10;2022:34.8&#10;2023:36.5&#10;2024:37.2"
+                  placeholder="2020:45.5&#10;2021:48.2&#10;2022:52.1&#10;2023:55.8&#10;2024:58.3"
                   className="w-full rounded-lg border border-input bg-background px-3 py-2 font-mono text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 />
               </div>

@@ -251,6 +251,7 @@ export interface StatItem {
   changeType?: "positive" | "negative" | "neutral"
   description?: string
   icon?: string
+  link?: string
 }
 
 export interface ChartDataPoint {
@@ -276,6 +277,7 @@ export interface CategoryStats {
     dataLabel3?: string
     dataLabel4?: string
     icon?: string
+    link?: string
   }[]
 }
 

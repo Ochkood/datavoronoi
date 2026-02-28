@@ -6,6 +6,7 @@ import {
   Minus,
   BarChart3,
   ArrowUpRight,
+  ExternalLink,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { CategoryStats, StatItem, ChartDataPoint } from "@/lib/data"
@@ -31,6 +32,8 @@ interface CategoryStatsProps {
 }
 
 function StatCard({ item }: { item: StatItem }) {
+  const isExternal = Boolean(item.link && /^https?:\/\//i.test(item.link))
+
   return (
     <div className="rounded-xl bg-card p-4 ring-1 ring-border">
       <div className="flex items-start justify-between">
@@ -60,6 +63,19 @@ function StatCard({ item }: { item: StatItem }) {
       {item.description && (
         <p className="mt-1 text-[11px] text-muted-foreground">{item.description}</p>
       )}
+      {item.link && (
+        <div className="mt-3 flex justify-end">
+          <a
+            href={item.link}
+            target={isExternal ? "_blank" : undefined}
+            rel={isExternal ? "noopener noreferrer" : undefined}
+            className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+          >
+            Дэлгэрэнгүй
+            <ExternalLink className="h-3.5 w-3.5" />
+          </a>
+        </div>
+      )}
     </div>
   )
 }
@@ -78,6 +94,7 @@ interface ChartCardProps {
   dataLabel4?: string
   color: string
   icon?: string
+  link?: string
 }
 
 function ChartCard({
@@ -94,7 +111,9 @@ function ChartCard({
   dataLabel4,
   color,
   icon,
+  link,
 }: ChartCardProps) {
+  const isExternal = Boolean(link && /^https?:\/\//i.test(link))
   const chartColor = color === "text-chart-1" ? "var(--chart-1)" :
                     color === "text-chart-2" ? "var(--chart-2)" :
                     color === "text-chart-3" ? "var(--chart-3)" :
@@ -244,6 +263,19 @@ function ChartCard({
           )}
         </ResponsiveContainer>
       </div>
+      {link && (
+        <div className="mt-3 flex justify-end">
+          <a
+            href={link}
+            target={isExternal ? "_blank" : undefined}
+            rel={isExternal ? "noopener noreferrer" : undefined}
+            className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+          >
+            Дэлгэрэнгүй
+            <ExternalLink className="h-3.5 w-3.5" />
+          </a>
+        </div>
+      )}
     </div>
   )
 }
@@ -287,6 +319,7 @@ export function CategoryStatsView({ stats, categoryColor }: CategoryStatsProps) 
               dataLabel4={chart.dataLabel4}
               color={categoryColor}
               icon={chart.icon}
+              link={chart.link}
             />
           ))}
         </div>

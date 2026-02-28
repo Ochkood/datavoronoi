@@ -597,6 +597,27 @@ export async function getTopics() {
   return res.data.topics
 }
 
+export async function getTopicStatsApi(slug: string) {
+  const res = await request<ApiResponse<{ stats: CategoryStats }>>(
+    `/topics/${slug}/stats`
+  )
+  return res.data.stats || { highlights: [], charts: [] }
+}
+
+export async function updateTopicStatsApi(
+  slug: string,
+  payload: CategoryStats
+) {
+  const res = await request<ApiResponse<{ stats: CategoryStats }>>(
+    `/topics/${slug}/stats`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({ stats: payload }),
+    }
+  )
+  return res.data.stats
+}
+
 export async function createTopicApi(payload: {
   name: string
   slug: string

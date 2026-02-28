@@ -10,8 +10,8 @@ import { PostCard, type PostData } from "@/components/post-card"
 import { TrendingSidebar } from "@/components/trending-sidebar"
 import { CategoryStatsView } from "@/components/category-stats"
 import { Skeleton } from "@/components/ui/skeleton"
-import { topicStats } from "@/lib/data"
-import { getPosts, getTopics, type BackendTopic } from "@/lib/api"
+import type { CategoryStats } from "@/lib/data"
+import { getPosts, getTopicStatsApi, getTopics, type BackendTopic } from "@/lib/api"
 
 type TabType = "feed" | "stats"
 type FeedSort = "latest" | "popular"
@@ -24,7 +24,8 @@ export default function TopicPage() {
   const [topicPosts, setTopicPosts] = useState<PostData[]>([])
   const [loadingTopics, setLoadingTopics] = useState(true)
   const [loadingPosts, setLoadingPosts] = useState(true)
-  const stats = topicStats[slug]
+  const [stats, setStats] = useState<CategoryStats | null>(null)
+  const [loadingStats, setLoadingStats] = useState(true)
 
   const [activeTab, setActiveTab] = useState<TabType>("feed")
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
@@ -55,6 +56,14 @@ export default function TopicPage() {
       .catch(() => setTopicPosts([]))
       .finally(() => setLoadingPosts(false))
   }, [topic?._id, loadingTopics, feedSort])
+
+  useEffect(() => {
+    setLoadingStats(true)
+    getTopicStatsApi(slug)
+      .then((res) => setStats(res))
+      .catch(() => setStats(null))
+      .finally(() => setLoadingStats(false))
+  }, [slug])
 
   if (!loadingTopics && !topic && topics.length > 0) {
     notFound()
@@ -271,7 +280,7 @@ export default function TopicPage() {
                 </>
               ) : (
                 /* Statistics Tab */
-                stats ? (
+                !loadingStats && stats ? (
                   <CategoryStatsView stats={stats} categoryColor="text-primary" />
                 ) : (
                   <div className="flex flex-col items-center justify-center py-16 text-center">

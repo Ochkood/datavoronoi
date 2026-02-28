@@ -72,9 +72,49 @@ const deleteTopic = asyncHandler(async (req, res) => {
   res.json({ success: true, message: 'topic deleted' });
 });
 
+const getTopicStats = asyncHandler(async (req, res) => {
+  const { slug } = req.params;
+  const topic = await Topic.findOne({ slug }).select('slug stats');
+  if (!topic) {
+    throw new ApiError(404, 'topic not found');
+  }
+
+  res.json({
+    success: true,
+    data: {
+      stats: topic.stats || { highlights: [], charts: [] },
+    },
+  });
+});
+
+const updateTopicStats = asyncHandler(async (req, res) => {
+  const { slug } = req.params;
+  const { stats } = req.body;
+
+  const topic = await Topic.findOne({ slug });
+  if (!topic) {
+    throw new ApiError(404, 'topic not found');
+  }
+
+  const highlights = Array.isArray(stats?.highlights) ? stats.highlights : [];
+  const charts = Array.isArray(stats?.charts) ? stats.charts : [];
+
+  topic.stats = { highlights, charts };
+  await topic.save();
+
+  res.json({
+    success: true,
+    data: {
+      stats: topic.stats,
+    },
+  });
+});
+
 module.exports = {
   listTopics,
   createTopic,
   updateTopic,
   deleteTopic,
+  getTopicStats,
+  updateTopicStats,
 };

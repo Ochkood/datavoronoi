@@ -37,6 +37,7 @@ interface Highlight {
   changeType?: ChangeType
   description?: string
   icon?: string
+  link?: string
 }
 
 interface ChartData {
@@ -52,6 +53,7 @@ interface ChartData {
   dataLabel3?: string
   dataLabel4?: string
   icon?: string
+  link?: string
 }
 
 export default function CategoryStatsEditorPage() {
@@ -78,6 +80,7 @@ export default function CategoryStatsEditorPage() {
     changeType: "neutral",
     description: "",
     icon: "",
+    link: "",
   })
 
   // Form states for charts
@@ -91,6 +94,7 @@ export default function CategoryStatsEditorPage() {
     dataLabel3: "",
     dataLabel4: "",
     icon: "",
+    link: "",
   })
   const [chartDataInput, setChartDataInput] = useState("")
 
@@ -138,6 +142,7 @@ export default function CategoryStatsEditorPage() {
       changeType: "neutral",
       description: "",
       icon: "",
+      link: "",
     })
     setShowHighlightModal(true)
   }
@@ -178,6 +183,7 @@ export default function CategoryStatsEditorPage() {
       dataLabel3: "",
       dataLabel4: "",
       icon: "",
+      link: "",
     })
     setChartDataInput("")
     setShowChartModal(true)
@@ -236,6 +242,7 @@ export default function CategoryStatsEditorPage() {
       dataLabel2: hasSecondSeries ? (chartForm.dataLabel2 || "") : undefined,
       dataLabel3: hasThirdSeries ? (chartForm.dataLabel3 || "") : undefined,
       dataLabel4: hasFourthSeries ? (chartForm.dataLabel4 || "") : undefined,
+      link: chartForm.link || "",
     }
 
     if (editingChart !== null) {
@@ -608,6 +615,24 @@ export default function CategoryStatsEditorPage() {
                 </div>
               </div>
 
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-foreground">
+                  Дэлгэрэнгүй линк
+                </label>
+                <input
+                  type="text"
+                  value={highlightForm.link || ""}
+                  onChange={(e) =>
+                    setHighlightForm({
+                      ...highlightForm,
+                      link: e.target.value,
+                    })
+                  }
+                  placeholder="/post/123 эсвэл https://example.com/..."
+                  className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+              </div>
+
               <div className="flex gap-3 pt-4">
                 <button
                   type="button"
@@ -673,6 +698,21 @@ export default function CategoryStatsEditorPage() {
                     }
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-foreground">
+                  Дэлгэрэнгүй линк
+                </label>
+                <input
+                  type="text"
+                  value={chartForm.link || ""}
+                  onChange={(e) =>
+                    setChartForm({ ...chartForm, link: e.target.value })
+                  }
+                  placeholder="/post/123 эсвэл https://example.com/..."
+                  className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                />
               </div>
 
               <div>
