@@ -119,81 +119,64 @@ export default function CategoryPage() {
       <AppSidebar />
 
       <main className="flex-1 lg:ml-[260px]">
-        <header className="border-b border-border/70 bg-card/60">
-          <div className="mx-auto max-w-7xl px-4 py-5 pl-14 md:px-6 lg:pl-6">
-            <div className="relative overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm">
-              {category?.bannerImage ? (
-                <Image
-                  src={category.bannerImage}
-                  alt={categoryName}
-                  fill
-                  className="object-cover"
-                />
-              ) : (
-                <div className="absolute inset-0 bg-gradient-to-br from-secondary via-secondary/70 to-background" />
-              )}
-              {category?.bannerImage && (
-                <div className="absolute inset-0 bg-foreground/20" />
-              )}
+        <header className="relative border-b border-border">
+          <div className="absolute inset-0 h-48 overflow-hidden">
+            <Image
+              src={category?.bannerImage || "/placeholder.jpg"}
+              alt={categoryName}
+              fill
+              className="object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-b from-foreground/60 via-foreground/40 to-foreground/25" />
+          </div>
 
-              <div className="relative p-5 md:p-6">
-                <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-                  <div className="rounded-xl border border-border/60 bg-card/85 p-4 shadow-md backdrop-blur-sm">
-                    <div className="flex items-start gap-3">
-                      <div
-                        className={cn(
-                          "flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl shadow-lg",
-                          categoryBgColor
-                        )}
-                      >
-                        <DynamicIcon
-                          name={category?.icon}
-                          className="h-6 w-6 text-white"
-                          fallback={Newspaper}
-                        />
-                      </div>
-                      <div>
-                        <p className={cn("text-xs font-semibold uppercase tracking-wider", categoryColor)}>
-                          Category
-                        </p>
-                        <h1 className="mt-1 text-xl font-bold text-foreground md:text-2xl">
-                          {categoryName}
-                        </h1>
-                        <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-                          {categoryDescription || "Энэ ангиллын голлох мэдээ, дүн шинжилгээ энд нэгтгэгдэнэ."}
-                        </p>
-                      </div>
-                    </div>
+          <div className="relative z-10 mx-auto max-w-7xl px-4 pb-4 pt-20 pl-14 md:px-6 lg:pl-6">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <div className="flex items-center gap-2 text-card/80">
+                  <div className={cn("flex h-6 w-6 items-center justify-center rounded-md text-white", categoryBgColor)}>
+                    <DynamicIcon
+                      name={category?.icon}
+                      className="h-3.5 w-3.5"
+                      fallback={Newspaper}
+                    />
                   </div>
+                  <span className="text-xs font-medium uppercase tracking-wider">Ангилал</span>
+                </div>
+                <h1 className="mt-2 text-2xl font-bold text-card md:text-3xl text-balance">
+                  {categoryName}
+                </h1>
+                <p className="mt-1 text-sm text-card/80">
+                  {categoryDescription || "Энэ ангиллын голлох мэдээ, дүн шинжилгээ энд нэгтгэгдэнэ."}
+                </p>
+              </div>
 
-                  <div className="flex items-center gap-2 rounded-lg border border-border/60 bg-card/85 p-1 backdrop-blur-sm">
-                    <div className="flex rounded-lg bg-secondary p-1">
-                      <button
-                        onClick={() => setActiveTab("feed")}
-                        className={cn(
-                          "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
-                          activeTab === "feed"
-                            ? "bg-card text-foreground shadow-sm"
-                            : "text-muted-foreground hover:text-foreground"
-                        )}
-                      >
-                        <Newspaper className="h-4 w-4" />
-                        Мэдээ
-                      </button>
-                      <button
-                        onClick={() => setActiveTab("stats")}
-                        className={cn(
-                          "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
-                          activeTab === "stats"
-                            ? "bg-card text-foreground shadow-sm"
-                            : "text-muted-foreground hover:text-foreground"
-                        )}
-                      >
-                        <BarChart3 className="h-4 w-4" />
-                        Статистик дата
-                      </button>
-                    </div>
-                  </div>
+              <div className="flex items-center gap-2">
+                <div className="flex rounded-lg bg-card/20 p-1 backdrop-blur-sm">
+                  <button
+                    onClick={() => setActiveTab("feed")}
+                    className={cn(
+                      "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                      activeTab === "feed"
+                        ? "bg-card text-foreground shadow-sm"
+                        : "text-card/80 hover:text-card"
+                    )}
+                  >
+                    <Newspaper className="h-4 w-4" />
+                    Мэдээ
+                  </button>
+                  <button
+                    onClick={() => setActiveTab("stats")}
+                    className={cn(
+                      "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                      activeTab === "stats"
+                        ? "bg-card text-foreground shadow-sm"
+                        : "text-card/80 hover:text-card"
+                    )}
+                  >
+                    <BarChart3 className="h-4 w-4" />
+                    Статистик дата
+                  </button>
                 </div>
               </div>
             </div>

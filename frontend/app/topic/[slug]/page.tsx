@@ -84,7 +84,7 @@ export default function TopicPage() {
               fill
               className="object-cover"
             />
-            <div className="absolute inset-0 bg-gradient-to-b from-foreground/60 via-foreground/40 to-background" />
+            <div className="absolute inset-0 bg-gradient-to-b from-foreground/60 via-foreground/40 to-foreground/25" />
           </div>
 
           {/* Content */}
