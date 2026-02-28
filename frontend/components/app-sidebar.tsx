@@ -155,8 +155,21 @@ export function AppSidebar() {
     }
   }, [])
 
-  const featuredTopics = topics.filter((topic) => topic.featured).slice(0, 5)
-  const sidebarTopics = featuredTopics.length > 0 ? featuredTopics : topics.slice(0, 5)
+  const topCategories = [...categories]
+    .sort(
+      (a, b) =>
+        (b.postsCount || 0) - (a.postsCount || 0) ||
+        a.name.localeCompare(b.name, "mn")
+    )
+    .slice(0, 10)
+
+  const topTopics = [...topics]
+    .sort(
+      (a, b) =>
+        (b.postsCount || 0) - (a.postsCount || 0) ||
+        a.name.localeCompare(b.name, "mn")
+    )
+    .slice(0, 5)
 
   return (
     <>
@@ -240,7 +253,7 @@ export function AppSidebar() {
             onClick={() => setCategoriesOpen(!categoriesOpen)}
             className="flex w-full items-center justify-between px-3 py-2 text-xs font-semibold uppercase tracking-wider text-sidebar-muted"
           >
-            Ангилал
+            TOP-10 АНГИЛАЛ
             {categoriesOpen ? (
               <ChevronDown className="h-3.5 w-3.5" />
             ) : (
@@ -249,7 +262,7 @@ export function AppSidebar() {
           </button>
           {categoriesOpen && (
             <div className="flex flex-col gap-0.5">
-              {categories.map((cat) => {
+              {topCategories.map((cat) => {
                 const isCatActive = pathname === `/category/${cat.slug}`
                 const fallbackIcon = fallbackCategoryIconBySlug[cat.slug] || Globe
                 return (
@@ -269,10 +282,18 @@ export function AppSidebar() {
                       className={cn("h-4 w-4", categoryColorClass(cat))}
                       fallback={fallbackIcon}
                     />
-                    {cat.name}
+                    <span className="flex-1 truncate">{cat.name}</span>
+                    <span className="text-[11px] text-sidebar-muted">{cat.postsCount || 0}</span>
                   </Link>
                 )
               })}
+              <Link
+                href="/categories"
+                onClick={() => setMobileOpen(false)}
+                className="mt-1 flex items-center gap-3 rounded-lg px-3 py-2 text-xs text-sidebar-muted hover:text-sidebar-foreground"
+              >
+                Бусад ангилалууд...
+              </Link>
             </div>
           )}
         </div>
@@ -288,7 +309,7 @@ export function AppSidebar() {
           >
             <span className="flex items-center gap-2">
               <Flame className="h-3 w-3" />
-              Сэдэв
+              ТОП-5 СЭДЭВ
             </span>
             {topicsOpen ? (
               <ChevronDown className="h-3.5 w-3.5" />
@@ -298,7 +319,7 @@ export function AppSidebar() {
           </button>
           {topicsOpen && (
             <div className="flex flex-col gap-0.5">
-              {sidebarTopics.map((topic) => {
+              {topTopics.map((topic) => {
                 const isTopicActive = pathname === `/topic/${topic.slug}`
                 return (
                   <Link
@@ -313,7 +334,8 @@ export function AppSidebar() {
                     )}
                   >
                     <Hash className={cn("h-4 w-4", topic.featured ? "text-chart-2" : "text-primary")} />
-                    {topic.name}
+                    <span className="flex-1 truncate">{topic.name}</span>
+                    <span className="text-[11px] text-sidebar-muted">{topic.postsCount || 0}</span>
                   </Link>
                 )
               })}

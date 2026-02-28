@@ -1,10 +1,38 @@
 const Category = require('../models/Category');
+const Post = require('../models/Post');
 const asyncHandler = require('../utils/async-handler');
 const ApiError = require('../utils/api-error');
 
 const listCategories = asyncHandler(async (req, res) => {
-  const categories = await Category.find().sort({ createdAt: -1 });
-  res.json({ success: true, data: { categories } });
+  const [categories, postCounts] = await Promise.all([
+    Category.find().sort({ createdAt: -1 }),
+    Post.aggregate([
+      {
+        $match: {
+          status: 'published',
+          visibility: 'public',
+          category: { $ne: null },
+        },
+      },
+      {
+        $group: {
+          _id: '$category',
+          postsCount: { $sum: 1 },
+        },
+      },
+    ]),
+  ]);
+
+  const postsCountByCategory = new Map(
+    postCounts.map((item) => [String(item._id), item.postsCount || 0])
+  );
+
+  const enriched = categories.map((category) => ({
+    ...category.toObject(),
+    postsCount: postsCountByCategory.get(String(category._id)) || 0,
+  }));
+
+  res.json({ success: true, data: { categories: enriched } });
 });
 
 const createCategory = asyncHandler(async (req, res) => {

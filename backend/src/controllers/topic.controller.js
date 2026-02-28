@@ -1,10 +1,39 @@
 const Topic = require('../models/Topic');
+const Post = require('../models/Post');
 const asyncHandler = require('../utils/async-handler');
 const ApiError = require('../utils/api-error');
 
 const listTopics = asyncHandler(async (req, res) => {
-  const topics = await Topic.find().sort({ createdAt: -1 });
-  res.json({ success: true, data: { topics } });
+  const [topics, postCounts] = await Promise.all([
+    Topic.find().sort({ createdAt: -1 }),
+    Post.aggregate([
+      {
+        $match: {
+          status: 'published',
+          visibility: 'public',
+          topics: { $exists: true, $ne: [] },
+        },
+      },
+      { $unwind: '$topics' },
+      {
+        $group: {
+          _id: '$topics',
+          postsCount: { $sum: 1 },
+        },
+      },
+    ]),
+  ]);
+
+  const postsCountByTopic = new Map(
+    postCounts.map((item) => [String(item._id), item.postsCount || 0])
+  );
+
+  const enriched = topics.map((topic) => ({
+    ...topic.toObject(),
+    postsCount: postsCountByTopic.get(String(topic._id)) || 0,
+  }));
+
+  res.json({ success: true, data: { topics: enriched } });
 });
 
 const createTopic = asyncHandler(async (req, res) => {

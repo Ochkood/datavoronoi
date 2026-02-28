@@ -152,14 +152,14 @@ export default function CategoryPage() {
               </div>
 
               <div className="flex items-center gap-2">
-                <div className="flex rounded-lg bg-card/20 p-1 backdrop-blur-sm">
+                <div className="flex rounded-lg border border-border/70 bg-background/95 p-1 shadow-sm">
                   <button
                     onClick={() => setActiveTab("feed")}
                     className={cn(
                       "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
                       activeTab === "feed"
-                        ? "bg-card text-foreground shadow-sm"
-                        : "text-card/80 hover:text-card"
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : "text-foreground/80 hover:bg-muted hover:text-foreground"
                     )}
                   >
                     <Newspaper className="h-4 w-4" />
@@ -170,8 +170,8 @@ export default function CategoryPage() {
                     className={cn(
                       "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
                       activeTab === "stats"
-                        ? "bg-card text-foreground shadow-sm"
-                        : "text-card/80 hover:text-card"
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : "text-foreground/80 hover:bg-muted hover:text-foreground"
                     )}
                   >
                     <BarChart3 className="h-4 w-4" />

@@ -52,6 +52,7 @@ export type BackendCategory = {
   icon?: string
   color?: string
   bannerImage?: string
+  postsCount?: number
 }
 
 export type BackendTopic = {
@@ -63,6 +64,7 @@ export type BackendTopic = {
   featured?: boolean
   startDate?: string
   endDate?: string
+  postsCount?: number
 }
 
 function toRelativeDate(dateString?: string): string {

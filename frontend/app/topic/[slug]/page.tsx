@@ -43,6 +43,16 @@ export default function TopicPage() {
     () => topics.find((t) => t.slug === slug),
     [topics, slug]
   )
+  const formattedStartDate = useMemo(() => {
+    if (!topic?.startDate) return null
+    const parsed = new Date(topic.startDate)
+    if (Number.isNaN(parsed.getTime())) return topic.startDate
+    return new Intl.DateTimeFormat("en-CA", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(parsed).replaceAll("-", ".")
+  }, [topic?.startDate])
 
   useEffect(() => {
     if (!topic?._id) {
@@ -94,11 +104,11 @@ export default function TopicPage() {
                 <div className="flex items-center gap-2 text-card/80">
                   <Hash className="h-4 w-4" />
                   <span className="text-xs font-medium uppercase tracking-wider">Сэдэв</span>
-                  {topic?.startDate && (
+                  {formattedStartDate && (
                     <>
                       <span className="text-card/40">|</span>
                       <Calendar className="h-3.5 w-3.5" />
-                      <span className="text-xs">{topic.startDate}</span>
+                      <span className="text-xs">{formattedStartDate}</span>
                     </>
                   )}
                 </div>
@@ -112,14 +122,14 @@ export default function TopicPage() {
 
               {/* Tabs */}
               <div className="flex items-center gap-2">
-                <div className="flex rounded-lg bg-card/20 backdrop-blur-sm p-1">
+                <div className="flex rounded-lg border border-border/70 bg-background/95 p-1 shadow-sm">
                   <button
                     onClick={() => setActiveTab("feed")}
                     className={cn(
                       "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
                       activeTab === "feed"
-                        ? "bg-card text-foreground shadow-sm"
-                        : "text-card/80 hover:text-card"
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : "text-foreground/80 hover:bg-muted hover:text-foreground"
                     )}
                   >
                     <Newspaper className="h-4 w-4" />
@@ -130,8 +140,8 @@ export default function TopicPage() {
                     className={cn(
                       "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
                       activeTab === "stats"
-                        ? "bg-card text-foreground shadow-sm"
-                        : "text-card/80 hover:text-card"
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : "text-foreground/80 hover:bg-muted hover:text-foreground"
                     )}
                   >
                     <BarChart3 className="h-4 w-4" />
