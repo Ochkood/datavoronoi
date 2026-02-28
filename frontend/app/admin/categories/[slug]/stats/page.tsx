@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { useParams, useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
+import { useParams } from "next/navigation"
 import Link from "next/link"
 import {
   ArrowLeft,
@@ -18,7 +18,13 @@ import {
   X,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { categories, categoryStats } from "@/lib/data"
+import type { CategoryStats } from "@/lib/data"
+import {
+  getCategories,
+  getCategoryStatsApi,
+  updateCategoryStatsApi,
+  type BackendCategory,
+} from "@/lib/api"
 import { IconPicker, DynamicIcon } from "@/components/admin/icon-picker"
 
 type ChartType = "area" | "line" | "bar" | "pie"
@@ -36,29 +42,27 @@ interface Highlight {
 interface ChartData {
   title: string
   type: ChartType
-  data: { name: string; value: number }[]
+  data: { name: string; value: number; value2?: number }[]
   dataKey?: string
+  dataKey2?: string
   icon?: string
 }
 
 export default function CategoryStatsEditorPage() {
   const params = useParams()
-  const router = useRouter()
   const slug = params.slug as string
   
-  const category = categories.find((c) => c.slug === slug)
-  const existingStats = categoryStats[slug]
+  const [category, setCategory] = useState<BackendCategory | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
 
-  const [highlights, setHighlights] = useState<Highlight[]>(
-    existingStats?.highlights || []
-  )
-  const [charts, setCharts] = useState<ChartData[]>(
-    existingStats?.charts || []
-  )
+  const [highlights, setHighlights] = useState<Highlight[]>([])
+  const [charts, setCharts] = useState<ChartData[]>([])
   const [editingHighlight, setEditingHighlight] = useState<number | null>(null)
   const [editingChart, setEditingChart] = useState<number | null>(null)
   const [showHighlightModal, setShowHighlightModal] = useState(false)
   const [showChartModal, setShowChartModal] = useState(false)
+  const [savingAll, setSavingAll] = useState(false)
 
   // Form states for highlights
   const [highlightForm, setHighlightForm] = useState<Highlight>({
@@ -80,7 +84,34 @@ export default function CategoryStatsEditorPage() {
   })
   const [chartDataInput, setChartDataInput] = useState("")
 
-  if (!category) {
+  useEffect(() => {
+    let cancelled = false
+    setLoading(true)
+    setError("")
+
+    Promise.all([getCategories(), getCategoryStatsApi(slug)])
+      .then(([cats, stats]) => {
+        if (cancelled) return
+        const found = cats.find((c) => c.slug === slug) || null
+        setCategory(found)
+        setHighlights((stats?.highlights || []) as Highlight[])
+        setCharts((stats?.charts || []) as ChartData[])
+      })
+      .catch((e) => {
+        if (cancelled) return
+        setError(e instanceof Error ? e.message : "Статистик ачаалж чадсангүй")
+      })
+      .finally(() => {
+        if (cancelled) return
+        setLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [slug])
+
+  if (!loading && !category) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <p className="text-muted-foreground">Ангилал олдсонгүй</p>
@@ -153,8 +184,13 @@ export default function CategoryStatsEditorPage() {
       .split("\n")
       .filter((line) => line.trim())
       .map((line) => {
-        const [name, value] = line.split(":")
-        return { name: name.trim(), value: parseFloat(value) || 0 }
+        const [name, value, value2] = line.split(":")
+        const second = value2 !== undefined ? parseFloat(value2) : undefined
+        return {
+          name: (name || "").trim(),
+          value: parseFloat(value) || 0,
+          ...(second !== undefined && !Number.isNaN(second) ? { value2: second } : {}),
+        }
       })
 
     const newChart = { ...chartForm, data }
@@ -174,9 +210,20 @@ export default function CategoryStatsEditorPage() {
   }
 
   const handleSaveAll = () => {
-    // In a real app, this would save to a database
-    console.log("Saving stats:", { highlights, charts })
-    alert("Статистик амжилттай хадгалагдлаа!")
+    setSavingAll(true)
+    setError("")
+    const payload: CategoryStats = {
+      highlights,
+      charts,
+    }
+    updateCategoryStatsApi(slug, payload)
+      .then(() => {
+        alert("Статистик амжилттай хадгалагдлаа!")
+      })
+      .catch((e) => {
+        setError(e instanceof Error ? e.message : "Статистик хадгалахад алдаа гарлаа")
+      })
+      .finally(() => setSavingAll(false))
   }
 
   return (
@@ -193,7 +240,7 @@ export default function CategoryStatsEditorPage() {
             </Link>
             <div>
               <h1 className="text-xl font-bold text-foreground">
-                {category.name} - Статистик
+                {category?.name || slug} - Статистик
               </h1>
               <p className="text-sm text-muted-foreground">
                 Гол үзүүлэлт болон график удирдах
@@ -202,15 +249,27 @@ export default function CategoryStatsEditorPage() {
           </div>
           <button
             onClick={handleSaveAll}
-            className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+            disabled={savingAll}
+            className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
           >
             <Save className="h-4 w-4" />
-            Хадгалах
+            {savingAll ? "Хадгалж байна..." : "Хадгалах"}
           </button>
         </div>
       </header>
 
       <div className="p-6 space-y-8">
+        {error && (
+          <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            {error}
+          </div>
+        )}
+        {loading && (
+          <div className="rounded-lg border border-border bg-card px-3 py-2 text-sm text-muted-foreground">
+            Статистик ачаалж байна...
+          </div>
+        )}
+
         {/* Highlights Section */}
         <section>
           <div className="mb-4 flex items-center justify-between">
@@ -611,7 +670,7 @@ export default function CategoryStatsEditorPage() {
                   Дата оруулга
                 </label>
                 <p className="mb-2 text-xs text-muted-foreground">
-                  Мөр бүрт "нэр:утга" форматаар оруулна. Жишээ: 2020:45.5
+                  Мөр бүрт "нэр:утга" эсвэл "нэр:утга:утга2" форматаар оруулна.
                 </p>
                 <textarea
                   rows={8}

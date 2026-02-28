@@ -8,6 +8,16 @@ const categorySchema = new mongoose.Schema(
     icon: { type: String, default: '' },
     color: { type: String, default: '' },
     bannerImage: { type: String, default: '' },
+    stats: {
+      highlights: {
+        type: [mongoose.Schema.Types.Mixed],
+        default: [],
+      },
+      charts: {
+        type: [mongoose.Schema.Types.Mixed],
+        default: [],
+      },
+    },
   },
   { timestamps: true }
 );

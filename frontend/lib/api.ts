@@ -1,6 +1,7 @@
 import type { AuthUser } from "@/lib/auth"
 import { getAccessToken } from "@/lib/auth"
 import type { PostData } from "@/components/post-card"
+import type { CategoryStats } from "@/lib/data"
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api"
 const API_ORIGIN = API_BASE.replace(/\/api\/?$/, "")
@@ -541,6 +542,27 @@ export async function createCategoryApi(payload: {
     }
   )
   return res.data.category
+}
+
+export async function getCategoryStatsApi(slug: string) {
+  const res = await request<ApiResponse<{ stats: CategoryStats }>>(
+    `/categories/${slug}/stats`
+  )
+  return res.data.stats || { highlights: [], charts: [] }
+}
+
+export async function updateCategoryStatsApi(
+  slug: string,
+  payload: CategoryStats
+) {
+  const res = await request<ApiResponse<{ stats: CategoryStats }>>(
+    `/categories/${slug}/stats`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({ stats: payload }),
+    }
+  )
+  return res.data.stats
 }
 
 export async function updateCategoryApi(

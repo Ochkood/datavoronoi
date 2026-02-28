@@ -11,14 +11,15 @@ import { AppSidebar } from "@/components/app-sidebar"
 import { PostCard, type PostData } from "@/components/post-card"
 import { CategoryStatsView } from "@/components/category-stats"
 import { Skeleton } from "@/components/ui/skeleton"
-import { categoryStats } from "@/lib/data"
 import {
   getCategories,
+  getCategoryStatsApi,
   getPosts,
   getTopAuthorsApi,
   type BackendCategory,
   type TopAuthor,
 } from "@/lib/api"
+import type { CategoryStats } from "@/lib/data"
 
 type TabType = "feed" | "stats"
 type FeedSort = "latest" | "popular"
@@ -33,7 +34,8 @@ export default function CategoryPage() {
   const [loadingCategories, setLoadingCategories] = useState(true)
   const [loadingPosts, setLoadingPosts] = useState(true)
   const [loadingAuthors, setLoadingAuthors] = useState(true)
-  const stats = categoryStats[slug]
+  const [stats, setStats] = useState<CategoryStats | null>(null)
+  const [loadingStats, setLoadingStats] = useState(true)
 
   const [activeTab, setActiveTab] = useState<TabType>("feed")
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
@@ -80,6 +82,14 @@ export default function CategoryPage() {
       .finally(() => setLoadingAuthors(false))
   }, [category?._id, loadingCategories])
 
+  useEffect(() => {
+    setLoadingStats(true)
+    getCategoryStatsApi(slug)
+      .then((res) => setStats(res))
+      .catch(() => setStats(null))
+      .finally(() => setLoadingStats(false))
+  }, [slug])
+
   if (!loadingCategories && !category && categories.length > 0) {
     notFound()
   }
@@ -109,7 +119,7 @@ export default function CategoryPage() {
       <AppSidebar />
 
       <main className="flex-1 lg:ml-[260px]">
-        <header className="border-b border-border/70 bg-card/40">
+        <header className="border-b border-border/70 bg-card/60">
           <div className="mx-auto max-w-7xl px-4 py-5 pl-14 md:px-6 lg:pl-6">
             <div className="relative overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm">
               {category?.bannerImage ? (
@@ -122,37 +132,41 @@ export default function CategoryPage() {
               ) : (
                 <div className="absolute inset-0 bg-gradient-to-br from-secondary via-secondary/70 to-background" />
               )}
-              <div className="absolute inset-0 bg-gradient-to-r from-card via-card/80 to-card/50" />
+              {category?.bannerImage && (
+                <div className="absolute inset-0 bg-foreground/20" />
+              )}
 
               <div className="relative p-5 md:p-6">
                 <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-                  <div className="flex items-start gap-4">
-                    <div
-                      className={cn(
-                        "flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl shadow-md ring-2 ring-card/70",
-                        categoryBgColor
-                      )}
-                    >
-                      <DynamicIcon
-                        name={category?.icon}
-                        className="h-7 w-7 text-white"
-                        fallback={Newspaper}
-                      />
-                    </div>
-                    <div>
-                      <p className={cn("text-xs font-semibold uppercase tracking-wider", categoryColor)}>
-                        Category
-                      </p>
-                      <h1 className="mt-1 text-2xl font-bold text-foreground md:text-3xl">
-                        {categoryName}
-                      </h1>
-                      <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-                        {categoryDescription || "Энэ ангиллын голлох мэдээ, дүн шинжилгээ энд нэгтгэгдэнэ."}
-                      </p>
+                  <div className="rounded-xl border border-border/60 bg-card/85 p-4 shadow-md backdrop-blur-sm">
+                    <div className="flex items-start gap-3">
+                      <div
+                        className={cn(
+                          "flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl shadow-lg",
+                          categoryBgColor
+                        )}
+                      >
+                        <DynamicIcon
+                          name={category?.icon}
+                          className="h-6 w-6 text-white"
+                          fallback={Newspaper}
+                        />
+                      </div>
+                      <div>
+                        <p className={cn("text-xs font-semibold uppercase tracking-wider", categoryColor)}>
+                          Category
+                        </p>
+                        <h1 className="mt-1 text-xl font-bold text-foreground md:text-2xl">
+                          {categoryName}
+                        </h1>
+                        <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+                          {categoryDescription || "Энэ ангиллын голлох мэдээ, дүн шинжилгээ энд нэгтгэгдэнэ."}
+                        </p>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 rounded-lg border border-border/60 bg-card/85 p-1 backdrop-blur-sm">
                     <div className="flex rounded-lg bg-secondary p-1">
                       <button
                         onClick={() => setActiveTab("feed")}
@@ -323,7 +337,7 @@ export default function CategoryPage() {
                 </>
               ) : (
                 /* Statistics Tab */
-                stats ? (
+                !loadingStats && stats ? (
                   <CategoryStatsView stats={stats} categoryColor={categoryColor} />
                 ) : (
                   <div className="flex flex-col items-center justify-center py-16 text-center">

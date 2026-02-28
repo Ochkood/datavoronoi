@@ -70,9 +70,49 @@ const deleteCategory = asyncHandler(async (req, res) => {
   res.json({ success: true, message: 'category deleted' });
 });
 
+const getCategoryStats = asyncHandler(async (req, res) => {
+  const { slug } = req.params;
+  const category = await Category.findOne({ slug }).select('slug stats');
+  if (!category) {
+    throw new ApiError(404, 'category not found');
+  }
+
+  res.json({
+    success: true,
+    data: {
+      stats: category.stats || { highlights: [], charts: [] },
+    },
+  });
+});
+
+const updateCategoryStats = asyncHandler(async (req, res) => {
+  const { slug } = req.params;
+  const { stats } = req.body;
+
+  const category = await Category.findOne({ slug });
+  if (!category) {
+    throw new ApiError(404, 'category not found');
+  }
+
+  const highlights = Array.isArray(stats?.highlights) ? stats.highlights : [];
+  const charts = Array.isArray(stats?.charts) ? stats.charts : [];
+
+  category.stats = { highlights, charts };
+  await category.save();
+
+  res.json({
+    success: true,
+    data: {
+      stats: category.stats,
+    },
+  });
+});
+
 module.exports = {
   listCategories,
   createCategory,
   updateCategory,
   deleteCategory,
+  getCategoryStats,
+  updateCategoryStats,
 };
