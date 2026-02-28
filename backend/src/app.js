@@ -10,6 +10,7 @@ const notFoundMiddleware = require('./middlewares/not-found.middleware');
 const errorMiddleware = require('./middlewares/error.middleware');
 
 const app = express();
+app.set('trust proxy', process.env.TRUST_PROXY || 1);
 
 function normalizeOrigin(value) {
   try {
@@ -80,15 +81,34 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
-app.use(
-  '/api',
-  rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 300,
-    standardHeaders: true,
-    legacyHeaders: false,
-  })
-);
+const apiReadLimiter = rateLimit({
+  windowMs: Number(process.env.API_READ_RATE_WINDOW_MS) || 15 * 60 * 1000,
+  max: Number(process.env.API_READ_RATE_MAX) || 3000,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: 'Too many requests, please try again later.' },
+});
+
+const apiWriteLimiter = rateLimit({
+  windowMs: Number(process.env.API_WRITE_RATE_WINDOW_MS) || 15 * 60 * 1000,
+  max: Number(process.env.API_WRITE_RATE_MAX) || 600,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: 'Too many requests, please try again later.' },
+  skip: (req) => req.method === 'GET' || req.method === 'HEAD' || req.method === 'OPTIONS',
+});
+
+const authLimiter = rateLimit({
+  windowMs: Number(process.env.AUTH_RATE_WINDOW_MS) || 15 * 60 * 1000,
+  max: Number(process.env.AUTH_RATE_MAX) || 80,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: 'Too many login attempts, please try again later.' },
+});
+
+app.use('/api/auth', authLimiter);
+app.use('/api', apiReadLimiter);
+app.use('/api', apiWriteLimiter);
 
 app.use('/api', routes);
 app.use(notFoundMiddleware);

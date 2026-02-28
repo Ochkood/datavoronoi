@@ -7,17 +7,21 @@ import { AppSidebar } from "@/components/app-sidebar"
 import { ContentHeader } from "@/components/content-header"
 import { PostCard, type PostData } from "@/components/post-card"
 import { TrendingSidebar } from "@/components/trending-sidebar"
+import { Skeleton } from "@/components/ui/skeleton"
 import { getPosts } from "@/lib/api"
 
 export default function HomePage() {
   const [activeTab, setActiveTab] = useState("latest")
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
   const [posts, setPosts] = useState<PostData[]>([])
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    setLoading(true)
     getPosts()
       .then(setPosts)
       .catch(() => setPosts([]))
+      .finally(() => setLoading(false))
   }, [])
 
   return (
@@ -38,7 +42,7 @@ export default function HomePage() {
                     Newsfeed
                   </h2>
                   <p className="mt-0.5 text-xs text-muted-foreground">
-                    {posts.length} нийтлэл
+                    {loading ? "..." : posts.length} нийтлэл
                   </p>
                 </div>
                 <div className="flex items-center gap-1 rounded-lg bg-secondary p-1">
@@ -70,7 +74,43 @@ export default function HomePage() {
               </div>
 
               {/* Posts */}
-              {viewMode === "grid" ? (
+              {loading ? (
+                viewMode === "grid" ? (
+                  <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                    {Array.from({ length: 6 }).map((_, idx) => (
+                      <div
+                        key={`home-grid-skeleton-${idx}`}
+                        className="overflow-hidden rounded-xl border border-border bg-card"
+                      >
+                        <Skeleton className="h-40 w-full rounded-none" />
+                        <div className="space-y-3 p-4">
+                          <Skeleton className="h-4 w-2/3" />
+                          <Skeleton className="h-3 w-full" />
+                          <Skeleton className="h-3 w-4/5" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-4">
+                    {Array.from({ length: 6 }).map((_, idx) => (
+                      <div
+                        key={`home-list-skeleton-${idx}`}
+                        className="rounded-xl border border-border bg-card p-4"
+                      >
+                        <div className="flex gap-4">
+                          <Skeleton className="h-24 w-32 rounded-lg" />
+                          <div className="flex-1 space-y-3">
+                            <Skeleton className="h-4 w-1/2" />
+                            <Skeleton className="h-3 w-full" />
+                            <Skeleton className="h-3 w-5/6" />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )
+              ) : viewMode === "grid" ? (
                 <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                   {posts.map((post) => (
                     <PostCard key={post.id} post={post} variant="default" />
