@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import type { ElementType } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
@@ -26,6 +27,9 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { clearAuth, isAuthenticated } from "@/lib/auth"
+import { getCategories, getTopics, type BackendCategory, type BackendTopic } from "@/lib/api"
+import { DynamicIcon } from "@/components/admin/icon-picker"
+import { Skeleton } from "@/components/ui/skeleton"
 
 const mainNavItems = [
   { label: "Нүүр", icon: Home, href: "/" },
@@ -35,20 +39,38 @@ const mainNavItems = [
   { label: "Тусламж", icon: HelpCircle, href: "/support" },
 ]
 
-const categories = [
-  { label: "Эдийн засаг", slug: "economy", icon: TrendingUp, color: "text-chart-1" },
-  { label: "Технологи", slug: "technology", icon: Cpu, color: "text-chart-2" },
-  { label: "Байгаль орчин", slug: "environment", icon: Leaf, color: "text-chart-4" },
-  { label: "Эрүүл мэнд", slug: "health", icon: Heart, color: "text-destructive" },
-  { label: "Санхүү", slug: "finance", icon: Building2, color: "text-chart-5" },
-  { label: "Дэлхий", slug: "world", icon: Globe, color: "text-chart-3" },
-]
+const fallbackCategoryIconBySlug: Record<string, ElementType> = {
+  economy: TrendingUp,
+  technology: Cpu,
+  environment: Leaf,
+  health: Heart,
+  finance: Building2,
+  world: Globe,
+}
 
-const featuredTopics = [
-  { label: "COP29 Бага хурал", slug: "cop29", color: "text-chart-4" },
-  { label: "Сонгууль 2024", slug: "mongolia-election-2024", color: "text-primary" },
-  { label: "AI Хувьсгал", slug: "ai-revolution", color: "text-chart-2" },
-]
+const colorClassByToken: Record<string, string> = {
+  economy: "text-chart-1",
+  technology: "text-chart-2",
+  world: "text-chart-3",
+  environment: "text-chart-4",
+  finance: "text-chart-5",
+  health: "text-destructive",
+  "chart-1": "text-chart-1",
+  "chart-2": "text-chart-2",
+  "chart-3": "text-chart-3",
+  "chart-4": "text-chart-4",
+  "chart-5": "text-chart-5",
+  primary: "text-primary",
+  destructive: "text-destructive",
+}
+
+function categoryColorClass(category: BackendCategory) {
+  const raw = (category.color || "").trim()
+  if (!raw) return colorClassByToken[category.slug] || "text-primary"
+  if (raw.startsWith("text-")) return raw
+  if (raw.startsWith("bg-")) return raw.replace("bg-", "text-")
+  return colorClassByToken[raw] || colorClassByToken[category.slug] || "text-primary"
+}
 
 export function AppSidebar() {
   const pathname = usePathname()
@@ -56,10 +78,63 @@ export function AppSidebar() {
   const [topicsOpen, setTopicsOpen] = useState(true)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [authed, setAuthed] = useState(false)
+  const [categories, setCategories] = useState<BackendCategory[]>([])
+  const [topics, setTopics] = useState<BackendTopic[]>([])
+  const [loadingCategories, setLoadingCategories] = useState(true)
+  const [loadingTopics, setLoadingTopics] = useState(true)
 
   useEffect(() => {
     setAuthed(isAuthenticated())
   }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    setLoadingCategories(true)
+
+    getCategories()
+      .then((items) => {
+        if (cancelled) return
+        setCategories(items)
+      })
+      .catch(() => {
+        if (cancelled) return
+        setCategories([])
+      })
+      .finally(() => {
+        if (cancelled) return
+        setLoadingCategories(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    setLoadingTopics(true)
+
+    getTopics()
+      .then((items) => {
+        if (cancelled) return
+        setTopics(items)
+      })
+      .catch(() => {
+        if (cancelled) return
+        setTopics([])
+      })
+      .finally(() => {
+        if (cancelled) return
+        setLoadingTopics(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const featuredTopics = topics.filter((topic) => topic.featured).slice(0, 5)
+  const sidebarTopics = featuredTopics.length > 0 ? featuredTopics : topics.slice(0, 5)
 
   return (
     <>
@@ -152,11 +227,19 @@ export function AppSidebar() {
           </button>
           {categoriesOpen && (
             <div className="flex flex-col gap-0.5">
-              {categories.map((cat) => {
+              {loadingCategories &&
+                Array.from({ length: 4 }).map((_, idx) => (
+                  <div key={`cat-skeleton-${idx}`} className="flex items-center gap-3 px-3 py-2">
+                    <Skeleton className="h-4 w-4 rounded-sm" />
+                    <Skeleton className="h-4 w-28" />
+                  </div>
+                ))}
+              {!loadingCategories && categories.map((cat) => {
                 const isCatActive = pathname === `/category/${cat.slug}`
+                const fallbackIcon = fallbackCategoryIconBySlug[cat.slug] || Globe
                 return (
                   <Link
-                    key={cat.label}
+                    key={cat._id}
                     href={`/category/${cat.slug}`}
                     onClick={() => setMobileOpen(false)}
                     className={cn(
@@ -166,8 +249,12 @@ export function AppSidebar() {
                         : "text-sidebar-muted hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
                     )}
                   >
-                    <cat.icon className={cn("h-4 w-4", cat.color)} />
-                    {cat.label}
+                    <DynamicIcon
+                      name={cat.icon}
+                      className={cn("h-4 w-4", categoryColorClass(cat))}
+                      fallback={fallbackIcon}
+                    />
+                    {cat.name}
                   </Link>
                 )
               })}
@@ -196,7 +283,14 @@ export function AppSidebar() {
           </button>
           {topicsOpen && (
             <div className="flex flex-col gap-0.5">
-              {featuredTopics.map((topic) => {
+              {loadingTopics &&
+                Array.from({ length: 3 }).map((_, idx) => (
+                  <div key={`topic-skeleton-${idx}`} className="flex items-center gap-3 px-3 py-2">
+                    <Skeleton className="h-4 w-4 rounded-sm" />
+                    <Skeleton className="h-4 w-24" />
+                  </div>
+                ))}
+              {!loadingTopics && sidebarTopics.map((topic) => {
                 const isTopicActive = pathname === `/topic/${topic.slug}`
                 return (
                   <Link
@@ -210,8 +304,8 @@ export function AppSidebar() {
                         : "text-sidebar-muted hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
                     )}
                   >
-                    <Hash className={cn("h-4 w-4", topic.color)} />
-                    {topic.label}
+                    <Hash className={cn("h-4 w-4", topic.featured ? "text-chart-2" : "text-primary")} />
+                    {topic.name}
                   </Link>
                 )
               })}

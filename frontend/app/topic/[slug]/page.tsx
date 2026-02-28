@@ -9,6 +9,7 @@ import { AppSidebar } from "@/components/app-sidebar"
 import { PostCard, type PostData } from "@/components/post-card"
 import { TrendingSidebar } from "@/components/trending-sidebar"
 import { CategoryStatsView } from "@/components/category-stats"
+import { Skeleton } from "@/components/ui/skeleton"
 import { topicStats } from "@/lib/data"
 import { getPosts, getTopics, type BackendTopic } from "@/lib/api"
 
@@ -20,15 +21,19 @@ export default function TopicPage() {
 
   const [topics, setTopics] = useState<BackendTopic[]>([])
   const [topicPosts, setTopicPosts] = useState<PostData[]>([])
+  const [loadingTopics, setLoadingTopics] = useState(true)
+  const [loadingPosts, setLoadingPosts] = useState(true)
   const stats = topicStats[slug]
 
   const [activeTab, setActiveTab] = useState<TabType>("feed")
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
 
   useEffect(() => {
+    setLoadingTopics(true)
     getTopics()
       .then((res) => setTopics(res))
       .catch(() => setTopics([]))
+      .finally(() => setLoadingTopics(false))
   }, [])
 
   const topic = useMemo(
@@ -37,13 +42,19 @@ export default function TopicPage() {
   )
 
   useEffect(() => {
-    if (!topic?._id) return
+    if (!topic?._id) {
+      if (!loadingTopics) setLoadingPosts(false)
+      return
+    }
+
+    setLoadingPosts(true)
     getPosts({ topic: topic._id })
       .then((res) => setTopicPosts(res))
       .catch(() => setTopicPosts([]))
-  }, [topic?._id])
+      .finally(() => setLoadingPosts(false))
+  }, [topic?._id, loadingTopics])
 
-  if (!topic && topics.length > 0) {
+  if (!loadingTopics && !topic && topics.length > 0) {
     notFound()
   }
 
@@ -166,7 +177,43 @@ export default function TopicPage() {
                   </div>
 
                   {/* Posts */}
-                  {topicPosts.length > 0 ? (
+                  {loadingPosts ? (
+                    viewMode === "grid" ? (
+                      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                        {Array.from({ length: 6 }).map((_, idx) => (
+                          <div
+                            key={`topic-grid-skeleton-${idx}`}
+                            className="overflow-hidden rounded-xl border border-border bg-card"
+                          >
+                            <Skeleton className="h-40 w-full rounded-none" />
+                            <div className="space-y-3 p-4">
+                              <Skeleton className="h-4 w-2/3" />
+                              <Skeleton className="h-3 w-full" />
+                              <Skeleton className="h-3 w-4/5" />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="flex flex-col gap-4">
+                        {Array.from({ length: 6 }).map((_, idx) => (
+                          <div
+                            key={`topic-list-skeleton-${idx}`}
+                            className="rounded-xl border border-border bg-card p-4"
+                          >
+                            <div className="flex gap-4">
+                              <Skeleton className="h-24 w-32 rounded-lg" />
+                              <div className="flex-1 space-y-3">
+                                <Skeleton className="h-4 w-1/2" />
+                                <Skeleton className="h-3 w-full" />
+                                <Skeleton className="h-3 w-5/6" />
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )
+                  ) : topicPosts.length > 0 ? (
                     viewMode === "grid" ? (
                       <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                         {topicPosts.map((post) => (
