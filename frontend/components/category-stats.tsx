@@ -72,6 +72,10 @@ interface ChartCardProps {
   dataKey2?: string
   dataKey3?: string
   dataKey4?: string
+  dataLabel?: string
+  dataLabel2?: string
+  dataLabel3?: string
+  dataLabel4?: string
   color: string
   icon?: string
 }
@@ -84,6 +88,10 @@ function ChartCard({
   dataKey2,
   dataKey3,
   dataKey4,
+  dataLabel,
+  dataLabel2,
+  dataLabel3,
+  dataLabel4,
   color,
   icon,
 }: ChartCardProps) {
@@ -94,9 +102,14 @@ function ChartCard({
                     color === "text-chart-5" ? "var(--chart-5)" :
                     color === "text-destructive" ? "var(--destructive)" : "var(--primary)"
 
-  const seriesKeys = [dataKey, dataKey2, dataKey3, dataKey4].filter(
-    (key): key is string => Boolean(key)
-  )
+  const series = [
+    { key: dataKey, label: dataLabel || dataKey || "value" },
+    { key: dataKey2, label: dataLabel2 || dataKey2 || "value2" },
+    { key: dataKey3, label: dataLabel3 || dataKey3 || "value3" },
+    { key: dataKey4, label: dataLabel4 || dataKey4 || "value4" },
+  ].filter((item): item is { key: string; label: string } => Boolean(item.key))
+
+  const seriesKeys = series.map((s) => s.key)
   const seriesColors = [
     chartColor,
     "var(--chart-2)",
@@ -147,12 +160,12 @@ function ChartCard({
                 }}
               />
               {seriesKeys.length > 1 && <Legend wrapperStyle={{ fontSize: "11px" }} />}
-              {seriesKeys.map((key, idx) => (
+              {series.map((item, idx) => (
                 <Area
-                  key={key}
+                  key={item.key}
                   type="monotone"
-                  dataKey={key}
-                  name={key}
+                  dataKey={item.key}
+                  name={item.label}
                   stroke={seriesColors[idx % seriesColors.length]}
                   strokeWidth={2}
                   fill={`url(#gradient-${title}-${idx})`}
@@ -182,12 +195,12 @@ function ChartCard({
                 }}
               />
               {seriesKeys.length > 1 && <Legend wrapperStyle={{ fontSize: "11px" }} />}
-              {seriesKeys.map((key, idx) => (
+              {series.map((item, idx) => (
                 <Line
-                  key={key}
+                  key={item.key}
                   type="monotone"
-                  dataKey={key}
-                  name={key}
+                  dataKey={item.key}
+                  name={item.label}
                   stroke={seriesColors[idx % seriesColors.length]}
                   strokeWidth={2}
                   dot={{ fill: seriesColors[idx % seriesColors.length], strokeWidth: 0, r: 3 }}
@@ -218,13 +231,13 @@ function ChartCard({
                 }}
               />
               {seriesKeys.length > 1 && <Legend wrapperStyle={{ fontSize: "11px" }} />}
-              {seriesKeys.map((key, idx) => (
+              {series.map((item, idx) => (
                 <Bar
-                  key={key}
-                  dataKey={key}
+                  key={item.key}
+                  dataKey={item.key}
                   fill={seriesColors[idx % seriesColors.length]}
                   radius={[4, 4, 0, 0]}
-                  name={key}
+                  name={item.label}
                 />
               ))}
             </BarChart>
@@ -268,6 +281,10 @@ export function CategoryStatsView({ stats, categoryColor }: CategoryStatsProps) 
               dataKey2={chart.dataKey2}
               dataKey3={chart.dataKey3}
               dataKey4={chart.dataKey4}
+              dataLabel={chart.dataLabel}
+              dataLabel2={chart.dataLabel2}
+              dataLabel3={chart.dataLabel3}
+              dataLabel4={chart.dataLabel4}
               color={categoryColor}
               icon={chart.icon}
             />

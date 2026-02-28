@@ -271,6 +271,10 @@ export interface CategoryStats {
     dataKey2?: string
     dataKey3?: string
     dataKey4?: string
+    dataLabel?: string
+    dataLabel2?: string
+    dataLabel3?: string
+    dataLabel4?: string
     icon?: string
   }[]
 }

@@ -47,6 +47,10 @@ interface ChartData {
   dataKey2?: string
   dataKey3?: string
   dataKey4?: string
+  dataLabel?: string
+  dataLabel2?: string
+  dataLabel3?: string
+  dataLabel4?: string
   icon?: string
 }
 
@@ -82,6 +86,10 @@ export default function CategoryStatsEditorPage() {
     type: "area",
     data: [],
     dataKey: "value",
+    dataLabel: "",
+    dataLabel2: "",
+    dataLabel3: "",
+    dataLabel4: "",
     icon: "",
   })
   const [chartDataInput, setChartDataInput] = useState("")
@@ -165,6 +173,10 @@ export default function CategoryStatsEditorPage() {
       dataKey2: undefined,
       dataKey3: undefined,
       dataKey4: undefined,
+      dataLabel: "",
+      dataLabel2: "",
+      dataLabel3: "",
+      dataLabel4: "",
       icon: "",
     })
     setChartDataInput("")
@@ -220,6 +232,10 @@ export default function CategoryStatsEditorPage() {
       dataKey2: hasSecondSeries ? (chartForm.dataKey2 || "value2") : undefined,
       dataKey3: hasThirdSeries ? (chartForm.dataKey3 || "value3") : undefined,
       dataKey4: hasFourthSeries ? (chartForm.dataKey4 || "value4") : undefined,
+      dataLabel: chartForm.dataLabel || "",
+      dataLabel2: hasSecondSeries ? (chartForm.dataLabel2 || "") : undefined,
+      dataLabel3: hasThirdSeries ? (chartForm.dataLabel3 || "") : undefined,
+      dataLabel4: hasFourthSeries ? (chartForm.dataLabel4 || "") : undefined,
     }
 
     if (editingChart !== null) {
@@ -689,6 +705,53 @@ export default function CategoryStatsEditorPage() {
                       {option.label}
                     </button>
                   ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-foreground">
+                  Цувааны нэршил
+                </label>
+                <p className="mb-2 text-xs text-muted-foreground">
+                  Legend дээр харагдах value/value2/value3/value4 нэр
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <input
+                    type="text"
+                    value={chartForm.dataLabel || ""}
+                    onChange={(e) =>
+                      setChartForm({ ...chartForm, dataLabel: e.target.value })
+                    }
+                    placeholder="value: 1-р улирал"
+                    className="h-10 rounded-lg border border-input bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  />
+                  <input
+                    type="text"
+                    value={chartForm.dataLabel2 || ""}
+                    onChange={(e) =>
+                      setChartForm({ ...chartForm, dataLabel2: e.target.value })
+                    }
+                    placeholder="value2: 2-р улирал"
+                    className="h-10 rounded-lg border border-input bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  />
+                  <input
+                    type="text"
+                    value={chartForm.dataLabel3 || ""}
+                    onChange={(e) =>
+                      setChartForm({ ...chartForm, dataLabel3: e.target.value })
+                    }
+                    placeholder="value3: 3-р улирал"
+                    className="h-10 rounded-lg border border-input bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  />
+                  <input
+                    type="text"
+                    value={chartForm.dataLabel4 || ""}
+                    onChange={(e) =>
+                      setChartForm({ ...chartForm, dataLabel4: e.target.value })
+                    }
+                    placeholder="value4: 4-р улирал"
+                    className="h-10 rounded-lg border border-input bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  />
                 </div>
               </div>
 
