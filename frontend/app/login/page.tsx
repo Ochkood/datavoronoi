@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, Suspense } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { BarChart3, Eye, EyeOff, Mail, Lock, ArrowRight } from "lucide-react"
@@ -8,11 +8,11 @@ import { cn } from "@/lib/utils"
 import { loginApi } from "@/lib/api"
 import { isAuthenticated, saveAuth } from "@/lib/auth"
 import { loginSchema } from "@/lib/validators/auth"
-import { useEffect } from "react"
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
+
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({
@@ -27,7 +27,7 @@ export default function LoginPage() {
     }
   }, [router])
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setError("")
 
@@ -171,7 +171,7 @@ export default function LoginPage() {
               )}
             >
               {isLoading ? (
-                "Нэвтэрч байна..."
+                "Нэвтрэж байна..."
               ) : (
                 <>
                   Нэвтрэх
@@ -204,11 +204,11 @@ export default function LoginPage() {
                   fill="#34A853"
                 />
                 <path
-                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93л2.85-2.22.81-.62z"
                   fill="#FBBC05"
                 />
                 <path
-                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64л3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07л3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                   fill="#EA4335"
                 />
               </svg>
@@ -247,5 +247,21 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center">
+          <span className="text-sm text-muted-foreground">
+            Нэвтрэх хуудсыг ачааллаж байна...
+          </span>
+        </div>
+      }
+    >
+      <LoginContent />
+    </Suspense>
   )
 }
