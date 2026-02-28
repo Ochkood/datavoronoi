@@ -8,6 +8,17 @@ const asyncHandler = require('../utils/async-handler');
 const ApiError = require('../utils/api-error');
 const mongoose = require('mongoose');
 
+const SHORT_ID_CHARS = 'abcdefghijklmnopqrstuvwxyz0123456789';
+const SHORT_ID_LENGTH = 5;
+
+function generateShortId(length = SHORT_ID_LENGTH) {
+  let out = '';
+  for (let i = 0; i < length; i += 1) {
+    out += SHORT_ID_CHARS.charAt(Math.floor(Math.random() * SHORT_ID_CHARS.length));
+  }
+  return out;
+}
+
 function buildPostIdentifierQuery(id) {
   const value = String(id || '').trim();
   if (!value) return null;
@@ -21,8 +32,43 @@ function buildPostIdentifierQuery(id) {
 
 async function ensurePostShortId(post) {
   if (!post || post.shortId) return post;
-  await post.save();
-  return post;
+
+  for (let tries = 0; tries < 10; tries += 1) {
+    const candidate = generateShortId();
+    try {
+      // Set only when shortId is still missing; prevents random overwrites under concurrency.
+      const updated = await Post.findOneAndUpdate(
+        {
+          _id: post._id,
+          $or: [
+            { shortId: { $exists: false } },
+            { shortId: null },
+            { shortId: '' },
+          ],
+        },
+        { $set: { shortId: candidate } },
+        { new: true }
+      ).select('shortId');
+
+      if (updated?.shortId) {
+        post.shortId = updated.shortId;
+        return post;
+      }
+
+      const current = await Post.findById(post._id).select('shortId');
+      if (current?.shortId) {
+        post.shortId = current.shortId;
+        return post;
+      }
+    } catch (err) {
+      // Retry when candidate collides with existing shortId.
+      if (err?.code !== 11000) {
+        throw err;
+      }
+    }
+  }
+
+  throw new ApiError(500, 'Failed to assign post short id');
 }
 
 const listPosts = asyncHandler(async (req, res) => {
