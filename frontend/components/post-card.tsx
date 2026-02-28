@@ -7,6 +7,7 @@ import { Bookmark, Share2, Eye, MessageCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { getMyEngagement, toggleBookmarkApi } from "@/lib/api"
 import { getAccessToken } from "@/lib/auth"
+import { toast } from "sonner"
 
 export interface PostData {
   id: string
@@ -61,12 +62,19 @@ export function PostCard({
   }, [post.id])
 
   const handleBookmark = async () => {
-    if (!getAccessToken() || actionLoading) return
+    if (!getAccessToken()) {
+      toast.error("Та эхлээд нэвтэрнэ үү")
+      return
+    }
+    if (actionLoading) return
     setActionLoading(true)
     try {
       const res = await toggleBookmarkApi(post.id)
       setSaved(res.bookmarked)
       onBookmarkChange?.(res.bookmarked)
+      toast.success(res.bookmarked ? "Хадгаллаа" : "Хадгалснаас хаслаа")
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Хадгалах үед алдаа")
     } finally {
       setActionLoading(false)
     }

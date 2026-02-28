@@ -16,6 +16,7 @@ import {
   type PublicAuthorProfile,
 } from "@/lib/api"
 import { getAccessToken } from "@/lib/auth"
+import { toast } from "sonner"
 
 export default function PublisherProfilePage() {
   const params = useParams()
@@ -66,11 +67,10 @@ export default function PublisherProfilePage() {
   const handleToggleFollow = async () => {
     if (!profile) return
     if (!getAccessToken()) {
-      setError("Та эхлээд нэвтэрнэ үү")
+      toast.error("Та эхлээд нэвтэрнэ үү")
       return
     }
 
-    setError("")
     setFollowLoading(true)
     try {
       const res = await toggleFollowUserApi(profile.id)
@@ -85,8 +85,11 @@ export default function PublisherProfilePage() {
             }
           : prev
       )
+      toast.success(res.following ? "Follow амжилттай" : "Unfollow амжилттай")
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Дагах төлөв шинэчлэхэд алдаа")
+      toast.error(
+        e instanceof Error ? e.message : "Дагах төлөв шинэчлэхэд алдаа"
+      )
     } finally {
       setFollowLoading(false)
     }

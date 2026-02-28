@@ -36,6 +36,7 @@ import {
   type PostComment,
 } from "@/lib/api"
 import { getAccessToken } from "@/lib/auth"
+import { toast } from "sonner"
 
 export default function PostDetailPage() {
   const params = useParams()
@@ -50,7 +51,6 @@ export default function PostDetailPage() {
   const [likesCount, setLikesCount] = useState(0)
   const [comment, setComment] = useState("")
   const [comments, setComments] = useState<PostComment[]>([])
-  const [actionError, setActionError] = useState("")
   const [authorVerified, setAuthorVerified] = useState(false)
   const [authorIsFollowing, setAuthorIsFollowing] = useState(false)
   const [authorFollowLoading, setAuthorFollowLoading] = useState(false)
@@ -133,48 +133,46 @@ export default function PostDetailPage() {
 
   const handleToggleLike = async () => {
     if (!getAccessToken()) {
-      setActionError("Та эхлээд нэвтэрнэ үү")
+      toast.error("Та эхлээд нэвтэрнэ үү")
       return
     }
-    setActionError("")
     try {
       const res = await toggleLikeApi(id)
       setLiked(res.liked)
       setLikesCount(res.likesCount)
+      toast.success(res.liked ? "Таалагдлаа" : "Таалагдлыг цуцаллаа")
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : "Like хийх үед алдаа")
+      toast.error(err instanceof Error ? err.message : "Таалагдлын үед алдаа")
     }
   }
 
   const handleToggleBookmark = async () => {
     if (!getAccessToken()) {
-      setActionError("Та эхлээд нэвтэрнэ үү")
+      toast.error("Та эхлээд нэвтэрнэ үү")
       return
     }
-    setActionError("")
     try {
       const res = await toggleBookmarkApi(id)
       setSaved(res.bookmarked)
+      toast.success(res.bookmarked ? "Хадгаллаа" : "Хадгалснаас хаслаа")
     } catch (err) {
-      setActionError(
-        err instanceof Error ? err.message : "Хадгалах үед алдаа"
-      )
+      toast.error(err instanceof Error ? err.message : "Хадгалах үед алдаа")
     }
   }
 
   const handleAddComment = async () => {
     if (!comment.trim()) return
     if (!getAccessToken()) {
-      setActionError("Та эхлээд нэвтэрнэ үү")
+      toast.error("Та эхлээд нэвтэрнэ үү")
       return
     }
-    setActionError("")
     try {
       const created = await addCommentApi(id, comment.trim())
       setComments((prev) => [created, ...prev])
       setComment("")
+      toast.success("Сэтгэгдэл амжилттай илгээгдлээ")
     } catch (err) {
-      setActionError(
+      toast.error(
         err instanceof Error ? err.message : "Сэтгэгдэл илгээх үед алдаа"
       )
     }
@@ -183,18 +181,18 @@ export default function PostDetailPage() {
   const handleToggleAuthorFollow = async () => {
     if (!post.authorId) return
     if (!getAccessToken()) {
-      setActionError("Та эхлээд нэвтэрнэ үү")
+      toast.error("Та эхлээд нэвтэрнэ үү")
       return
     }
     if (currentUserId && currentUserId === post.authorId) return
 
-    setActionError("")
     setAuthorFollowLoading(true)
     try {
       const res = await toggleFollowUserApi(post.authorId)
       setAuthorIsFollowing(res.following)
+      toast.success(res.following ? "Follow амжилттай" : "Unfollow амжилттай")
     } catch (err) {
-      setActionError(
+      toast.error(
         err instanceof Error ? err.message : "Нийтлэгч дагах үед алдаа"
       )
     } finally {
@@ -364,11 +362,6 @@ export default function PostDetailPage() {
               <MessageCircle className="h-5 w-5" />
               Сэтгэгдэл ({comments.length})
             </h3>
-            {actionError && (
-              <div className="mt-3 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
-                {actionError}
-              </div>
-            )}
             
             {/* Comment Form */}
             <div className="mt-4 rounded-xl bg-card p-4 ring-1 ring-border">
