@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const Post = require('../models/Post');
 const Follow = require('../models/Follow');
+const jwt = require('jsonwebtoken');
 const asyncHandler = require('../utils/async-handler');
 const ApiError = require('../utils/api-error');
 
@@ -232,7 +233,7 @@ const getMyFollowing = asyncHandler(async (req, res) => {
       author: { $in: followedIds },
       status: 'published',
     })
-      .populate('author', 'name avatar')
+      .populate('author', 'name avatar role')
       .populate('category', 'name slug')
       .sort({ createdAt: -1 })
       .limit(limit),
@@ -254,6 +255,70 @@ const getMyFollowing = asyncHandler(async (req, res) => {
   }));
 
   res.json({ success: true, data: { authors, posts } });
+});
+
+function getRequesterUserId(req) {
+  const authHeader = req.headers.authorization;
+  const token = authHeader && authHeader.startsWith('Bearer ')
+    ? authHeader.split(' ')[1]
+    : null;
+
+  if (!token) return null;
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+    return decoded.userId || null;
+  } catch {
+    return null;
+  }
+}
+
+const getPublicUserProfile = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  const user = await User.findById(id).select(
+    'name avatar bio role isActive createdAt'
+  );
+  if (!user || !user.isActive) {
+    throw new ApiError(404, 'user not found');
+  }
+
+  const requesterId = getRequesterUserId(req);
+
+  const [postsCount, followersCount, followingCount, isFollowing, posts] =
+    await Promise.all([
+      Post.countDocuments({ author: user._id, status: 'published' }),
+      Follow.countDocuments({ following: user._id }),
+      Follow.countDocuments({ follower: user._id }),
+      requesterId && String(requesterId) !== String(user._id)
+        ? Follow.exists({ follower: requesterId, following: user._id })
+        : false,
+      Post.find({ author: user._id, status: 'published' })
+        .populate('author', 'name avatar role')
+        .populate('category', 'name slug')
+        .sort({ createdAt: -1 })
+        .limit(12),
+    ]);
+
+  res.json({
+    success: true,
+    data: {
+      profile: {
+        id: user._id,
+        name: user.name,
+        avatar: user.avatar || '',
+        bio: user.bio || '',
+        role: user.role,
+        verified: user.role === 'publisher' || user.role === 'admin',
+        joinedAt: user.createdAt,
+        posts: postsCount,
+        followers: followersCount,
+        followingCount,
+        isFollowing: Boolean(isFollowing),
+      },
+      posts,
+    },
+  });
 });
 
 const toggleFollowUser = asyncHandler(async (req, res) => {
@@ -296,5 +361,6 @@ module.exports = {
   updateMyProfile,
   changeMyPassword,
   getMyFollowing,
+  getPublicUserProfile,
   toggleFollowUser,
 };

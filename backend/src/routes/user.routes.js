@@ -6,6 +6,7 @@ const {
   updateMyProfile,
   changeMyPassword,
   getMyFollowing,
+  getPublicUserProfile,
   toggleFollowUser,
 } = require('../controllers/user.controller');
 const { protect, requireRole } = require('../middlewares/auth.middleware');
@@ -22,6 +23,7 @@ router.get('/profile/me', protect, getMyProfile);
 router.patch('/profile/me', protect, validate(updateMyProfileSchema), updateMyProfile);
 router.patch('/profile/password', protect, validate(changePasswordSchema), changeMyPassword);
 router.get('/following/me', protect, getMyFollowing);
+router.get('/:id/public', getPublicUserProfile);
 router.post('/:id/follow', protect, toggleFollowUser);
 
 router.get('/', protect, requireRole('admin'), listUsers);

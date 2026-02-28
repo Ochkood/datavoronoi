@@ -28,6 +28,7 @@ type BackendPost = {
     _id?: string
     name?: string
     avatar?: string
+    role?: "user" | "publisher" | "admin"
   }
   category?: {
     _id?: string
@@ -85,6 +86,7 @@ function mapPost(post: BackendPost): PostData {
   return {
     id: post._id,
     authorId: post.author?._id || "",
+    authorVerified: post.author?.role === "publisher" || post.author?.role === "admin",
     title: post.title,
     excerpt: post.excerpt || "",
     contentHtml: post.content || "",
@@ -280,6 +282,20 @@ export type FollowingAuthor = {
   posts: number
   followers: number
   following: boolean
+}
+
+export type PublicAuthorProfile = {
+  id: string
+  name: string
+  avatar: string
+  bio: string
+  role: "user" | "publisher" | "admin"
+  verified: boolean
+  joinedAt: string
+  posts: number
+  followers: number
+  followingCount: number
+  isFollowing: boolean
 }
 
 type BackendComment = {
@@ -776,6 +792,17 @@ export async function toggleFollowUserApi(userId: string) {
     }
   )
   return res.data
+}
+
+export async function getPublicAuthorProfileApi(userId: string) {
+  const res = await request<
+    ApiResponse<{ profile: PublicAuthorProfile; posts: BackendPost[] }>
+  >(`/users/${userId}/public`)
+
+  return {
+    profile: res.data.profile,
+    posts: res.data.posts.map(mapPost),
+  }
 }
 
 export async function createPostApi(payload: {

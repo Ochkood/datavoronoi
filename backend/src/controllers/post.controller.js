@@ -29,7 +29,7 @@ const listPosts = asyncHandler(async (req, res) => {
 
   const [items, total] = await Promise.all([
     Post.find(filter)
-      .populate('author', 'name avatar')
+      .populate('author', 'name avatar role')
       .populate('category', 'name slug')
       .populate('topics', 'name slug')
       .sort({ createdAt: -1 })
@@ -54,7 +54,7 @@ const listPosts = asyncHandler(async (req, res) => {
 
 const getPostById = asyncHandler(async (req, res) => {
   const post = await Post.findById(req.params.id)
-    .populate('author', 'name avatar bio')
+    .populate('author', 'name avatar bio role')
     .populate('category', 'name slug')
     .populate('topics', 'name slug');
 
@@ -237,7 +237,7 @@ const myBookmarks = asyncHandler(async (req, res) => {
     .populate({
       path: 'post',
       populate: [
-        { path: 'author', select: 'name avatar' },
+        { path: 'author', select: 'name avatar role' },
         { path: 'category', select: 'name slug' },
       ],
     })

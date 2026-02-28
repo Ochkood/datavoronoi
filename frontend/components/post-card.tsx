@@ -11,6 +11,7 @@ import { getAccessToken } from "@/lib/auth"
 export interface PostData {
   id: string
   authorId?: string
+  authorVerified?: boolean
   title: string
   excerpt: string
   contentHtml?: string

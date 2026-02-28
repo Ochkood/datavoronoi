@@ -16,17 +16,21 @@ import {
   Twitter,
   Link2,
   Send,
+  CheckCircle2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { AppSidebar } from "@/components/app-sidebar"
 import { PostCard, type PostData } from "@/components/post-card"
 import {
   addCommentApi,
+  getMeApi,
   getCommentsApi,
   getMyEngagement,
+  getPublicAuthorProfileApi,
   getPostById,
   getPosts,
   toggleBookmarkApi,
+  toggleFollowUserApi,
   toggleLikeApi,
   type PostComment,
 } from "@/lib/api"
@@ -46,6 +50,10 @@ export default function PostDetailPage() {
   const [comment, setComment] = useState("")
   const [comments, setComments] = useState<PostComment[]>([])
   const [actionError, setActionError] = useState("")
+  const [authorVerified, setAuthorVerified] = useState(false)
+  const [authorIsFollowing, setAuthorIsFollowing] = useState(false)
+  const [authorFollowLoading, setAuthorFollowLoading] = useState(false)
+  const [currentUserId, setCurrentUserId] = useState("")
 
   useEffect(() => {
     setIsLoading(true)
@@ -69,6 +77,27 @@ export default function PostDetailPage() {
       .catch(() => setPost(null))
       .finally(() => setIsLoading(false))
   }, [id])
+
+  useEffect(() => {
+    let mounted = true
+    if (!post?.authorId) return
+
+    const hasToken = Boolean(getAccessToken())
+
+    Promise.all([
+      getPublicAuthorProfileApi(post.authorId).catch(() => null),
+      hasToken ? getMeApi().catch(() => null) : Promise.resolve(null),
+    ]).then(([authorData, me]) => {
+      if (!mounted) return
+      setAuthorVerified(Boolean(authorData?.profile.verified || post.authorVerified))
+      setAuthorIsFollowing(Boolean(authorData?.profile.isFollowing))
+      setCurrentUserId(me?.id || "")
+    })
+
+    return () => {
+      mounted = false
+    }
+  }, [post?.authorId, post?.authorVerified])
 
   useEffect(() => {
     getCommentsApi(id)
@@ -150,6 +179,28 @@ export default function PostDetailPage() {
     }
   }
 
+  const handleToggleAuthorFollow = async () => {
+    if (!post.authorId) return
+    if (!getAccessToken()) {
+      setActionError("Та эхлээд нэвтэрнэ үү")
+      return
+    }
+    if (currentUserId && currentUserId === post.authorId) return
+
+    setActionError("")
+    setAuthorFollowLoading(true)
+    try {
+      const res = await toggleFollowUserApi(post.authorId)
+      setAuthorIsFollowing(res.following)
+    } catch (err) {
+      setActionError(
+        err instanceof Error ? err.message : "Нийтлэгч дагах үед алдаа"
+      )
+    } finally {
+      setAuthorFollowLoading(false)
+    }
+  }
+
   return (
     <div className="flex min-h-screen bg-background">
       <AppSidebar />
@@ -192,7 +243,10 @@ export default function PostDetailPage() {
             {/* Author & Meta */}
             <div className="mt-6 flex flex-wrap items-center justify-between gap-4 border-y border-border py-4">
               <div className="flex items-center gap-3">
-                <div className="h-12 w-12 overflow-hidden rounded-full bg-muted">
+                <Link
+                  href={post.authorId ? `/publisher/${post.authorId}` : "#"}
+                  className="h-12 w-12 overflow-hidden rounded-full bg-muted"
+                >
                   <Image
                     src={post.authorAvatar}
                     alt={post.author}
@@ -200,9 +254,17 @@ export default function PostDetailPage() {
                     height={48}
                     className="h-full w-full object-cover"
                   />
-                </div>
+                </Link>
                 <div>
-                  <p className="font-semibold text-foreground">{post.author}</p>
+                  <Link
+                    href={post.authorId ? `/publisher/${post.authorId}` : "#"}
+                    className="inline-flex items-center gap-1.5 font-semibold text-foreground hover:text-primary"
+                  >
+                    {post.author}
+                    {authorVerified && (
+                      <CheckCircle2 className="h-4 w-4 text-primary" />
+                    )}
+                  </Link>
                   <div className="flex items-center gap-3 text-xs text-muted-foreground">
                     <span className="flex items-center gap-1">
                       <Clock className="h-3 w-3" />
@@ -218,6 +280,20 @@ export default function PostDetailPage() {
               
               {/* Actions */}
               <div className="flex items-center gap-2">
+                {post.authorId && currentUserId !== post.authorId && (
+                  <button
+                    onClick={handleToggleAuthorFollow}
+                    disabled={authorFollowLoading}
+                    className={cn(
+                      "rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                      authorIsFollowing
+                        ? "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                        : "bg-primary text-primary-foreground hover:bg-primary/90"
+                    )}
+                  >
+                    {authorIsFollowing ? "Дагаж байна" : "Дагах"}
+                  </button>
+                )}
                 <button
                   onClick={handleToggleLike}
                   className={cn(
