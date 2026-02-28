@@ -61,6 +61,7 @@ export default function PostDetailPage() {
     getPostById(id)
       .then((p) => {
         setPost(p)
+        setLikesCount(p.likes || 0)
         if (p.categorySlug) {
           return getPosts()
             .then((all) => {
@@ -73,7 +74,6 @@ export default function PostDetailPage() {
             .catch(() => setRelatedPosts([]))
         }
         setRelatedPosts([])
-        setLikesCount(p.likes || 0)
       })
       .catch(() => setPost(null))
       .finally(() => setIsLoading(false))
@@ -233,11 +233,11 @@ export default function PostDetailPage() {
               {post.category}
             </Link>
             
-            <h1 className="mt-4 text-2xl font-bold leading-tight text-foreground md:text-3xl lg:text-4xl text-balance">
+            <h1 className="mt-4 text-xl font-bold leading-tight text-foreground md:text-3xl lg:text-4xl text-balance">
               {post.title}
             </h1>
             
-            <p className="mt-4 text-lg text-muted-foreground leading-relaxed">
+            <p className="mt-4 italic text-muted-foreground leading-relaxed">
               {post.excerpt}
             </p>
 

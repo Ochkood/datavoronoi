@@ -14,6 +14,7 @@ import { topicStats } from "@/lib/data"
 import { getPosts, getTopics, type BackendTopic } from "@/lib/api"
 
 type TabType = "feed" | "stats"
+type FeedSort = "latest" | "popular"
 
 export default function TopicPage() {
   const params = useParams()
@@ -27,6 +28,7 @@ export default function TopicPage() {
 
   const [activeTab, setActiveTab] = useState<TabType>("feed")
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
+  const [feedSort, setFeedSort] = useState<FeedSort>("latest")
 
   useEffect(() => {
     setLoadingTopics(true)
@@ -48,11 +50,11 @@ export default function TopicPage() {
     }
 
     setLoadingPosts(true)
-    getPosts({ topic: topic._id })
+    getPosts({ topic: topic._id, sort: feedSort })
       .then((res) => setTopicPosts(res))
       .catch(() => setTopicPosts([]))
       .finally(() => setLoadingPosts(false))
-  }, [topic?._id, loadingTopics])
+  }, [topic?._id, loadingTopics, feedSort])
 
   if (!loadingTopics && !topic && topics.length > 0) {
     notFound()
@@ -148,7 +150,32 @@ export default function TopicPage() {
                         {topicPosts.length} нийтлэл
                       </p>
                     </div>
-                    <div className="flex items-center gap-1 rounded-lg bg-secondary p-1">
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1 rounded-lg bg-secondary p-1">
+                        <button
+                          onClick={() => setFeedSort("latest")}
+                          className={cn(
+                            "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
+                            feedSort === "latest"
+                              ? "bg-card text-foreground shadow-sm"
+                              : "text-muted-foreground hover:text-foreground"
+                          )}
+                        >
+                          Шинэ
+                        </button>
+                        <button
+                          onClick={() => setFeedSort("popular")}
+                          className={cn(
+                            "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
+                            feedSort === "popular"
+                              ? "bg-card text-foreground shadow-sm"
+                              : "text-muted-foreground hover:text-foreground"
+                          )}
+                        >
+                          Их уншсан
+                        </button>
+                      </div>
+                      <div className="flex items-center gap-1 rounded-lg bg-secondary p-1">
                       <button
                         onClick={() => setViewMode("grid")}
                         className={cn(
@@ -173,6 +200,7 @@ export default function TopicPage() {
                       >
                         <List className="h-4 w-4" />
                       </button>
+                    </div>
                     </div>
                   </div>
 

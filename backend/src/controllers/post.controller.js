@@ -11,6 +11,7 @@ const listPosts = asyncHandler(async (req, res) => {
     page = 1,
     limit = 10,
     status = 'published',
+    sort = 'latest',
     category,
     topic,
     q,
@@ -27,12 +28,17 @@ const listPosts = asyncHandler(async (req, res) => {
 
   const skip = (Number(page) - 1) * Number(limit);
 
+  const sortQuery =
+    sort === 'popular'
+      ? { viewsCount: -1, createdAt: -1 }
+      : { createdAt: -1 };
+
   const [items, total] = await Promise.all([
     Post.find(filter)
       .populate('author', 'name avatar role')
       .populate('category', 'name slug')
       .populate('topics', 'name slug')
-      .sort({ createdAt: -1 })
+      .sort(sortQuery)
       .skip(skip)
       .limit(Number(limit)),
     Post.countDocuments(filter),
@@ -53,7 +59,11 @@ const listPosts = asyncHandler(async (req, res) => {
 });
 
 const getPostById = asyncHandler(async (req, res) => {
-  const post = await Post.findById(req.params.id)
+  const post = await Post.findByIdAndUpdate(
+    req.params.id,
+    { $inc: { viewsCount: 1 } },
+    { new: true }
+  )
     .populate('author', 'name avatar bio role')
     .populate('category', 'name slug')
     .populate('topics', 'name slug');

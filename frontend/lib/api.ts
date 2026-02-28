@@ -434,6 +434,9 @@ export async function getPosts(params?: {
   q?: string
   status?: "all" | "draft" | "pending" | "published" | "rejected"
   author?: string
+  sort?: "latest" | "popular"
+  page?: number
+  limit?: number
 }) {
   const search = new URLSearchParams()
   if (params?.category) search.set("category", params.category)
@@ -441,6 +444,9 @@ export async function getPosts(params?: {
   if (params?.q) search.set("q", params.q)
   if (params?.status) search.set("status", params.status)
   if (params?.author) search.set("author", params.author)
+  if (params?.sort) search.set("sort", params.sort)
+  if (params?.page) search.set("page", String(params.page))
+  if (params?.limit) search.set("limit", String(params.limit))
   const suffix = search.toString() ? `?${search.toString()}` : ""
 
   const res = await request<ApiResponse<{ items: BackendPost[] }>>(`/posts${suffix}`)
