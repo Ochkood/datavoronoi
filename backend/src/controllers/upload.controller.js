@@ -1,8 +1,6 @@
-const fs = require('fs/promises');
-const path = require('path');
-const crypto = require('crypto');
 const asyncHandler = require('../utils/async-handler');
 const ApiError = require('../utils/api-error');
+const { hasCloudinaryConfig, uploadImageBuffer } = require('../utils/cloudinary');
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
@@ -30,23 +28,32 @@ const uploadImage = asyncHandler(async (req, res) => {
     throw new ApiError(400, 'Image is too large. Max 5MB');
   }
 
-  const normalizedBase = path.basename(fileName, path.extname(fileName));
+  if (!hasCloudinaryConfig()) {
+    throw new ApiError(500, 'Cloudinary configuration is missing');
+  }
+
+  const normalizedBase = fileName.replace(/\.[^/.]+$/, '');
   const safeBase = normalizedBase
     .toLowerCase()
     .replace(/[^a-z0-9-_]+/g, '-')
     .replace(/^-+|-+$/g, '')
     .slice(0, 60) || 'image';
 
-  const targetDir = path.join(__dirname, `../../uploads/${folder}`);
-  await fs.mkdir(targetDir, { recursive: true });
+  const baseFolder = process.env.CLOUDINARY_UPLOAD_FOLDER || 'datanews';
+  const uploadFolder = `${baseFolder}/${folder}`;
 
-  const uniqueName = `${Date.now()}-${crypto.randomUUID()}-${safeBase}.${extension}`;
-  const absolutePath = path.join(targetDir, uniqueName);
-
-  await fs.writeFile(absolutePath, buffer);
-
-  const baseUrl = `${req.protocol}://${req.get('host')}`;
-  const url = `${baseUrl}/uploads/${folder}/${uniqueName}`;
+  const result = await uploadImageBuffer(buffer, {
+    folder: uploadFolder,
+    public_id: safeBase,
+    unique_filename: true,
+    overwrite: false,
+    use_filename: true,
+    format: extension,
+  });
+  const url = result?.secure_url || result?.url;
+  if (!url) {
+    throw new ApiError(500, 'Failed to upload image');
+  }
 
   res.status(201).json({ success: true, data: { url } });
 });

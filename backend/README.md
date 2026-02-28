@@ -9,6 +9,23 @@ npm install
 npm run dev
 ```
 
+Required env keys:
+- `MONGO_URI`
+- `JWT_ACCESS_SECRET`
+- `JWT_REFRESH_SECRET`
+- `CLIENT_URL` and/or `CLIENT_URLS`
+- `CLOUDINARY_CLOUD_NAME`
+- `CLOUDINARY_API_KEY`
+- `CLOUDINARY_API_SECRET`
+
+Frontend origin config:
+- `CLIENT_URL`: one origin (example: `https://yourapp.vercel.app`)
+- `CLIENT_URLS`: comma-separated multiple origins (supports wildcard like `*.vercel.app`)
+
+Image upload:
+- `POST /api/uploads/image` now uploads to Cloudinary (not local `uploads/`)
+- Optional env: `CLOUDINARY_UPLOAD_FOLDER` (default: `datanews`)
+
 ## 2. Base URL
 
 - `http://localhost:5000/api`
