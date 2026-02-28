@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const Post = require('../models/Post');
+const Follow = require('../models/Follow');
 const asyncHandler = require('../utils/async-handler');
 const ApiError = require('../utils/api-error');
 
@@ -198,10 +199,102 @@ const changeMyPassword = asyncHandler(async (req, res) => {
   res.json({ success: true, message: 'Password updated successfully' });
 });
 
+const getMyFollowing = asyncHandler(async (req, res) => {
+  const limitRaw = Number(req.query.limit);
+  const limit = Number.isFinite(limitRaw)
+    ? Math.min(Math.max(limitRaw, 1), 100)
+    : 30;
+
+  const follows = await Follow.find({ follower: req.user._id })
+    .populate('following', 'name avatar bio isActive')
+    .sort({ createdAt: -1 });
+
+  const followedUsers = follows
+    .map((f) => f.following)
+    .filter((u) => Boolean(u && u._id && u.isActive));
+
+  const followedIds = followedUsers.map((u) => u._id);
+
+  if (followedIds.length === 0) {
+    return res.json({ success: true, data: { authors: [], posts: [] } });
+  }
+
+  const [postCounts, followerCounts, posts] = await Promise.all([
+    Post.aggregate([
+      { $match: { author: { $in: followedIds } } },
+      { $group: { _id: '$author', count: { $sum: 1 } } },
+    ]),
+    Follow.aggregate([
+      { $match: { following: { $in: followedIds } } },
+      { $group: { _id: '$following', count: { $sum: 1 } } },
+    ]),
+    Post.find({
+      author: { $in: followedIds },
+      status: 'published',
+    })
+      .populate('author', 'name avatar')
+      .populate('category', 'name slug')
+      .sort({ createdAt: -1 })
+      .limit(limit),
+  ]);
+
+  const postsByUser = Object.fromEntries(postCounts.map((c) => [String(c._id), c.count]));
+  const followersByUser = Object.fromEntries(
+    followerCounts.map((c) => [String(c._id), c.count])
+  );
+
+  const authors = followedUsers.map((u) => ({
+    id: u._id,
+    name: u.name,
+    avatar: u.avatar || '',
+    bio: u.bio || '',
+    posts: postsByUser[String(u._id)] || 0,
+    followers: followersByUser[String(u._id)] || 0,
+    following: true,
+  }));
+
+  res.json({ success: true, data: { authors, posts } });
+});
+
+const toggleFollowUser = asyncHandler(async (req, res) => {
+  const targetUserId = req.params.id;
+
+  if (String(req.user._id) === String(targetUserId)) {
+    throw new ApiError(400, 'You cannot follow yourself');
+  }
+
+  const target = await User.findById(targetUserId).select('_id isActive');
+  if (!target) {
+    throw new ApiError(404, 'user not found');
+  }
+  if (!target.isActive) {
+    throw new ApiError(400, 'Cannot follow suspended user');
+  }
+
+  const existing = await Follow.findOne({
+    follower: req.user._id,
+    following: targetUserId,
+  });
+
+  if (existing) {
+    await existing.deleteOne();
+    return res.json({ success: true, data: { following: false } });
+  }
+
+  await Follow.create({
+    follower: req.user._id,
+    following: targetUserId,
+  });
+
+  res.json({ success: true, data: { following: true } });
+});
+
 module.exports = {
   listUsers,
   updateUser,
   getMyProfile,
   updateMyProfile,
   changeMyPassword,
+  getMyFollowing,
+  toggleFollowUser,
 };

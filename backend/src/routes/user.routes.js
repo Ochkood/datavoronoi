@@ -5,6 +5,8 @@ const {
   getMyProfile,
   updateMyProfile,
   changeMyPassword,
+  getMyFollowing,
+  toggleFollowUser,
 } = require('../controllers/user.controller');
 const { protect, requireRole } = require('../middlewares/auth.middleware');
 const validate = require('../middlewares/validate.middleware');
@@ -19,6 +21,8 @@ const router = express.Router();
 router.get('/profile/me', protect, getMyProfile);
 router.patch('/profile/me', protect, validate(updateMyProfileSchema), updateMyProfile);
 router.patch('/profile/password', protect, validate(changePasswordSchema), changeMyPassword);
+router.get('/following/me', protect, getMyFollowing);
+router.post('/:id/follow', protect, toggleFollowUser);
 
 router.get('/', protect, requireRole('admin'), listUsers);
 router.patch('/:id', protect, requireRole('admin'), validate(updateUserSchema), updateUser);

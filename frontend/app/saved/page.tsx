@@ -7,7 +7,7 @@ import { AppSidebar } from "@/components/app-sidebar"
 import { ContentHeader } from "@/components/content-header"
 import { PostCard, type PostData } from "@/components/post-card"
 import { Skeleton } from "@/components/ui/skeleton"
-import { getBookmarks, toggleBookmarkApi } from "@/lib/api"
+import { getBookmarks } from "@/lib/api"
 import { RouteGuard } from "@/components/auth/route-guard"
 
 export default function SavedPage() {
@@ -24,15 +24,6 @@ export default function SavedPage() {
       .catch(() => setSavedPosts([]))
       .finally(() => setLoading(false))
   }, [])
-
-  const handleRemove = async (postId: string) => {
-    try {
-      await toggleBookmarkApi(postId)
-      setSavedPosts((prev) => prev.filter((p) => p.id !== postId))
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Хадгалалт цуцлахад алдаа")
-    }
-  }
 
   return (
     <RouteGuard>
@@ -139,45 +130,31 @@ export default function SavedPage() {
           ) : viewMode === "grid" ? (
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {savedPosts.map((post) => (
-                <div key={post.id}>
-                  <PostCard
-                    post={post}
-                    variant="default"
-                    onBookmarkChange={(bookmarked) => {
-                      if (!bookmarked) {
-                        setSavedPosts((prev) => prev.filter((p) => p.id !== post.id))
-                      }
-                    }}
-                  />
-                  <button
-                    onClick={() => handleRemove(post.id)}
-                    className="mt-2 w-full rounded-lg border border-border px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-secondary hover:text-foreground"
-                  >
-                    Хадгалснаас хасах
-                  </button>
-                </div>
+                <PostCard
+                  key={post.id}
+                  post={post}
+                  variant="default"
+                  onBookmarkChange={(bookmarked) => {
+                    if (!bookmarked) {
+                      setSavedPosts((prev) => prev.filter((p) => p.id !== post.id))
+                    }
+                  }}
+                />
               ))}
             </div>
           ) : (
             <div className="flex flex-col gap-4">
               {savedPosts.map((post) => (
-                <div key={post.id}>
-                  <PostCard
-                    post={post}
-                    variant="list"
-                    onBookmarkChange={(bookmarked) => {
-                      if (!bookmarked) {
-                        setSavedPosts((prev) => prev.filter((p) => p.id !== post.id))
-                      }
-                    }}
-                  />
-                  <button
-                    onClick={() => handleRemove(post.id)}
-                    className="mt-2 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-secondary hover:text-foreground"
-                  >
-                    Хадгалснаас хасах
-                  </button>
-                </div>
+                <PostCard
+                  key={post.id}
+                  post={post}
+                  variant="list"
+                  onBookmarkChange={(bookmarked) => {
+                    if (!bookmarked) {
+                      setSavedPosts((prev) => prev.filter((p) => p.id !== post.id))
+                    }
+                  }}
+                />
               ))}
             </div>
           )}

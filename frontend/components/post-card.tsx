@@ -10,6 +10,7 @@ import { getAccessToken } from "@/lib/auth"
 
 export interface PostData {
   id: string
+  authorId?: string
   title: string
   excerpt: string
   contentHtml?: string

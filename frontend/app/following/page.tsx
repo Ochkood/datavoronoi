@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Image from "next/image"
 import { LayoutGrid, List, Users } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -8,124 +8,67 @@ import { AppSidebar } from "@/components/app-sidebar"
 import { ContentHeader } from "@/components/content-header"
 import { PostCard, type PostData } from "@/components/post-card"
 import { RouteGuard } from "@/components/auth/route-guard"
-
-interface Author {
-  id: string
-  name: string
-  avatar: string
-  bio: string
-  posts: number
-  followers: string
-  following: boolean
-}
-
-const authors: Author[] = [
-  {
-    id: "a1",
-    name: "Б. Болормаа",
-    avatar: "https://api.dicebear.com/9.x/notionists/svg?seed=bolormaa",
-    bio: "Эдийн засаг, санхүүгийн дата шинжээч",
-    posts: 42,
-    followers: "5.2K",
-    following: true,
-  },
-  {
-    id: "a2",
-    name: "Д. Ганзориг",
-    avatar: "https://api.dicebear.com/9.x/notionists/svg?seed=ganzorig",
-    bio: "Байгаль орчин, эрчим хүчний судлаач",
-    posts: 31,
-    followers: "3.8K",
-    following: true,
-  },
-  {
-    id: "a3",
-    name: "Э. Тэмүүлэн",
-    avatar: "https://api.dicebear.com/9.x/notionists/svg?seed=temuulen",
-    bio: "Технологи, AI чиглэлийн дата сэтгүүлч",
-    posts: 56,
-    followers: "8.1K",
-    following: true,
-  },
-  {
-    id: "a4",
-    name: "Ц. Сарантуяа",
-    avatar: "https://api.dicebear.com/9.x/notionists/svg?seed=sarantuya",
-    bio: "Олон улсын харилцаа, геополитикийн шинжээч",
-    posts: 28,
-    followers: "4.5K",
-    following: true,
-  },
-]
-
-const followingPosts: PostData[] = [
-  {
-    id: "f1",
-    title: "Монголын ДНБ-ний өсөлт: Сүүлийн 10 жилийн дата шинжилгээ",
-    excerpt:
-      "Монголын эдийн засгийн өсөлтийн чиг хандлагыг тоон мэдээлэлд суурилсан инфографикаар харуулж байна.",
-    category: "Эдийн засаг",
-    categoryColor: "bg-chart-1/15 text-chart-1",
-    image: "/images/infographic-1.jpg",
-    author: "Б. Болормаа",
-    authorAvatar: "https://api.dicebear.com/9.x/notionists/svg?seed=bolormaa",
-    date: "2 цагийн өмнө",
-    views: "12.4K",
-    comments: 45,
-  },
-  {
-    id: "f2",
-    title: "Дэлхийн сэргээгдэх эрчим хүчний хэрэглээ улс бүрээр",
-    excerpt:
-      "Сэргээгдэх эрчим хүчний тэргүүлэгч орнууд болон ирээдүйн хандлагын дата визуализаци.",
-    category: "Байгаль орчин",
-    categoryColor: "bg-chart-4/15 text-chart-4",
-    image: "/images/infographic-2.jpg",
-    author: "Д. Ганзориг",
-    authorAvatar: "https://api.dicebear.com/9.x/notionists/svg?seed=ganzorig",
-    date: "5 цагийн өмнө",
-    views: "8.2K",
-    comments: 23,
-  },
-  {
-    id: "f3",
-    title: "Хиймэл оюуны салбарын өсөлт ба хөрөнгө оруулалтын чиг хандлага",
-    excerpt:
-      "AI стартап, том компаниудын хөрөнгө оруулалт, хэрэглээний статистикийн инфографик.",
-    category: "Технологи",
-    categoryColor: "bg-chart-2/15 text-chart-2",
-    image: "/images/infographic-7.jpg",
-    author: "Э. Тэмүүлэн",
-    authorAvatar: "https://api.dicebear.com/9.x/notionists/svg?seed=temuulen",
-    date: "2 өдрийн өмнө",
-    views: "14.1K",
-    comments: 67,
-  },
-  {
-    id: "f4",
-    title: "Дэлхийн худалдааны зам: Импорт, экспортын гол урсгал",
-    excerpt:
-      "Олон улсын худалдааны гол маршрут, бараа бүтээгдэхүүний урсгалыг газрын зураг дээр харуулав.",
-    category: "Эдийн засаг",
-    categoryColor: "bg-chart-1/15 text-chart-1",
-    image: "/images/infographic-8.jpg",
-    author: "Ц. Сарантуяа",
-    authorAvatar: "https://api.dicebear.com/9.x/notionists/svg?seed=sarantuya",
-    date: "2 өдрийн өмнө",
-    views: "4.8K",
-    comments: 9,
-  },
-]
+import { Skeleton } from "@/components/ui/skeleton"
+import {
+  getMyFollowingFeedApi,
+  toggleFollowUserApi,
+  type FollowingAuthor,
+} from "@/lib/api"
 
 export default function FollowingPage() {
   const [activeTab, setActiveTab] = useState("latest")
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
-  const [followState, setFollowState] = useState<Record<string, boolean>>(
-    Object.fromEntries(authors.map((a) => [a.id, a.following]))
-  )
+  const [authors, setAuthors] = useState<FollowingAuthor[]>([])
+  const [followingPosts, setFollowingPosts] = useState<PostData[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
+  const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({})
 
-  const toggleFollow = (id: string) => {
-    setFollowState((prev) => ({ ...prev, [id]: !prev[id] }))
+  useEffect(() => {
+    let cancelled = false
+    setLoading(true)
+    setError("")
+
+    getMyFollowingFeedApi(40)
+      .then((data) => {
+        if (cancelled) return
+        setAuthors(data.authors)
+        setFollowingPosts(data.posts)
+      })
+      .catch((e) => {
+        if (cancelled) return
+        setError(e instanceof Error ? e.message : "Дагаж буй мэдээлэл ачаалж чадсангүй")
+        setAuthors([])
+        setFollowingPosts([])
+      })
+      .finally(() => {
+        if (cancelled) return
+        setLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const toggleFollow = async (id: string) => {
+    if (actionLoading[id]) return
+    setActionLoading((prev) => ({ ...prev, [id]: true }))
+    try {
+      const res = await toggleFollowUserApi(id)
+      if (!res.following) {
+        setAuthors((prev) => prev.filter((a) => a.id !== id))
+        setFollowingPosts((prev) => prev.filter((p) => p.authorId !== id))
+      } else {
+        setAuthors((prev) =>
+          prev.map((a) => (a.id === id ? { ...a, following: true } : a))
+        )
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Follow төлөв өөрчлөхөд алдаа гарлаа")
+    } finally {
+      setActionLoading((prev) => ({ ...prev, [id]: false }))
+    }
   }
 
   return (
@@ -137,6 +80,11 @@ export default function FollowingPage() {
         <ContentHeader activeTab={activeTab} onTabChange={setActiveTab} />
 
         <div className="mx-auto max-w-7xl px-4 py-6 md:px-6 lg:px-8">
+          {error && (
+            <div className="mb-4 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
+              {error}
+            </div>
+          )}
           {/* Page heading */}
           <div className="mb-6">
             <div className="flex items-center gap-2">
@@ -152,7 +100,22 @@ export default function FollowingPage() {
 
           {/* Authors */}
           <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {authors.map((author) => (
+            {loading &&
+              Array.from({ length: 4 }).map((_, idx) => (
+                <div
+                  key={`following-author-skeleton-${idx}`}
+                  className="rounded-xl bg-card p-5 ring-1 ring-border"
+                >
+                  <div className="flex flex-col items-center gap-3">
+                    <Skeleton className="h-16 w-16 rounded-full" />
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-3 w-36" />
+                    <Skeleton className="h-3 w-28" />
+                    <Skeleton className="h-8 w-full rounded-lg" />
+                  </div>
+                </div>
+              ))}
+            {!loading && authors.map((author) => (
               <div
                 key={author.id}
                 className="flex flex-col items-center gap-3 rounded-xl bg-card p-5 text-center ring-1 ring-border transition-all hover:shadow-md"
@@ -189,15 +152,16 @@ export default function FollowingPage() {
                   </span>
                 </div>
                 <button
-                  onClick={() => toggleFollow(author.id)}
+                  onClick={() => void toggleFollow(author.id)}
+                  disabled={Boolean(actionLoading[author.id])}
                   className={cn(
                     "w-full rounded-lg px-4 py-2 text-xs font-semibold transition-colors",
-                    followState[author.id]
+                    author.following
                       ? "bg-secondary text-secondary-foreground hover:bg-secondary/80"
                       : "bg-primary text-primary-foreground hover:bg-primary/90"
                   )}
                 >
-                  {followState[author.id] ? "Дагаж байна" : "Дагах"}
+                  {author.following ? "Дагаж байна" : "Дагах"}
                 </button>
               </div>
             ))}
@@ -237,7 +201,52 @@ export default function FollowingPage() {
           </div>
 
           {/* Posts */}
-          {viewMode === "grid" ? (
+          {loading ? (
+            viewMode === "grid" ? (
+              <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                {Array.from({ length: 6 }).map((_, idx) => (
+                  <div
+                    key={`following-grid-skeleton-${idx}`}
+                    className="overflow-hidden rounded-xl border border-border bg-card"
+                  >
+                    <Skeleton className="h-40 w-full rounded-none" />
+                    <div className="space-y-3 p-4">
+                      <Skeleton className="h-4 w-2/3" />
+                      <Skeleton className="h-3 w-full" />
+                      <Skeleton className="h-3 w-4/5" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex flex-col gap-4">
+                {Array.from({ length: 6 }).map((_, idx) => (
+                  <div
+                    key={`following-list-skeleton-${idx}`}
+                    className="rounded-xl border border-border bg-card p-4"
+                  >
+                    <div className="flex gap-4">
+                      <Skeleton className="h-24 w-32 rounded-lg" />
+                      <div className="flex-1 space-y-3">
+                        <Skeleton className="h-4 w-1/2" />
+                        <Skeleton className="h-3 w-full" />
+                        <Skeleton className="h-3 w-5/6" />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )
+          ) : followingPosts.length === 0 ? (
+            <div className="flex flex-col items-center justify-center rounded-xl bg-card py-20 ring-1 ring-border">
+              <p className="text-sm font-medium text-muted-foreground">
+                Та одоогоор хэнийг ч дагаагүй байна
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground/80">
+                Админ хэсгээс эсвэл зохиолчийн профайлаас дагаж эхлээрэй
+              </p>
+            </div>
+          ) : viewMode === "grid" ? (
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {followingPosts.map((post) => (
                 <PostCard key={post.id} post={post} variant="default" />

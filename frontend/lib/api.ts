@@ -84,6 +84,7 @@ function categoryColorBySlug(slug?: string): string {
 function mapPost(post: BackendPost): PostData {
   return {
     id: post._id,
+    authorId: post.author?._id || "",
     title: post.title,
     excerpt: post.excerpt || "",
     contentHtml: post.content || "",
@@ -269,6 +270,16 @@ export type UserProfile = {
   }
   joinedAt: string
   lastActive: string
+}
+
+export type FollowingAuthor = {
+  id: string
+  name: string
+  avatar: string
+  bio: string
+  posts: number
+  followers: number
+  following: boolean
 }
 
 type BackendComment = {
@@ -744,6 +755,27 @@ export async function updateUserApi(
     body: JSON.stringify(payload),
   })
   return res.data.user
+}
+
+export async function getMyFollowingFeedApi(limit = 30) {
+  const res = await request<
+    ApiResponse<{ authors: FollowingAuthor[]; posts: BackendPost[] }>
+  >(`/users/following/me?limit=${limit}`)
+
+  return {
+    authors: res.data.authors,
+    posts: res.data.posts.map(mapPost),
+  }
+}
+
+export async function toggleFollowUserApi(userId: string) {
+  const res = await request<ApiResponse<{ following: boolean }>>(
+    `/users/${userId}/follow`,
+    {
+      method: "POST",
+    }
+  )
+  return res.data
 }
 
 export async function createPostApi(payload: {
