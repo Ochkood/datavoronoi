@@ -1,10 +1,12 @@
 const Post = require('../models/Post');
+const User = require('../models/User');
 const Comment = require('../models/Comment');
 const Bookmark = require('../models/Bookmark');
 const PostLike = require('../models/PostLike');
 const Notification = require('../models/Notification');
 const asyncHandler = require('../utils/async-handler');
 const ApiError = require('../utils/api-error');
+const mongoose = require('mongoose');
 
 const listPosts = asyncHandler(async (req, res) => {
   const {
@@ -58,6 +60,87 @@ const listPosts = asyncHandler(async (req, res) => {
   });
 });
 
+const listAdminPosts = asyncHandler(async (req, res) => {
+  const {
+    page = 1,
+    limit = 10,
+    q,
+    status = 'all',
+    category,
+    topic,
+    author,
+    dateFrom,
+    dateTo,
+    featured = 'all',
+  } = req.query;
+
+  const filter = {};
+
+  if (status !== 'all') filter.status = status;
+  if (category) filter.category = category;
+  if (topic) filter.topics = topic;
+  if (featured !== 'all') {
+    filter.featured = featured === 'true';
+  }
+  if (q) filter.$text = { $search: q };
+
+  if (dateFrom || dateTo) {
+    const createdAt = {};
+    if (dateFrom) {
+      const start = new Date(dateFrom);
+      if (!Number.isNaN(start.getTime())) createdAt.$gte = start;
+    }
+    if (dateTo) {
+      const end = new Date(dateTo);
+      if (!Number.isNaN(end.getTime())) {
+        end.setHours(23, 59, 59, 999);
+        createdAt.$lte = end;
+      }
+    }
+    if (Object.keys(createdAt).length > 0) {
+      filter.createdAt = createdAt;
+    }
+  }
+
+  if (author) {
+    if (mongoose.Types.ObjectId.isValid(author)) {
+      filter.author = author;
+    } else {
+      const authorRows = await User.find({
+        name: { $regex: author, $options: 'i' },
+      }).select('_id');
+      const authorIds = authorRows.map((row) => row._id);
+      filter.author = authorIds.length > 0 ? { $in: authorIds } : null;
+    }
+  }
+
+  const skip = (Number(page) - 1) * Number(limit);
+
+  const [items, total] = await Promise.all([
+    Post.find(filter)
+      .populate('author', 'name avatar role')
+      .populate('category', 'name slug')
+      .populate('topics', 'name slug')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(Number(limit)),
+    Post.countDocuments(filter),
+  ]);
+
+  res.json({
+    success: true,
+    data: {
+      items,
+      pagination: {
+        total,
+        page: Number(page),
+        limit: Number(limit),
+        totalPages: Math.ceil(total / Number(limit)),
+      },
+    },
+  });
+});
+
 const getPostById = asyncHandler(async (req, res) => {
   const post = await Post.findByIdAndUpdate(
     req.params.id,
@@ -81,6 +164,7 @@ const createPost = asyncHandler(async (req, res) => {
     excerpt,
     content,
     featuredImage,
+    featured,
     category,
     topics,
     visibility,
@@ -88,16 +172,26 @@ const createPost = asyncHandler(async (req, res) => {
     publishedAt,
   } = req.body;
 
+  const requestedStatus = status || 'draft';
+  const canPublishDirectly = req.user.role === 'admin';
+  const resolvedStatus =
+    canPublishDirectly
+      ? requestedStatus
+      : requestedStatus === 'published'
+        ? 'pending'
+        : requestedStatus;
+
   const post = await Post.create({
     title,
     excerpt,
     content,
     featuredImage,
+    featured: canPublishDirectly ? Boolean(featured) : false,
     category,
     topics: topics || [],
     visibility: visibility || 'public',
-    status: status || 'draft',
-    publishedAt: status === 'published' ? (publishedAt || new Date()) : null,
+    status: resolvedStatus,
+    publishedAt: resolvedStatus === 'published' ? (publishedAt || new Date()) : null,
     author: req.user._id,
   });
 
@@ -116,8 +210,20 @@ const updatePost = asyncHandler(async (req, res) => {
 
   const oldStatus = post.status;
   const payload = { ...req.body };
-  if (payload.status === 'published' && !post.publishedAt) {
-    payload.publishedAt = new Date();
+
+  if (req.user.role !== 'admin') {
+    if (payload.status === 'published') {
+      payload.status = 'pending';
+    }
+    if (payload.featured !== undefined) {
+      delete payload.featured;
+    }
+  }
+
+  if (payload.status === 'published') {
+    payload.publishedAt = post.publishedAt || new Date();
+  } else if (payload.status && payload.status !== 'published') {
+    payload.publishedAt = null;
   }
 
   const updated = await Post.findByIdAndUpdate(req.params.id, payload, { new: true });
@@ -313,6 +419,7 @@ const getMyEngagement = asyncHandler(async (req, res) => {
 
 module.exports = {
   listPosts,
+  listAdminPosts,
   getPostById,
   createPost,
   updatePost,

@@ -17,6 +17,7 @@ type BackendPost = {
   excerpt?: string
   content?: string
   featuredImage?: string
+  featured?: boolean
   status?: "draft" | "pending" | "published" | "rejected"
   visibility?: "public" | "private"
   createdAt?: string
@@ -128,14 +129,28 @@ export type AdminPost = {
   title: string
   excerpt: string
   status: "draft" | "pending" | "published" | "rejected"
+  featured: boolean
   image: string
   views: string
   comments: number
   category: string
+  categoryId?: string
   categorySlug?: string
   author: string
+  authorId?: string
   authorAvatar: string
+  topics: Array<{ id: string; name: string }>
   createdAt: string
+}
+
+export type AdminPostList = {
+  items: AdminPost[]
+  pagination: {
+    total: number
+    page: number
+    limit: number
+    totalPages: number
+  }
 }
 
 export type AdminUser = {
@@ -346,15 +361,22 @@ function mapAdminPost(post: BackendPost): AdminPost {
     title: post.title,
     excerpt: post.excerpt || "",
     status: post.status || "draft",
+    featured: Boolean(post.featured),
     image: post.featuredImage || "/placeholder.jpg",
     views: String(post.viewsCount || 0),
     comments: post.commentsCount || 0,
     category: post.category?.name || "Бусад",
+    categoryId: post.category?._id,
     categorySlug: post.category?.slug || "",
     author: post.author?.name || "Unknown",
+    authorId: post.author?._id,
     authorAvatar:
       post.author?.avatar ||
       "https://api.dicebear.com/9.x/notionists/svg?seed=author",
+    topics: (post.topics || []).map((t) => ({
+      id: t._id,
+      name: t.name,
+    })),
     createdAt: post.createdAt || new Date().toISOString(),
   }
 }
@@ -645,11 +667,42 @@ export async function getMyPosts(authorId: string) {
   return res.data.items.map(mapDashboardPost)
 }
 
-export async function getAdminPosts() {
-  const res = await request<ApiResponse<{ items: BackendPost[] }>>(
-    "/posts?status=all"
-  )
-  return res.data.items.map(mapAdminPost)
+export async function getAdminPosts(params?: {
+  page?: number
+  limit?: number
+  q?: string
+  status?: "all" | "draft" | "pending" | "published" | "rejected"
+  category?: string
+  topic?: string
+  author?: string
+  dateFrom?: string
+  dateTo?: string
+  featured?: "all" | "true" | "false"
+}) {
+  const search = new URLSearchParams()
+  if (params?.page) search.set("page", String(params.page))
+  if (params?.limit) search.set("limit", String(params.limit))
+  if (params?.q) search.set("q", params.q)
+  if (params?.status) search.set("status", params.status)
+  if (params?.category) search.set("category", params.category)
+  if (params?.topic) search.set("topic", params.topic)
+  if (params?.author) search.set("author", params.author)
+  if (params?.dateFrom) search.set("dateFrom", params.dateFrom)
+  if (params?.dateTo) search.set("dateTo", params.dateTo)
+  if (params?.featured) search.set("featured", params.featured)
+  const suffix = search.toString() ? `?${search.toString()}` : ""
+
+  const res = await request<
+    ApiResponse<{
+      items: BackendPost[]
+      pagination: AdminPostList["pagination"]
+    }>
+  >(`/posts/admin/list${suffix}`)
+
+  return {
+    items: res.data.items.map(mapAdminPost),
+    pagination: res.data.pagination,
+  }
 }
 
 export async function uploadImageApi(file: File, folder: UploadFolder) {
@@ -843,6 +896,7 @@ export async function createPostApi(payload: {
   excerpt: string
   content: string
   featuredImage?: string
+  featured?: boolean
   category?: string
   topics?: string[]
   visibility?: "public" | "private"
@@ -863,6 +917,7 @@ export async function updatePostApi(
     excerpt: string
     content: string
     featuredImage?: string
+    featured?: boolean
     category?: string
     topics?: string[]
     visibility?: "public" | "private"
@@ -884,6 +939,14 @@ export async function updatePostStatusApi(
   const res = await request<ApiResponse<{ post: BackendPost }>>(`/posts/${id}`, {
     method: "PATCH",
     body: JSON.stringify({ status }),
+  })
+  return mapAdminPost(res.data.post)
+}
+
+export async function updatePostFeaturedApi(id: string, featured: boolean) {
+  const res = await request<ApiResponse<{ post: BackendPost }>>(`/posts/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ featured }),
   })
   return mapAdminPost(res.data.post)
 }

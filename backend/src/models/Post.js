@@ -6,6 +6,7 @@ const postSchema = new mongoose.Schema(
     excerpt: { type: String, default: '' },
     content: { type: String, required: true },
     featuredImage: { type: String, default: '' },
+    featured: { type: Boolean, default: false },
     status: {
       type: String,
       enum: ['draft', 'pending', 'published', 'rejected'],
