@@ -145,6 +145,62 @@ const listAdminPosts = asyncHandler(async (req, res) => {
   });
 });
 
+const listTopAuthors = asyncHandler(async (req, res) => {
+  const { category, topic, limit = 5 } = req.query;
+  const parsedLimit = Math.max(1, Math.min(Number(limit) || 5, 20));
+
+  const match = { status: 'published' };
+
+  if (category) {
+    if (!mongoose.Types.ObjectId.isValid(category)) {
+      throw new ApiError(400, 'Invalid category id');
+    }
+    match.category = new mongoose.Types.ObjectId(category);
+  }
+
+  if (topic) {
+    if (!mongoose.Types.ObjectId.isValid(topic)) {
+      throw new ApiError(400, 'Invalid topic id');
+    }
+    match.topics = new mongoose.Types.ObjectId(topic);
+  }
+
+  const items = await Post.aggregate([
+    { $match: match },
+    {
+      $group: {
+        _id: '$author',
+        posts: { $sum: 1 },
+        views: { $sum: { $ifNull: ['$viewsCount', 0] } },
+      },
+    },
+    { $sort: { views: -1, posts: -1 } },
+    { $limit: parsedLimit },
+    {
+      $lookup: {
+        from: 'users',
+        localField: '_id',
+        foreignField: '_id',
+        as: 'author',
+      },
+    },
+    { $unwind: '$author' },
+    {
+      $project: {
+        _id: 0,
+        id: '$_id',
+        name: '$author.name',
+        avatar: '$author.avatar',
+        role: '$author.role',
+        posts: 1,
+        views: 1,
+      },
+    },
+  ]);
+
+  res.json({ success: true, data: { items } });
+});
+
 const getPostById = asyncHandler(async (req, res) => {
   const post = await Post.findByIdAndUpdate(
     req.params.id,
@@ -424,6 +480,7 @@ const getMyEngagement = asyncHandler(async (req, res) => {
 module.exports = {
   listPosts,
   listAdminPosts,
+  listTopAuthors,
   getPostById,
   createPost,
   updatePost,

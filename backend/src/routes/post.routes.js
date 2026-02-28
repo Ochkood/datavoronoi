@@ -12,6 +12,7 @@ const {
   toggleLike,
   getMyEngagement,
   listAdminPosts,
+  listTopAuthors,
 } = require('../controllers/post.controller');
 const { protect, requireRole } = require('../middlewares/auth.middleware');
 const validate = require('../middlewares/validate.middleware');
@@ -25,6 +26,7 @@ const router = express.Router();
 
 router.get('/', listPosts);
 router.get('/admin/list', protect, requireRole('admin'), listAdminPosts);
+router.get('/top-authors', listTopAuthors);
 router.get('/bookmarks/me', protect, myBookmarks);
 router.get('/:id', getPostById);
 router.get('/:id/engagement', protect, getMyEngagement);

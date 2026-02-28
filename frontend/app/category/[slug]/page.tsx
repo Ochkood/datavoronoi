@@ -3,16 +3,22 @@
 import { useEffect, useMemo, useState } from "react"
 import { useParams, notFound } from "next/navigation"
 import Image from "next/image"
-import { LayoutGrid, List, Newspaper, BarChart3 } from "lucide-react"
+import Link from "next/link"
+import { LayoutGrid, List, Newspaper, BarChart3, Trophy, Eye, FileText } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { DynamicIcon } from "@/components/admin/icon-picker"
 import { AppSidebar } from "@/components/app-sidebar"
 import { PostCard, type PostData } from "@/components/post-card"
-import { TrendingSidebar } from "@/components/trending-sidebar"
 import { CategoryStatsView } from "@/components/category-stats"
 import { Skeleton } from "@/components/ui/skeleton"
 import { categoryStats } from "@/lib/data"
-import { getCategories, getPosts, type BackendCategory } from "@/lib/api"
+import {
+  getCategories,
+  getPosts,
+  getTopAuthorsApi,
+  type BackendCategory,
+  type TopAuthor,
+} from "@/lib/api"
 
 type TabType = "feed" | "stats"
 type FeedSort = "latest" | "popular"
@@ -23,8 +29,10 @@ export default function CategoryPage() {
 
   const [categories, setCategories] = useState<BackendCategory[]>([])
   const [posts, setPosts] = useState<PostData[]>([])
+  const [topAuthors, setTopAuthors] = useState<TopAuthor[]>([])
   const [loadingCategories, setLoadingCategories] = useState(true)
   const [loadingPosts, setLoadingPosts] = useState(true)
+  const [loadingAuthors, setLoadingAuthors] = useState(true)
   const stats = categoryStats[slug]
 
   const [activeTab, setActiveTab] = useState<TabType>("feed")
@@ -59,6 +67,19 @@ export default function CategoryPage() {
       .finally(() => setLoadingPosts(false))
   }, [category?._id, loadingCategories, feedSort])
 
+  useEffect(() => {
+    if (!category?._id) {
+      if (!loadingCategories) setLoadingAuthors(false)
+      return
+    }
+
+    setLoadingAuthors(true)
+    getTopAuthorsApi({ category: category._id, limit: 5 })
+      .then((res) => setTopAuthors(res))
+      .catch(() => setTopAuthors([]))
+      .finally(() => setLoadingAuthors(false))
+  }, [category?._id, loadingCategories])
+
   if (!loadingCategories && !category && categories.length > 0) {
     notFound()
   }
@@ -83,83 +104,82 @@ export default function CategoryPage() {
   const categoryBgColor = category ? categoryBgMap[category.slug] || "bg-primary" : "bg-primary"
   const categoryName = category?.name || "..."
   const categoryDescription = category?.description || ""
-
   return (
     <div className="flex min-h-screen bg-background">
       <AppSidebar />
 
       <main className="flex-1 lg:ml-[260px]">
-        {/* Category Header with Banner */}
-        <header className="sticky top-0 z-20 border-b border-border bg-card/95 backdrop-blur-sm">
-          {/* Banner Image */}
-          {category?.bannerImage && (
-            <div className="relative h-32 w-full lg:h-40">
-              <Image
-                src={category.bannerImage}
-                alt={categoryName}
-                fill
-                className="object-cover"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-card via-card/60 to-transparent" />
-            </div>
-          )}
-          
-          <div className={cn(
-            "mx-auto max-w-7xl px-4 py-4 pl-14 md:px-6 lg:pl-6",
-            category?.bannerImage && "-mt-12 relative"
-          )}>
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-3">
-                <div
-                  className={cn(
-                    "flex h-12 w-12 items-center justify-center rounded-xl shadow-lg",
-                    categoryBgColor,
-                    category?.bannerImage && "border-2 border-card"
-                  )}
-                >
-                  <DynamicIcon 
-                    name={category?.icon} 
-                    className="h-6 w-6 text-white" 
-                    fallback={Newspaper}
-                  />
-                </div>
-                <div>
-                  <h1 className="text-xl font-bold text-foreground">
-                    {categoryName}
-                  </h1>
-                  <p className="text-xs text-muted-foreground">
-                    {categoryDescription}
-                  </p>
-                </div>
-              </div>
+        <header className="border-b border-border/70 bg-card/40">
+          <div className="mx-auto max-w-7xl px-4 py-5 pl-14 md:px-6 lg:pl-6">
+            <div className="relative overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm">
+              {category?.bannerImage ? (
+                <Image
+                  src={category.bannerImage}
+                  alt={categoryName}
+                  fill
+                  className="object-cover"
+                />
+              ) : (
+                <div className="absolute inset-0 bg-gradient-to-br from-secondary via-secondary/70 to-background" />
+              )}
+              <div className="absolute inset-0 bg-gradient-to-r from-card via-card/80 to-card/50" />
 
-              {/* Tabs */}
-              <div className="flex items-center gap-2">
-                <div className="flex rounded-lg bg-secondary p-1">
-                  <button
-                    onClick={() => setActiveTab("feed")}
-                    className={cn(
-                      "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
-                      activeTab === "feed"
-                        ? "bg-card text-foreground shadow-sm"
-                        : "text-muted-foreground hover:text-foreground"
-                    )}
-                  >
-                    <Newspaper className="h-4 w-4" />
-                    Мэдээ
-                  </button>
-                  <button
-                    onClick={() => setActiveTab("stats")}
-                    className={cn(
-                      "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
-                      activeTab === "stats"
-                        ? "bg-card text-foreground shadow-sm"
-                        : "text-muted-foreground hover:text-foreground"
-                    )}
-                  >
-                    <BarChart3 className="h-4 w-4" />
-                    Статистик дата
-                  </button>
+              <div className="relative p-5 md:p-6">
+                <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+                  <div className="flex items-start gap-4">
+                    <div
+                      className={cn(
+                        "flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl shadow-md ring-2 ring-card/70",
+                        categoryBgColor
+                      )}
+                    >
+                      <DynamicIcon
+                        name={category?.icon}
+                        className="h-7 w-7 text-white"
+                        fallback={Newspaper}
+                      />
+                    </div>
+                    <div>
+                      <p className={cn("text-xs font-semibold uppercase tracking-wider", categoryColor)}>
+                        Category
+                      </p>
+                      <h1 className="mt-1 text-2xl font-bold text-foreground md:text-3xl">
+                        {categoryName}
+                      </h1>
+                      <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+                        {categoryDescription || "Энэ ангиллын голлох мэдээ, дүн шинжилгээ энд нэгтгэгдэнэ."}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <div className="flex rounded-lg bg-secondary p-1">
+                      <button
+                        onClick={() => setActiveTab("feed")}
+                        className={cn(
+                          "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                          activeTab === "feed"
+                            ? "bg-card text-foreground shadow-sm"
+                            : "text-muted-foreground hover:text-foreground"
+                        )}
+                      >
+                        <Newspaper className="h-4 w-4" />
+                        Мэдээ
+                      </button>
+                      <button
+                        onClick={() => setActiveTab("stats")}
+                        className={cn(
+                          "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                          activeTab === "stats"
+                            ? "bg-card text-foreground shadow-sm"
+                            : "text-muted-foreground hover:text-foreground"
+                        )}
+                      >
+                        <BarChart3 className="h-4 w-4" />
+                        Статистик дата
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -324,7 +344,74 @@ export default function CategoryPage() {
             {/* Right sidebar */}
             <div className="w-full flex-shrink-0 xl:w-[320px]">
               <div className="sticky top-[120px]">
-                <TrendingSidebar />
+                <aside className="space-y-4">
+                  <div className="rounded-xl bg-card p-5 ring-1 ring-border">
+                    <div className="mb-4 flex items-center gap-2">
+                      <Trophy className="h-4 w-4 text-primary" />
+                      <h2 className="text-sm font-bold text-card-foreground">
+                        {categoryName} шилдэг нийтлэлчид
+                      </h2>
+                    </div>
+
+                    {loadingAuthors ? (
+                      <div className="space-y-3">
+                        {Array.from({ length: 4 }).map((_, idx) => (
+                          <div key={`category-author-skeleton-${idx}`} className="rounded-lg border border-border p-3">
+                            <div className="flex items-center gap-3">
+                              <Skeleton className="h-10 w-10 rounded-full" />
+                              <div className="flex-1 space-y-2">
+                                <Skeleton className="h-3.5 w-2/3" />
+                                <Skeleton className="h-3 w-1/2" />
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : topAuthors.length > 0 ? (
+                      <div className="space-y-2">
+                        {topAuthors.map((author, index) => (
+                          <Link
+                            key={author.id}
+                            href={`/publisher/${author.id}`}
+                            className="group flex items-center gap-3 rounded-lg border border-border p-3 transition-colors hover:bg-secondary"
+                          >
+                            <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-md bg-secondary text-xs font-bold text-secondary-foreground">
+                              {index + 1}
+                            </span>
+                            <div className="h-10 w-10 overflow-hidden rounded-full bg-muted">
+                              <Image
+                                src={author.avatar}
+                                alt={author.name}
+                                width={40}
+                                height={40}
+                                className="h-full w-full object-cover"
+                              />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-semibold text-card-foreground group-hover:text-primary">
+                                {author.name}
+                              </p>
+                              <div className="mt-0.5 flex items-center gap-3 text-[11px] text-muted-foreground">
+                                <span className="inline-flex items-center gap-1">
+                                  <FileText className="h-3 w-3" />
+                                  {author.posts}
+                                </span>
+                                <span className="inline-flex items-center gap-1">
+                                  <Eye className="h-3 w-3" />
+                                  {author.views.toLocaleString("en-US")}
+                                </span>
+                              </div>
+                            </div>
+                          </Link>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">
+                        Одоогоор энэ ангилалд шилдэг нийтлэлчийн мэдээлэл алга.
+                      </p>
+                    )}
+                  </div>
+                </aside>
               </div>
             </div>
           </div>

@@ -299,6 +299,15 @@ export type FollowingAuthor = {
   following: boolean
 }
 
+export type TopAuthor = {
+  id: string
+  name: string
+  avatar: string
+  role?: "user" | "publisher" | "admin"
+  posts: number
+  views: number
+}
+
 export type PublicAuthorProfile = {
   id: string
   name: string
@@ -475,6 +484,28 @@ export async function getPosts(params?: {
 
   const res = await request<ApiResponse<{ items: BackendPost[] }>>(`/posts${suffix}`)
   return res.data.items.map(mapPost)
+}
+
+export async function getTopAuthorsApi(params?: {
+  category?: string
+  topic?: string
+  limit?: number
+}) {
+  const search = new URLSearchParams()
+  if (params?.category) search.set("category", params.category)
+  if (params?.topic) search.set("topic", params.topic)
+  if (params?.limit) search.set("limit", String(params.limit))
+  const suffix = search.toString() ? `?${search.toString()}` : ""
+
+  const res = await request<ApiResponse<{ items: TopAuthor[] }>>(
+    `/posts/top-authors${suffix}`
+  )
+  return res.data.items.map((item) => ({
+    ...item,
+    avatar:
+      item.avatar ||
+      "https://api.dicebear.com/9.x/notionists/svg?seed=author",
+  }))
 }
 
 export async function getPostById(id: string) {
