@@ -257,6 +257,80 @@ const getMyFollowing = asyncHandler(async (req, res) => {
   res.json({ success: true, data: { authors, posts } });
 });
 
+const getMyFollowPeople = asyncHandler(async (req, res) => {
+  const type = req.query.type === 'followers' ? 'followers' : 'following';
+  const pageRaw = Number(req.query.page);
+  const limitRaw = Number(req.query.limit);
+  const page = Number.isFinite(pageRaw) ? Math.max(pageRaw, 1) : 1;
+  const limit = Number.isFinite(limitRaw)
+    ? Math.min(Math.max(limitRaw, 1), 50)
+    : 12;
+  const skip = (page - 1) * limit;
+
+  const filter =
+    type === 'followers'
+      ? { following: req.user._id }
+      : { follower: req.user._id };
+
+  const [rows, total, myFollowingRows] = await Promise.all([
+    Follow.find(filter)
+      .populate(
+        type === 'followers' ? 'follower' : 'following',
+        'name avatar bio isActive'
+      )
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit),
+    Follow.countDocuments(filter),
+    Follow.find({ follower: req.user._id }).select('following'),
+  ]);
+
+  const myFollowingSet = new Set(myFollowingRows.map((x) => String(x.following)));
+  const users = rows
+    .map((row) => (type === 'followers' ? row.follower : row.following))
+    .filter((u) => Boolean(u && u._id && u.isActive));
+
+  const userIds = users.map((u) => u._id);
+  const [postCounts, followerCounts] = await Promise.all([
+    Post.aggregate([
+      { $match: { author: { $in: userIds } } },
+      { $group: { _id: '$author', count: { $sum: 1 } } },
+    ]),
+    Follow.aggregate([
+      { $match: { following: { $in: userIds } } },
+      { $group: { _id: '$following', count: { $sum: 1 } } },
+    ]),
+  ]);
+
+  const postsByUser = Object.fromEntries(postCounts.map((c) => [String(c._id), c.count]));
+  const followersByUser = Object.fromEntries(
+    followerCounts.map((c) => [String(c._id), c.count])
+  );
+
+  const items = users.map((u) => ({
+    id: u._id,
+    name: u.name,
+    avatar: u.avatar || '',
+    bio: u.bio || '',
+    posts: postsByUser[String(u._id)] || 0,
+    followers: followersByUser[String(u._id)] || 0,
+    following: myFollowingSet.has(String(u._id)),
+  }));
+
+  res.json({
+    success: true,
+    data: {
+      items,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.max(1, Math.ceil(total / limit)),
+      },
+    },
+  });
+});
+
 function getRequesterUserId(req) {
   const authHeader = req.headers.authorization;
   const token = authHeader && authHeader.startsWith('Bearer ')
@@ -361,6 +435,7 @@ module.exports = {
   updateMyProfile,
   changeMyPassword,
   getMyFollowing,
+  getMyFollowPeople,
   getPublicUserProfile,
   toggleFollowUser,
 };

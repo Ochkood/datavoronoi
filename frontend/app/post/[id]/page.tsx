@@ -21,6 +21,7 @@ import {
 import { cn } from "@/lib/utils"
 import { AppSidebar } from "@/components/app-sidebar"
 import { PostCard, type PostData } from "@/components/post-card"
+import { FollowButton } from "@/components/follow-button"
 import {
   addCommentApi,
   getMeApi,
@@ -281,23 +282,16 @@ export default function PostDetailPage() {
               {/* Actions */}
               <div className="flex items-center gap-2">
                 {post.authorId && currentUserId !== post.authorId && (
-                  <button
-                    onClick={handleToggleAuthorFollow}
-                    disabled={authorFollowLoading}
-                    className={cn(
-                      "rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                      authorIsFollowing
-                        ? "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                        : "bg-primary text-primary-foreground hover:bg-primary/90"
-                    )}
-                  >
-                    {authorIsFollowing ? "Дагаж байна" : "Дагах"}
-                  </button>
+                  <FollowButton
+                    following={authorIsFollowing}
+                    loading={authorFollowLoading}
+                    onClick={() => void handleToggleAuthorFollow()}
+                  />
                 )}
                 <button
                   onClick={handleToggleLike}
                   className={cn(
-                    "flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                    "flex cursor-pointer items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                     liked
                       ? "bg-primary/10 text-primary"
                       : "bg-secondary text-muted-foreground hover:text-foreground"

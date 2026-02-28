@@ -298,6 +298,18 @@ export type PublicAuthorProfile = {
   isFollowing: boolean
 }
 
+export type FollowPeopleItem = FollowingAuthor
+
+export type FollowPeoplePage = {
+  items: FollowPeopleItem[]
+  pagination: {
+    total: number
+    page: number
+    limit: number
+    totalPages: number
+  }
+}
+
 type BackendComment = {
   _id: string
   content: string
@@ -782,6 +794,21 @@ export async function getMyFollowingFeedApi(limit = 30) {
     authors: res.data.authors,
     posts: res.data.posts.map(mapPost),
   }
+}
+
+export async function getMyFollowPeopleApi(params?: {
+  type?: "followers" | "following"
+  page?: number
+  limit?: number
+}) {
+  const search = new URLSearchParams()
+  if (params?.type) search.set("type", params.type)
+  if (params?.page) search.set("page", String(params.page))
+  if (params?.limit) search.set("limit", String(params.limit))
+  const suffix = search.toString() ? `?${search.toString()}` : ""
+
+  const res = await request<ApiResponse<FollowPeoplePage>>(`/users/follows/me${suffix}`)
+  return res.data
 }
 
 export async function toggleFollowUserApi(userId: string) {

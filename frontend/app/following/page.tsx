@@ -1,6 +1,7 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
+import Link from "next/link"
 import Image from "next/image"
 import { LayoutGrid, List, Users } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -9,6 +10,7 @@ import { ContentHeader } from "@/components/content-header"
 import { PostCard, type PostData } from "@/components/post-card"
 import { RouteGuard } from "@/components/auth/route-guard"
 import { Skeleton } from "@/components/ui/skeleton"
+import { FollowButton } from "@/components/follow-button"
 import {
   getMyFollowingFeedApi,
   toggleFollowUserApi,
@@ -23,6 +25,16 @@ export default function FollowingPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({})
+  const randomAuthors = useMemo(() => {
+    const items = [...authors]
+    for (let i = items.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(Math.random() * (i + 1))
+      const tmp = items[i]
+      items[i] = items[j]
+      items[j] = tmp
+    }
+    return items.slice(0, 4)
+  }, [authors])
 
   useEffect(() => {
     let cancelled = false
@@ -86,16 +98,24 @@ export default function FollowingPage() {
             </div>
           )}
           {/* Page heading */}
-          <div className="mb-6">
-            <div className="flex items-center gap-2">
-              <Users className="h-5 w-5 text-primary" />
-              <h1 className="text-2xl font-bold text-foreground">
-                Дагаж буй
-              </h1>
+          <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <div className="flex items-center gap-2">
+                <Users className="h-5 w-5 text-primary" />
+                <h1 className="text-2xl font-bold text-foreground">
+                  Дагаж буй
+                </h1>
+              </div>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Таны дагаж буй зохиолчид болон тэдний сүүлийн нийтлэлүүд
+              </p>
             </div>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Таны дагаж буй зохиолчид болон тэдний сүүлийн нийтлэлүүд
-            </p>
+            <Link
+              href="/following/people"
+              className="inline-flex items-center rounded-lg border border-border px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-secondary"
+            >
+              Дагасан бүх хүмүүсийг харах
+            </Link>
           </div>
 
           {/* Authors */}
@@ -115,7 +135,7 @@ export default function FollowingPage() {
                   </div>
                 </div>
               ))}
-            {!loading && authors.map((author) => (
+            {!loading && randomAuthors.map((author) => (
               <div
                 key={author.id}
                 className="flex flex-col items-center gap-3 rounded-xl bg-card p-5 text-center ring-1 ring-border transition-all hover:shadow-md"
@@ -151,18 +171,20 @@ export default function FollowingPage() {
                     дагагч
                   </span>
                 </div>
-                <button
-                  onClick={() => void toggleFollow(author.id)}
-                  disabled={Boolean(actionLoading[author.id])}
-                  className={cn(
-                    "w-full rounded-lg px-4 py-2 text-xs font-semibold transition-colors",
-                    author.following
-                      ? "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                      : "bg-primary text-primary-foreground hover:bg-primary/90"
-                  )}
-                >
-                  {author.following ? "Дагаж байна" : "Дагах"}
-                </button>
+                <div className="flex w-full items-center gap-2">
+                  <FollowButton
+                    following={author.following}
+                    loading={Boolean(actionLoading[author.id])}
+                    onClick={() => void toggleFollow(author.id)}
+                    className="flex-1 justify-center text-xs"
+                  />
+                  <Link
+                    href={`/publisher/${author.id}`}
+                    className="flex-1 rounded-lg border border-border px-3 py-2 text-xs font-semibold text-foreground transition-colors hover:bg-secondary"
+                  >
+                    Профайл үзэх
+                  </Link>
+                </div>
               </div>
             ))}
           </div>

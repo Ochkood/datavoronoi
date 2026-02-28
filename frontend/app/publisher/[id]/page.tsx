@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils"
 import { AppSidebar } from "@/components/app-sidebar"
 import { ContentHeader } from "@/components/content-header"
 import { PostCard, type PostData } from "@/components/post-card"
+import { FollowButton } from "@/components/follow-button"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   getPublicAuthorProfileApi,
@@ -156,18 +157,11 @@ export default function PublisherProfilePage() {
                     </div>
                   </div>
                 </div>
-                <button
+                <FollowButton
+                  following={profile.isFollowing}
+                  loading={followLoading}
                   onClick={() => void handleToggleFollow()}
-                  disabled={followLoading}
-                  className={cn(
-                    "rounded-lg px-4 py-2 text-sm font-semibold transition-colors",
-                    profile.isFollowing
-                      ? "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                      : "bg-primary text-primary-foreground hover:bg-primary/90"
-                  )}
-                >
-                  {profile.isFollowing ? "Дагаж байна" : "Дагах"}
-                </button>
+                />
               </div>
             )}
           </section>

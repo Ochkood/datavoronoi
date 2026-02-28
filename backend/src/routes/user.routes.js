@@ -6,6 +6,7 @@ const {
   updateMyProfile,
   changeMyPassword,
   getMyFollowing,
+  getMyFollowPeople,
   getPublicUserProfile,
   toggleFollowUser,
 } = require('../controllers/user.controller');
@@ -23,6 +24,7 @@ router.get('/profile/me', protect, getMyProfile);
 router.patch('/profile/me', protect, validate(updateMyProfileSchema), updateMyProfile);
 router.patch('/profile/password', protect, validate(changePasswordSchema), changeMyPassword);
 router.get('/following/me', protect, getMyFollowing);
+router.get('/follows/me', protect, getMyFollowPeople);
 router.get('/:id/public', getPublicUserProfile);
 router.post('/:id/follow', protect, toggleFollowUser);
 
