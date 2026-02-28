@@ -8,11 +8,11 @@ import {
   FileText,
   ChevronDown,
   ChevronRight,
-  ExternalLink,
 } from "lucide-react"
-import { cn } from "@/lib/utils"
 import { AppSidebar } from "@/components/app-sidebar"
 import { ContentHeader } from "@/components/content-header"
+import { createFeedbackApi, type FeedbackType } from "@/lib/api"
+import { toast } from "sonner"
 
 const faqItems = [
   {
@@ -45,6 +45,47 @@ const faqItems = [
 export default function SupportPage() {
   const [activeTab, setActiveTab] = useState("latest")
   const [openFaq, setOpenFaq] = useState<number | null>(0)
+  const [submitting, setSubmitting] = useState(false)
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    subject: "",
+    message: "",
+    type: "feedback" as FeedbackType,
+    website: "",
+  })
+
+  const handleSubmit = async () => {
+    if (!form.name.trim() || !form.email.trim() || !form.subject.trim() || !form.message.trim()) {
+      toast.error("Бүх талбарыг бөглөнө үү.")
+      return
+    }
+
+    try {
+      setSubmitting(true)
+      await createFeedbackApi({
+        name: form.name.trim(),
+        email: form.email.trim(),
+        subject: form.subject.trim(),
+        message: form.message.trim(),
+        type: form.type,
+        website: form.website,
+      })
+      toast.success("Таны санал хүсэлт амжилттай илгээгдлээ.")
+      setForm({
+        name: "",
+        email: "",
+        subject: "",
+        message: "",
+        type: "feedback",
+        website: "",
+      })
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Илгээх үед алдаа гарлаа.")
+    } finally {
+      setSubmitting(false)
+    }
+  }
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -161,6 +202,8 @@ export default function SupportPage() {
                     </label>
                     <input
                       type="text"
+                      value={form.name}
+                      onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
                       placeholder="Таны нэр"
                       className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary"
                     />
@@ -171,10 +214,53 @@ export default function SupportPage() {
                     </label>
                     <input
                       type="email"
+                      value={form.email}
+                      onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))}
                       placeholder="Имэйл хаяг"
                       className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary"
                     />
                   </div>
+                </div>
+                <div>
+                  <input
+                    type="text"
+                    value={form.website}
+                    onChange={(e) => setForm((prev) => ({ ...prev, website: e.target.value }))}
+                    tabIndex={-1}
+                    autoComplete="off"
+                    className="hidden"
+                    aria-hidden="true"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-xs font-medium text-card-foreground">
+                    Төрөл
+                  </label>
+                  <select
+                    value={form.type}
+                    onChange={(e) =>
+                      setForm((prev) => ({ ...prev, type: e.target.value as FeedbackType }))
+                    }
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition-colors focus:border-primary focus:ring-1 focus:ring-primary"
+                  >
+                    <option value="feedback">Сэтгэгдэл</option>
+                    <option value="suggestion">Санал</option>
+                    <option value="bug">Алдаа</option>
+                    <option value="publisher_request">Нийтлэгч хүсэлт</option>
+                    <option value="other">Бусад</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-xs font-medium text-card-foreground">
+                    Гарчиг
+                  </label>
+                  <input
+                    type="text"
+                    value={form.subject}
+                    onChange={(e) => setForm((prev) => ({ ...prev, subject: e.target.value }))}
+                    placeholder="Санал хүсэлтийн гарчиг"
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary"
+                  />
                 </div>
                 <div>
                   <label className="mb-1.5 block text-xs font-medium text-card-foreground">
@@ -182,12 +268,18 @@ export default function SupportPage() {
                   </label>
                   <textarea
                     rows={4}
+                    value={form.message}
+                    onChange={(e) => setForm((prev) => ({ ...prev, message: e.target.value }))}
                     placeholder="Таны санал хүсэлт..."
                     className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary resize-none"
                   />
                 </div>
-                <button className="self-start rounded-lg bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90">
-                  Илгээх
+                <button
+                  onClick={handleSubmit}
+                  disabled={submitting}
+                  className="self-start rounded-lg bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {submitting ? "Илгээж байна..." : "Илгээх"}
                 </button>
               </div>
             </div>

@@ -1,4 +1,6 @@
 const Post = require('../models/Post');
+const User = require('../models/User');
+const Comment = require('../models/Comment');
 const Notification = require('../models/Notification');
 const asyncHandler = require('../utils/async-handler');
 
@@ -53,6 +55,11 @@ function percentageChange(current, previous) {
   if (!previous && !current) return 0;
   if (!previous) return 100;
   return ((current - previous) / previous) * 100;
+}
+
+function roundPct(value) {
+  if (!Number.isFinite(value)) return 0;
+  return Math.round(value * 10) / 10;
 }
 
 const getDashboardSummary = asyncHandler(async (req, res) => {
@@ -253,7 +260,192 @@ const getDashboardAnalytics = asyncHandler(async (req, res) => {
   res.json({ success: true, data: analytics });
 });
 
+const getAdminDashboardSummary = asyncHandler(async (req, res) => {
+  const days = parseRange(req.query.range);
+  const now = new Date();
+  const start = new Date(now.getTime() - days * DAY);
+  const prevStart = new Date(start.getTime() - days * DAY);
+  const todayStart = new Date(now);
+  todayStart.setHours(0, 0, 0, 0);
+  const yesterdayStart = new Date(todayStart.getTime() - DAY);
+
+  const [
+    totalPosts,
+    totalUsers,
+    currentPostsCount,
+    previousPostsCount,
+    currentUsersCount,
+    previousUsersCount,
+    todayPosts,
+    yesterdayPosts,
+    currentRangePosts,
+    previousRangePosts,
+    monthlyPosts,
+    categoryRows,
+    recentPosts,
+    recentUsers,
+    recentComments,
+    recentNotifications,
+  ] = await Promise.all([
+    Post.countDocuments({}),
+    User.countDocuments({}),
+    Post.countDocuments({ createdAt: { $gte: start } }),
+    Post.countDocuments({ createdAt: { $gte: prevStart, $lt: start } }),
+    User.countDocuments({ createdAt: { $gte: start } }),
+    User.countDocuments({ createdAt: { $gte: prevStart, $lt: start } }),
+    Post.find({ createdAt: { $gte: todayStart } }).select('viewsCount'),
+    Post.find({ createdAt: { $gte: yesterdayStart, $lt: todayStart } }).select('viewsCount'),
+    Post.find({ createdAt: { $gte: start } }).select('viewsCount likesCount commentsCount createdAt'),
+    Post.find({ createdAt: { $gte: prevStart, $lt: start } }).select('viewsCount likesCount commentsCount'),
+    Post.find({ createdAt: { $gte: new Date(now.getFullYear(), now.getMonth() - 6, 1) } }).select('viewsCount createdAt'),
+    Post.aggregate([
+      { $match: { category: { $ne: null } } },
+      {
+        $group: {
+          _id: '$category',
+          posts: { $sum: 1 },
+        },
+      },
+      { $sort: { posts: -1 } },
+      { $limit: 6 },
+      {
+        $lookup: {
+          from: 'categories',
+          localField: '_id',
+          foreignField: '_id',
+          as: 'category',
+        },
+      },
+      { $unwind: '$category' },
+      {
+        $project: {
+          _id: 0,
+          name: '$category.name',
+          posts: 1,
+        },
+      },
+    ]),
+    Post.find({})
+      .sort({ createdAt: -1 })
+      .limit(6)
+      .populate('author', 'name')
+      .populate('category', 'name')
+      .select('title status viewsCount createdAt author category'),
+    User.find({})
+      .sort({ createdAt: -1 })
+      .limit(4)
+      .select('name createdAt'),
+    Comment.find({})
+      .sort({ createdAt: -1 })
+      .limit(4)
+      .populate('user', 'name')
+      .select('createdAt user'),
+    Notification.find({})
+      .sort({ createdAt: -1 })
+      .limit(4)
+      .select('title createdAt'),
+  ]);
+
+  const todayViews = todayPosts.reduce((sum, p) => sum + (p.viewsCount || 0), 0);
+  const yesterdayViews = yesterdayPosts.reduce((sum, p) => sum + (p.viewsCount || 0), 0);
+
+  const currentViews = currentRangePosts.reduce((sum, p) => sum + (p.viewsCount || 0), 0);
+  const currentEngagementActions = currentRangePosts.reduce(
+    (sum, p) => sum + (p.likesCount || 0) + (p.commentsCount || 0),
+    0
+  );
+  const currentEngagementRate =
+    currentViews > 0 ? (currentEngagementActions / currentViews) * 100 : 0;
+
+  const previousViews = previousRangePosts.reduce((sum, p) => sum + (p.viewsCount || 0), 0);
+  const previousEngagementActions = previousRangePosts.reduce(
+    (sum, p) => sum + (p.likesCount || 0) + (p.commentsCount || 0),
+    0
+  );
+  const previousEngagementRate =
+    previousViews > 0 ? (previousEngagementActions / previousViews) * 100 : 0;
+
+  const monthMap = buildTimeSeriesMap(365, true);
+  monthlyPosts.forEach((p) => {
+    const d = new Date(p.createdAt);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const row = monthMap.get(key);
+    if (row) {
+      row.views += p.viewsCount || 0;
+    }
+  });
+
+  const activityRows = [
+    ...recentPosts.map((post) => ({
+      id: `post-${post._id}`,
+      type: 'post',
+      message: `${post.author?.name || 'Нийтлэгч'} шинэ мэдээ нэмлээ`,
+      createdAt: post.createdAt,
+    })),
+    ...recentUsers.map((user) => ({
+      id: `user-${user._id}`,
+      type: 'user',
+      message: `${user.name || 'Хэрэглэгч'} шинээр бүртгүүллээ`,
+      createdAt: user.createdAt,
+    })),
+    ...recentComments.map((comment) => ({
+      id: `comment-${comment._id}`,
+      type: 'comment',
+      message: `${comment.user?.name || 'Хэрэглэгч'} шинэ сэтгэгдэл үлдээлээ`,
+      createdAt: comment.createdAt,
+    })),
+    ...recentNotifications.map((notif) => ({
+      id: `notif-${notif._id}`,
+      type: 'notification',
+      message: notif.title || 'Системийн мэдэгдэл',
+      createdAt: notif.createdAt,
+    })),
+  ]
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 8);
+
+  res.json({
+    success: true,
+    data: {
+      stats: {
+        totalPosts: {
+          value: totalPosts,
+          changePct: roundPct(percentageChange(currentPostsCount, previousPostsCount)),
+        },
+        totalUsers: {
+          value: totalUsers,
+          changePct: roundPct(percentageChange(currentUsersCount, previousUsersCount)),
+        },
+        todayViews: {
+          value: todayViews,
+          changePct: roundPct(percentageChange(todayViews, yesterdayViews)),
+        },
+        engagementRate: {
+          value: roundPct(currentEngagementRate),
+          changePct: roundPct(percentageChange(currentEngagementRate, previousEngagementRate)),
+        },
+      },
+      viewsTrend: Array.from(monthMap.values()).map((row) => ({
+        name: row.name,
+        views: row.views,
+      })),
+      categoryData: categoryRows,
+      recentPosts: recentPosts.map((post) => ({
+        id: post._id,
+        title: post.title,
+        author: post.author?.name || 'Unknown',
+        category: post.category?.name || 'Бусад',
+        status: post.status,
+        views: post.viewsCount || 0,
+        date: post.createdAt,
+      })),
+      recentActivities: activityRows,
+    },
+  });
+});
+
 module.exports = {
   getDashboardSummary,
   getDashboardAnalytics,
+  getAdminDashboardSummary,
 };

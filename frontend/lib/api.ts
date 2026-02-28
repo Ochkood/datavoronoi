@@ -256,6 +256,65 @@ export type DashboardAnalytics = {
   countryData: Array<{ country: string; views: number; percentage: number }>
 }
 
+export type AdminDashboardSummary = {
+  stats: {
+    totalPosts: { value: number; changePct: number }
+    totalUsers: { value: number; changePct: number }
+    todayViews: { value: number; changePct: number }
+    engagementRate: { value: number; changePct: number }
+  }
+  viewsTrend: Array<{ name: string; views: number }>
+  categoryData: Array<{ name: string; posts: number }>
+  recentPosts: Array<{
+    id: string
+    title: string
+    author: string
+    category: string
+    status: "draft" | "pending" | "published" | "rejected"
+    views: number
+    date: string
+  }>
+  recentActivities: Array<{
+    id: string
+    type: "post" | "user" | "comment" | "notification"
+    message: string
+    createdAt: string
+  }>
+}
+
+export type FeedbackType =
+  | "suggestion"
+  | "bug"
+  | "feedback"
+  | "publisher_request"
+  | "other"
+
+export type FeedbackStatus = "new" | "pending" | "in_progress" | "resolved"
+
+export type AdminFeedbackItem = {
+  id: string
+  name: string
+  email: string
+  subject: string
+  message: string
+  type: FeedbackType
+  status: FeedbackStatus
+  replyMessage?: string
+  replySentAt?: string
+  createdAt: string
+}
+
+export type AdminFeedbackList = {
+  items: AdminFeedbackItem[]
+  pagination: {
+    total: number
+    page: number
+    limit: number
+    totalPages: number
+  }
+  stats: Record<FeedbackStatus, number>
+}
+
 export type BackendNotification = {
   _id: string
   type: "comment" | "like" | "approved" | "rejected" | "system"
@@ -347,6 +406,19 @@ type BackendComment = {
   }
 }
 
+type BackendFeedback = {
+  _id: string
+  name: string
+  email: string
+  subject: string
+  message: string
+  type: FeedbackType
+  status: FeedbackStatus
+  replyMessage?: string
+  replySentAt?: string
+  createdAt: string
+}
+
 function mapDashboardPost(post: BackendPost): DashboardPost {
   return {
     id: post._id,
@@ -390,6 +462,21 @@ function mapAdminPost(post: BackendPost): AdminPost {
       name: t.name,
     })),
     createdAt: post.createdAt || new Date().toISOString(),
+  }
+}
+
+function mapAdminFeedback(item: BackendFeedback): AdminFeedbackItem {
+  return {
+    id: item._id,
+    name: item.name,
+    email: item.email,
+    subject: item.subject,
+    message: item.message,
+    type: item.type,
+    status: item.status,
+    replyMessage: item.replyMessage || "",
+    replySentAt: item.replySentAt,
+    createdAt: item.createdAt,
   }
 }
 
@@ -819,6 +906,15 @@ export async function getDashboardAnalyticsApi(
   return res.data
 }
 
+export async function getAdminDashboardSummaryApi(
+  range: "7d" | "30d" | "90d" | "1y" = "30d"
+) {
+  const res = await request<ApiResponse<AdminDashboardSummary>>(
+    `/dashboard/admin-summary?range=${range}`
+  )
+  return res.data
+}
+
 export async function getNotificationsApi(
   filter: "all" | "unread" | "comment" | "like" | "approved" | "rejected" | "system" = "all"
 ) {
@@ -906,6 +1002,74 @@ export async function changeMyPasswordApi(
 export async function getAdminUsers() {
   const res = await request<ApiResponse<{ items: AdminUser[] }>>("/users")
   return res.data.items
+}
+
+export async function createFeedbackApi(payload: {
+  name: string
+  email: string
+  subject: string
+  message: string
+  type?: FeedbackType
+  website?: string
+}) {
+  const res = await request<ApiResponse<{ feedback: BackendFeedback }>>("/feedback", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  })
+  return mapAdminFeedback(res.data.feedback)
+}
+
+export async function getAdminFeedbackApi(params?: {
+  page?: number
+  limit?: number
+  q?: string
+  type?: "all" | FeedbackType
+  status?: "all" | FeedbackStatus
+}) {
+  const search = new URLSearchParams()
+  if (params?.page) search.set("page", String(params.page))
+  if (params?.limit) search.set("limit", String(params.limit))
+  if (params?.q) search.set("q", params.q)
+  if (params?.type) search.set("type", params.type)
+  if (params?.status) search.set("status", params.status)
+  const suffix = search.toString() ? `?${search.toString()}` : ""
+
+  const res = await request<
+    ApiResponse<{
+      items: BackendFeedback[]
+      pagination: AdminFeedbackList["pagination"]
+      stats: Record<FeedbackStatus, number>
+    }>
+  >(`/feedback/admin/list${suffix}`)
+
+  return {
+    items: res.data.items.map(mapAdminFeedback),
+    pagination: res.data.pagination,
+    stats: res.data.stats,
+  }
+}
+
+export async function updateFeedbackApi(
+  id: string,
+  payload: Partial<{
+    status: FeedbackStatus
+    replyMessage: string
+  }>
+) {
+  const res = await request<ApiResponse<{ feedback: BackendFeedback }>>(
+    `/feedback/${id}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }
+  )
+  return mapAdminFeedback(res.data.feedback)
+}
+
+export async function deleteFeedbackApi(id: string) {
+  await request<ApiResponse<{ message: string }>>(`/feedback/${id}`, {
+    method: "DELETE",
+  })
 }
 
 export async function updateUserApi(

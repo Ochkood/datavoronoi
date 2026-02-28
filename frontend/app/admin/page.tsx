@@ -1,8 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
-import Image from "next/image"
 import {
   FileText,
   Users,
@@ -11,7 +10,6 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   MoreHorizontal,
-  Calendar,
   Clock,
   MessageSquare,
   UserPlus,
@@ -27,164 +25,138 @@ import {
   XAxis,
   YAxis,
 } from "recharts"
+import {
+  getAdminDashboardSummaryApi,
+  type AdminDashboardSummary,
+} from "@/lib/api"
 
-// Stats data
-const statsCards = [
-  {
-    label: "Нийт мэдээ",
-    value: "1,234",
-    change: "+12%",
-    changeType: "positive",
-    icon: FileText,
-    color: "bg-primary/10 text-primary",
-  },
-  {
-    label: "Нийт хэрэглэгч",
-    value: "8,562",
-    change: "+23%",
-    changeType: "positive",
-    icon: Users,
-    color: "bg-chart-2/10 text-chart-2",
-  },
-  {
-    label: "Өнөөдрийн үзэлт",
-    value: "45.2K",
-    change: "+8%",
-    changeType: "positive",
-    icon: Eye,
-    color: "bg-chart-4/10 text-chart-4",
-  },
-  {
-    label: "Engagement rate",
-    value: "4.5%",
-    change: "-2%",
-    changeType: "negative",
-    icon: TrendingUp,
-    color: "bg-chart-5/10 text-chart-5",
-  },
-]
+type PeriodKey = "week" | "month" | "year"
+type DashboardStatus = "draft" | "pending" | "published" | "rejected"
 
-// Chart data
-const viewsData = [
-  { name: "1-р сар", views: 12400 },
-  { name: "2-р сар", views: 15600 },
-  { name: "3-р сар", views: 14200 },
-  { name: "4-р сар", views: 18900 },
-  { name: "5-р сар", views: 21300 },
-  { name: "6-р сар", views: 19800 },
-  { name: "7-р сар", views: 24500 },
-]
-
-const categoryData = [
-  { name: "Эдийн засаг", posts: 145 },
-  { name: "Технологи", posts: 98 },
-  { name: "Байгаль орчин", posts: 76 },
-  { name: "Эрүүл мэнд", posts: 54 },
-  { name: "Санхүү", posts: 89 },
-  { name: "Дэлхий", posts: 67 },
-]
-
-// Recent posts
-const recentPosts = [
-  {
-    id: "1",
-    title: "Монголын ДНБ-ний өсөлт: Сүүлийн 10 жил",
-    author: "Б. Болормаа",
-    category: "Эдийн засаг",
-    status: "published",
-    views: "12.4K",
-    date: "2 цагийн өмнө",
-  },
-  {
-    id: "2",
-    title: "AI технологийн хувьсгал",
-    author: "Э. Тэмүүлэн",
-    category: "Технологи",
-    status: "published",
-    views: "8.2K",
-    date: "5 цагийн өмнө",
-  },
-  {
-    id: "3",
-    title: "Уур амьсгалын өөрчлөлт",
-    author: "Д. Ганзориг",
-    category: "Байгаль орчин",
-    status: "draft",
-    views: "-",
-    date: "1 өдрийн өмнө",
-  },
-  {
-    id: "4",
-    title: "Крипто зах зээлийн тойм",
-    author: "Ц. Сарантуяа",
-    category: "Санхүү",
-    status: "review",
-    views: "-",
-    date: "1 өдрийн өмнө",
-  },
-]
-
-// Recent activities
-const recentActivities = [
-  {
-    id: "1",
-    type: "post",
-    message: "Б. Болормаа шинэ мэдээ нийтэллээ",
-    time: "5 минутын өмнө",
-    icon: FileText,
-  },
-  {
-    id: "2",
-    type: "user",
-    message: "Шинэ хэрэглэгч бүртгүүллээ",
-    time: "15 минутын өмнө",
-    icon: UserPlus,
-  },
-  {
-    id: "3",
-    type: "comment",
-    message: "Шинэ сэтгэгдэл ирлээ",
-    time: "30 минутын өмнө",
-    icon: MessageSquare,
-  },
-  {
-    id: "4",
-    type: "notification",
-    message: "Нийтлэгч болох хүсэлт ирлээ",
-    time: "1 цагийн өмнө",
-    icon: Bell,
-  },
-]
-
-const statusColors: Record<string, string> = {
+const statusColors: Record<DashboardStatus, string> = {
   published: "bg-chart-4/10 text-chart-4",
   draft: "bg-muted text-muted-foreground",
-  review: "bg-chart-5/10 text-chart-5",
+  pending: "bg-chart-5/10 text-chart-5",
+  rejected: "bg-destructive/10 text-destructive",
 }
 
-const statusLabels: Record<string, string> = {
+const statusLabels: Record<DashboardStatus, string> = {
   published: "Нийтэлсэн",
   draft: "Ноорог",
-  review: "Хянагдаж буй",
+  pending: "Хүлээгдэж буй",
+  rejected: "Татгалзсан",
+}
+
+function formatCompactNumber(value: number) {
+  if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`
+  if (value >= 1000) return `${(value / 1000).toFixed(1)}K`
+  return String(value)
+}
+
+function formatRelativeDate(dateString: string) {
+  const d = new Date(dateString)
+  if (Number.isNaN(d.getTime())) return "Саяхан"
+  const now = Date.now()
+  const diffMs = now - d.getTime()
+  const diffMin = Math.floor(diffMs / (1000 * 60))
+  const diffHour = Math.floor(diffMin / 60)
+  const diffDay = Math.floor(diffHour / 24)
+
+  if (diffMin < 1) return "Саяхан"
+  if (diffMin < 60) return `${diffMin} минутын өмнө`
+  if (diffHour < 24) return `${diffHour} цагийн өмнө`
+  if (diffDay < 7) return `${diffDay} өдрийн өмнө`
+  return d.toLocaleDateString("mn-MN")
+}
+
+function toRange(period: PeriodKey): "7d" | "30d" | "1y" {
+  if (period === "week") return "7d"
+  if (period === "month") return "30d"
+  return "1y"
 }
 
 export default function AdminDashboard() {
-  const [period, setPeriod] = useState("week")
+  const [period, setPeriod] = useState<PeriodKey>("month")
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
+  const [data, setData] = useState<AdminDashboardSummary | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    setLoading(true)
+    setError("")
+
+    getAdminDashboardSummaryApi(toRange(period))
+      .then((res) => {
+        if (cancelled) return
+        setData(res)
+      })
+      .catch((err) => {
+        if (cancelled) return
+        setError(err instanceof Error ? err.message : "Мэдээлэл татахад алдаа гарлаа")
+        setData(null)
+      })
+      .finally(() => {
+        if (cancelled) return
+        setLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [period])
+
+  const statsCards = useMemo(() => {
+    return [
+      {
+        label: "Нийт мэдээ",
+        value: formatCompactNumber(data?.stats.totalPosts.value || 0),
+        change: data?.stats.totalPosts.changePct || 0,
+        icon: FileText,
+        color: "bg-primary/10 text-primary",
+      },
+      {
+        label: "Нийт хэрэглэгч",
+        value: formatCompactNumber(data?.stats.totalUsers.value || 0),
+        change: data?.stats.totalUsers.changePct || 0,
+        icon: Users,
+        color: "bg-chart-2/10 text-chart-2",
+      },
+      {
+        label: "Өнөөдрийн үзэлт",
+        value: formatCompactNumber(data?.stats.todayViews.value || 0),
+        change: data?.stats.todayViews.changePct || 0,
+        icon: Eye,
+        color: "bg-chart-4/10 text-chart-4",
+      },
+      {
+        label: "Engagement rate",
+        value: `${(data?.stats.engagementRate.value || 0).toFixed(1)}%`,
+        change: data?.stats.engagementRate.changePct || 0,
+        icon: TrendingUp,
+        color: "bg-chart-5/10 text-chart-5",
+      },
+    ]
+  }, [data])
+
+  const activityIconByType = {
+    post: FileText,
+    user: UserPlus,
+    comment: MessageSquare,
+    notification: Bell,
+  } as const
 
   return (
     <div className="min-h-screen">
-      {/* Header */}
       <header className="sticky top-0 z-30 border-b border-border bg-card/80 backdrop-blur-sm">
         <div className="flex h-16 items-center justify-between px-6">
           <div>
             <h1 className="text-xl font-bold text-foreground">Dashboard</h1>
-            <p className="text-sm text-muted-foreground">
-              Сайтын ерөнхий статистик
-            </p>
+            <p className="text-sm text-muted-foreground">Сайтын ерөнхий статистик</p>
           </div>
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1 rounded-lg bg-secondary p-1">
-              {["week", "month", "year"].map((p) => (
+              {(["week", "month", "year"] as PeriodKey[]).map((p) => (
                 <button
                   key={p}
                   onClick={() => setPeriod(p)}
@@ -198,65 +170,61 @@ export default function AdminDashboard() {
                 </button>
               ))}
             </div>
-            <button className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
+            <Link
+              href="/dashboard/posts/new"
+              className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+            >
               <FileText className="h-4 w-4" />
               Шинэ мэдээ
-            </button>
+            </Link>
           </div>
         </div>
       </header>
 
       <div className="p-6">
-        {/* Stats Cards */}
+        {error ? (
+          <div className="mb-6 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+            {error}
+          </div>
+        ) : null}
+
         <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {statsCards.map((stat) => (
-            <div
-              key={stat.label}
-              className="rounded-xl border border-border bg-card p-5"
-            >
-              <div className="flex items-start justify-between">
-                <div
-                  className={`flex h-10 w-10 items-center justify-center rounded-lg ${stat.color}`}
-                >
-                  <stat.icon className="h-5 w-5" />
+          {statsCards.map((stat) => {
+            const isPositive = stat.change >= 0
+            return (
+              <div key={stat.label} className="rounded-xl border border-border bg-card p-5">
+                <div className="flex items-start justify-between">
+                  <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${stat.color}`}>
+                    <stat.icon className="h-5 w-5" />
+                  </div>
+                  <span
+                    className={`flex items-center gap-0.5 text-xs font-medium ${
+                      isPositive ? "text-chart-4" : "text-destructive"
+                    }`}
+                  >
+                    {isPositive ? (
+                      <ArrowUpRight className="h-3 w-3" />
+                    ) : (
+                      <ArrowDownRight className="h-3 w-3" />
+                    )}
+                    {Math.abs(stat.change).toFixed(1)}%
+                  </span>
                 </div>
-                <span
-                  className={`flex items-center gap-0.5 text-xs font-medium ${
-                    stat.changeType === "positive"
-                      ? "text-chart-4"
-                      : "text-destructive"
-                  }`}
-                >
-                  {stat.changeType === "positive" ? (
-                    <ArrowUpRight className="h-3 w-3" />
-                  ) : (
-                    <ArrowDownRight className="h-3 w-3" />
-                  )}
-                  {stat.change}
-                </span>
+                <div className="mt-4">
+                  <p className="text-2xl font-bold text-foreground">{loading ? "..." : stat.value}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">{stat.label}</p>
+                </div>
               </div>
-              <div className="mt-4">
-                <p className="text-2xl font-bold text-foreground">
-                  {stat.value}
-                </p>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {stat.label}
-                </p>
-              </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
 
-        {/* Charts */}
         <div className="mb-6 grid gap-6 lg:grid-cols-2">
-          {/* Views Chart */}
           <div className="rounded-xl border border-border bg-card p-5">
             <div className="mb-4 flex items-center justify-between">
               <div>
                 <h3 className="font-semibold text-foreground">Үзэлтийн тоо</h3>
-                <p className="text-sm text-muted-foreground">
-                  Сүүлийн 7 сарын статистик
-                </p>
+                <p className="text-sm text-muted-foreground">Сүүлийн 7 сарын статистик</p>
               </div>
               <button className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground">
                 <MoreHorizontal className="h-4 w-4" />
@@ -264,19 +232,11 @@ export default function AdminDashboard() {
             </div>
             <div className="h-[250px]">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={viewsData}>
+                <AreaChart data={data?.viewsTrend || []}>
                   <defs>
                     <linearGradient id="colorViews" x1="0" y1="0" x2="0" y2="1">
-                      <stop
-                        offset="5%"
-                        stopColor="oklch(0.55 0.18 230)"
-                        stopOpacity={0.3}
-                      />
-                      <stop
-                        offset="95%"
-                        stopColor="oklch(0.55 0.18 230)"
-                        stopOpacity={0}
-                      />
+                      <stop offset="5%" stopColor="oklch(0.55 0.18 230)" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="oklch(0.55 0.18 230)" stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <XAxis
@@ -289,7 +249,7 @@ export default function AdminDashboard() {
                     axisLine={false}
                     tickLine={false}
                     tick={{ fontSize: 12, fill: "oklch(0.50 0.01 240)" }}
-                    tickFormatter={(value) => `${value / 1000}K`}
+                    tickFormatter={(value) => `${Math.round(value / 1000)}K`}
                   />
                   <Tooltip
                     contentStyle={{
@@ -311,16 +271,11 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          {/* Category Distribution */}
           <div className="rounded-xl border border-border bg-card p-5">
             <div className="mb-4 flex items-center justify-between">
               <div>
-                <h3 className="font-semibold text-foreground">
-                  Ангилалын тархалт
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  Нийтлэлийн тоо ангилалаар
-                </p>
+                <h3 className="font-semibold text-foreground">Ангилалын тархалт</h3>
+                <p className="text-sm text-muted-foreground">Нийтлэлийн тоо ангилалаар</p>
               </div>
               <button className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground">
                 <MoreHorizontal className="h-4 w-4" />
@@ -328,7 +283,7 @@ export default function AdminDashboard() {
             </div>
             <div className="h-[250px]">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={categoryData} layout="vertical">
+                <BarChart data={data?.categoryData || []} layout="vertical">
                   <XAxis
                     type="number"
                     axisLine={false}
@@ -351,45 +306,29 @@ export default function AdminDashboard() {
                       fontSize: "12px",
                     }}
                   />
-                  <Bar
-                    dataKey="posts"
-                    fill="oklch(0.65 0.15 175)"
-                    radius={[0, 4, 4, 0]}
-                  />
+                  <Bar dataKey="posts" fill="oklch(0.65 0.15 175)" radius={[0, 4, 4, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
           </div>
         </div>
 
-        {/* Tables */}
         <div className="grid gap-6 lg:grid-cols-3">
-          {/* Recent Posts */}
           <div className="lg:col-span-2 rounded-xl border border-border bg-card">
             <div className="flex items-center justify-between border-b border-border p-5">
               <div>
                 <h3 className="font-semibold text-foreground">Сүүлийн мэдээ</h3>
-                <p className="text-sm text-muted-foreground">
-                  Сүүлд нэмэгдсэн болон шинэчлэгдсэн
-                </p>
+                <p className="text-sm text-muted-foreground">Сүүлд нэмэгдсэн болон шинэчлэгдсэн</p>
               </div>
-              <Link
-                href="/admin/posts"
-                className="text-sm font-medium text-primary hover:underline"
-              >
+              <Link href="/admin/posts" className="text-sm font-medium text-primary hover:underline">
                 Бүгдийг харах
               </Link>
             </div>
             <div className="divide-y divide-border">
-              {recentPosts.map((post) => (
-                <div
-                  key={post.id}
-                  className="flex items-center justify-between p-4 hover:bg-secondary/50"
-                >
+              {(data?.recentPosts || []).map((post) => (
+                <div key={post.id} className="flex items-center justify-between p-4 hover:bg-secondary/50">
                   <div className="flex-1">
-                    <h4 className="font-medium text-foreground line-clamp-1">
-                      {post.title}
-                    </h4>
+                    <h4 className="line-clamp-1 font-medium text-foreground">{post.title}</h4>
                     <div className="mt-1 flex items-center gap-3 text-xs text-muted-foreground">
                       <span>{post.author}</span>
                       <span className="h-1 w-1 rounded-full bg-muted-foreground" />
@@ -397,55 +336,64 @@ export default function AdminDashboard() {
                       <span className="h-1 w-1 rounded-full bg-muted-foreground" />
                       <span className="flex items-center gap-1">
                         <Clock className="h-3 w-3" />
-                        {post.date}
+                        {formatRelativeDate(post.date)}
                       </span>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
                     <span
                       className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                        statusColors[post.status]
+                        statusColors[(post.status || "draft") as DashboardStatus]
                       }`}
                     >
-                      {statusLabels[post.status]}
+                      {statusLabels[(post.status || "draft") as DashboardStatus]}
                     </span>
                     <span className="flex items-center gap-1 text-xs text-muted-foreground">
                       <Eye className="h-3 w-3" />
-                      {post.views}
+                      {formatCompactNumber(post.views || 0)}
                     </span>
                   </div>
                 </div>
               ))}
+              {!loading && (data?.recentPosts || []).length === 0 ? (
+                <div className="p-4 text-sm text-muted-foreground">Мэдээ байхгүй байна.</div>
+              ) : null}
             </div>
           </div>
 
-          {/* Recent Activity */}
           <div className="rounded-xl border border-border bg-card">
             <div className="border-b border-border p-5">
               <h3 className="font-semibold text-foreground">Сүүлийн үйлдлүүд</h3>
-              <p className="text-sm text-muted-foreground">
-                Системийн сүүлийн үйл ажиллагаа
-              </p>
+              <p className="text-sm text-muted-foreground">Системийн сүүлийн үйл ажиллагаа</p>
             </div>
             <div className="divide-y divide-border">
-              {recentActivities.map((activity) => (
-                <div key={activity.id} className="flex items-start gap-3 p-4">
-                  <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-secondary">
-                    <activity.icon className="h-4 w-4 text-muted-foreground" />
+              {(data?.recentActivities || []).map((activity) => {
+                const Icon = activityIconByType[activity.type] || Bell
+                return (
+                  <div key={activity.id} className="flex items-start gap-3 p-4">
+                    <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-secondary">
+                      <Icon className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm text-foreground">{activity.message}</p>
+                      <p className="mt-0.5 text-xs text-muted-foreground">
+                        {formatRelativeDate(activity.createdAt)}
+                      </p>
+                    </div>
                   </div>
-                  <div className="flex-1">
-                    <p className="text-sm text-foreground">{activity.message}</p>
-                    <p className="mt-0.5 text-xs text-muted-foreground">
-                      {activity.time}
-                    </p>
-                  </div>
-                </div>
-              ))}
+                )
+              })}
+              {!loading && (data?.recentActivities || []).length === 0 ? (
+                <div className="p-4 text-sm text-muted-foreground">Үйлдлийн мэдээлэл алга.</div>
+              ) : null}
             </div>
             <div className="border-t border-border p-3">
-              <button className="w-full rounded-lg bg-secondary py-2 text-sm font-medium text-foreground hover:bg-secondary/80">
+              <Link
+                href="/admin/posts"
+                className="block w-full rounded-lg bg-secondary py-2 text-center text-sm font-medium text-foreground hover:bg-secondary/80"
+              >
                 Бүгдийг харах
-              </button>
+              </Link>
             </div>
           </div>
         </div>
