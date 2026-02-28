@@ -29,7 +29,6 @@ import { cn } from "@/lib/utils"
 import { clearAuth, isAuthenticated } from "@/lib/auth"
 import { getCategories, getTopics, type BackendCategory, type BackendTopic } from "@/lib/api"
 import { DynamicIcon } from "@/components/admin/icon-picker"
-import { Skeleton } from "@/components/ui/skeleton"
 
 const mainNavItems = [
   { label: "Нүүр", icon: Home, href: "/" },
@@ -80,8 +79,6 @@ export function AppSidebar() {
   const [authed, setAuthed] = useState(false)
   const [categories, setCategories] = useState<BackendCategory[]>([])
   const [topics, setTopics] = useState<BackendTopic[]>([])
-  const [loadingCategories, setLoadingCategories] = useState(true)
-  const [loadingTopics, setLoadingTopics] = useState(true)
 
   useEffect(() => {
     setAuthed(isAuthenticated())
@@ -89,7 +86,6 @@ export function AppSidebar() {
 
   useEffect(() => {
     let cancelled = false
-    setLoadingCategories(true)
 
     getCategories()
       .then((items) => {
@@ -100,10 +96,6 @@ export function AppSidebar() {
         if (cancelled) return
         setCategories([])
       })
-      .finally(() => {
-        if (cancelled) return
-        setLoadingCategories(false)
-      })
 
     return () => {
       cancelled = true
@@ -112,7 +104,6 @@ export function AppSidebar() {
 
   useEffect(() => {
     let cancelled = false
-    setLoadingTopics(true)
 
     getTopics()
       .then((items) => {
@@ -122,10 +113,6 @@ export function AppSidebar() {
       .catch(() => {
         if (cancelled) return
         setTopics([])
-      })
-      .finally(() => {
-        if (cancelled) return
-        setLoadingTopics(false)
       })
 
     return () => {
@@ -227,14 +214,7 @@ export function AppSidebar() {
           </button>
           {categoriesOpen && (
             <div className="flex flex-col gap-0.5">
-              {loadingCategories &&
-                Array.from({ length: 4 }).map((_, idx) => (
-                  <div key={`cat-skeleton-${idx}`} className="flex items-center gap-3 px-3 py-2">
-                    <Skeleton className="h-4 w-4 rounded-sm" />
-                    <Skeleton className="h-4 w-28" />
-                  </div>
-                ))}
-              {!loadingCategories && categories.map((cat) => {
+              {categories.map((cat) => {
                 const isCatActive = pathname === `/category/${cat.slug}`
                 const fallbackIcon = fallbackCategoryIconBySlug[cat.slug] || Globe
                 return (
@@ -283,14 +263,7 @@ export function AppSidebar() {
           </button>
           {topicsOpen && (
             <div className="flex flex-col gap-0.5">
-              {loadingTopics &&
-                Array.from({ length: 3 }).map((_, idx) => (
-                  <div key={`topic-skeleton-${idx}`} className="flex items-center gap-3 px-3 py-2">
-                    <Skeleton className="h-4 w-4 rounded-sm" />
-                    <Skeleton className="h-4 w-24" />
-                  </div>
-                ))}
-              {!loadingTopics && sidebarTopics.map((topic) => {
+              {sidebarTopics.map((topic) => {
                 const isTopicActive = pathname === `/topic/${topic.slug}`
                 return (
                   <Link

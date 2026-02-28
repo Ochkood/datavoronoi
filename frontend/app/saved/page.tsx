@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils"
 import { AppSidebar } from "@/components/app-sidebar"
 import { ContentHeader } from "@/components/content-header"
 import { PostCard, type PostData } from "@/components/post-card"
+import { Skeleton } from "@/components/ui/skeleton"
 import { getBookmarks, toggleBookmarkApi } from "@/lib/api"
 import { RouteGuard } from "@/components/auth/route-guard"
 
@@ -14,11 +15,14 @@ export default function SavedPage() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
   const [savedPosts, setSavedPosts] = useState<PostData[]>([])
   const [error, setError] = useState("")
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    setLoading(true)
     getBookmarks()
       .then((items) => setSavedPosts(items))
       .catch(() => setSavedPosts([]))
+      .finally(() => setLoading(false))
   }, [])
 
   const handleRemove = async (postId: string) => {
@@ -54,7 +58,7 @@ export default function SavedPage() {
                 </h1>
               </div>
               <p className="mt-1 text-sm text-muted-foreground">
-                Таны хадгалсан нийтлэлүүд ({savedPosts.length})
+                Таны хадгалсан нийтлэлүүд ({loading ? "..." : savedPosts.length})
               </p>
             </div>
             <div className="flex items-center gap-1 rounded-lg bg-secondary p-1">
@@ -86,7 +90,43 @@ export default function SavedPage() {
           </div>
 
           {/* Posts */}
-          {savedPosts.length === 0 ? (
+          {loading ? (
+            viewMode === "grid" ? (
+              <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                {Array.from({ length: 6 }).map((_, idx) => (
+                  <div key={`saved-grid-skeleton-${idx}`}>
+                    <div className="overflow-hidden rounded-xl border border-border bg-card">
+                      <Skeleton className="h-40 w-full rounded-none" />
+                      <div className="space-y-3 p-4">
+                        <Skeleton className="h-4 w-2/3" />
+                        <Skeleton className="h-3 w-full" />
+                        <Skeleton className="h-3 w-4/5" />
+                      </div>
+                    </div>
+                    <Skeleton className="mt-2 h-9 w-full rounded-lg" />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex flex-col gap-4">
+                {Array.from({ length: 6 }).map((_, idx) => (
+                  <div key={`saved-list-skeleton-${idx}`}>
+                    <div className="rounded-xl border border-border bg-card p-4">
+                      <div className="flex gap-4">
+                        <Skeleton className="h-24 w-32 rounded-lg" />
+                        <div className="flex-1 space-y-3">
+                          <Skeleton className="h-4 w-1/2" />
+                          <Skeleton className="h-3 w-full" />
+                          <Skeleton className="h-3 w-5/6" />
+                        </div>
+                      </div>
+                    </div>
+                    <Skeleton className="mt-2 h-8 w-32 rounded-lg" />
+                  </div>
+                ))}
+              </div>
+            )
+          ) : savedPosts.length === 0 ? (
             <div className="flex flex-col items-center justify-center rounded-xl bg-card py-20 ring-1 ring-border">
               <Bookmark className="mb-3 h-10 w-10 text-muted-foreground/40" />
               <p className="text-sm font-medium text-muted-foreground">
