@@ -14,6 +14,7 @@ type ApiResponse<T> = {
 
 type BackendPost = {
   _id: string
+  shortId?: string
   title: string
   excerpt?: string
   content?: string
@@ -88,7 +89,7 @@ function categoryColorBySlug(slug?: string): string {
 
 function mapPost(post: BackendPost): PostData {
   return {
-    id: post._id,
+    id: post.shortId || post._id,
     authorId: post.author?._id || "",
     authorVerified: post.author?.role === "publisher" || post.author?.role === "admin",
     title: post.title,

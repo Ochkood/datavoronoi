@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useParams, notFound } from "next/navigation"
+import { useParams, useRouter, notFound } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
 import {
@@ -40,6 +40,7 @@ import { toast } from "sonner"
 
 export default function PostDetailPage() {
   const params = useParams()
+  const router = useRouter()
   const id = params.id as string
 
   const [post, setPost] = useState<PostData | null>(null)
@@ -60,6 +61,9 @@ export default function PostDetailPage() {
     setIsLoading(true)
     getPostById(id)
       .then((p) => {
+        if (p.id && p.id !== id) {
+          router.replace(`/post/${p.id}`)
+        }
         setPost(p)
         setLikesCount(p.likes || 0)
         if (p.categorySlug) {
@@ -77,7 +81,7 @@ export default function PostDetailPage() {
       })
       .catch(() => setPost(null))
       .finally(() => setIsLoading(false))
-  }, [id])
+  }, [id, router])
 
   useEffect(() => {
     let mounted = true

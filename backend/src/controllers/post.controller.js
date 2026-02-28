@@ -8,6 +8,21 @@ const asyncHandler = require('../utils/async-handler');
 const ApiError = require('../utils/api-error');
 const mongoose = require('mongoose');
 
+function buildPostIdentifierQuery(id) {
+  const value = String(id || '').trim();
+  if (!value) return null;
+  if (mongoose.Types.ObjectId.isValid(value)) {
+    return { $or: [{ _id: value }, { shortId: value }] };
+  }
+  return { shortId: value };
+}
+
+async function ensurePostShortId(post) {
+  if (!post || post.shortId) return post;
+  await post.save();
+  return post;
+}
+
 const listPosts = asyncHandler(async (req, res) => {
   const {
     page = 1,
@@ -49,6 +64,8 @@ const listPosts = asyncHandler(async (req, res) => {
       .limit(Number(limit)),
     Post.countDocuments(filter),
   ]);
+
+  await Promise.all(items.map((item) => ensurePostShortId(item)));
 
   res.json({
     success: true,
@@ -131,6 +148,8 @@ const listAdminPosts = asyncHandler(async (req, res) => {
     Post.countDocuments(filter),
   ]);
 
+  await Promise.all(items.map((item) => ensurePostShortId(item)));
+
   res.json({
     success: true,
     data: {
@@ -202,7 +221,12 @@ const listTopAuthors = asyncHandler(async (req, res) => {
 });
 
 const getPostMetaById = asyncHandler(async (req, res) => {
-  const post = await Post.findById(req.params.id)
+  const identifierQuery = buildPostIdentifierQuery(req.params.id);
+  if (!identifierQuery) {
+    throw new ApiError(404, 'Post not found');
+  }
+
+  const post = await Post.findOne(identifierQuery)
     .populate('author', 'name')
     .populate('category', 'name slug')
     .populate('topics', 'name slug')
@@ -218,12 +242,19 @@ const getPostMetaById = asyncHandler(async (req, res) => {
     throw new ApiError(404, 'Post not found');
   }
 
+  await ensurePostShortId(post);
+
   res.json({ success: true, data: { post } });
 });
 
 const getPostById = asyncHandler(async (req, res) => {
-  const post = await Post.findByIdAndUpdate(
-    req.params.id,
+  const identifierQuery = buildPostIdentifierQuery(req.params.id);
+  if (!identifierQuery) {
+    throw new ApiError(404, 'Post not found');
+  }
+
+  const post = await Post.findOneAndUpdate(
+    identifierQuery,
     { $inc: { viewsCount: 1 } },
     { new: true }
   )
@@ -234,6 +265,8 @@ const getPostById = asyncHandler(async (req, res) => {
   if (!post) {
     throw new ApiError(404, 'Post not found');
   }
+
+  await ensurePostShortId(post);
 
   res.json({ success: true, data: { post } });
 });
@@ -279,7 +312,12 @@ const createPost = asyncHandler(async (req, res) => {
 });
 
 const updatePost = asyncHandler(async (req, res) => {
-  const post = await Post.findById(req.params.id);
+  const identifierQuery = buildPostIdentifierQuery(req.params.id);
+  if (!identifierQuery) {
+    throw new ApiError(404, 'Post not found');
+  }
+
+  const post = await Post.findOne(identifierQuery);
   if (!post) {
     throw new ApiError(404, 'Post not found');
   }
@@ -306,7 +344,7 @@ const updatePost = asyncHandler(async (req, res) => {
     payload.publishedAt = null;
   }
 
-  const updated = await Post.findByIdAndUpdate(req.params.id, payload, { new: true });
+  const updated = await Post.findByIdAndUpdate(post._id, payload, { new: true });
 
   if (
     updated &&
@@ -355,7 +393,12 @@ const updatePost = asyncHandler(async (req, res) => {
 });
 
 const deletePost = asyncHandler(async (req, res) => {
-  const post = await Post.findById(req.params.id);
+  const identifierQuery = buildPostIdentifierQuery(req.params.id);
+  if (!identifierQuery) {
+    throw new ApiError(404, 'Post not found');
+  }
+
+  const post = await Post.findOne(identifierQuery);
   if (!post) {
     throw new ApiError(404, 'Post not found');
   }
@@ -364,16 +407,26 @@ const deletePost = asyncHandler(async (req, res) => {
     throw new ApiError(403, 'Forbidden');
   }
 
-  await Post.findByIdAndDelete(req.params.id);
-  await Comment.deleteMany({ post: req.params.id });
-  await Bookmark.deleteMany({ post: req.params.id });
-  await PostLike.deleteMany({ post: req.params.id });
+  await Post.findByIdAndDelete(post._id);
+  await Comment.deleteMany({ post: post._id });
+  await Bookmark.deleteMany({ post: post._id });
+  await PostLike.deleteMany({ post: post._id });
 
   res.json({ success: true, message: 'Post deleted' });
 });
 
 const listComments = asyncHandler(async (req, res) => {
-  const comments = await Comment.find({ post: req.params.id })
+  const identifierQuery = buildPostIdentifierQuery(req.params.id);
+  if (!identifierQuery) {
+    throw new ApiError(404, 'Post not found');
+  }
+
+  const post = await Post.findOne(identifierQuery).select('_id');
+  if (!post) {
+    throw new ApiError(404, 'Post not found');
+  }
+
+  const comments = await Comment.find({ post: post._id })
     .populate('user', 'name avatar')
     .sort({ createdAt: -1 });
 
@@ -383,18 +436,24 @@ const listComments = asyncHandler(async (req, res) => {
 const addComment = asyncHandler(async (req, res) => {
   const { content } = req.body;
 
-  const post = await Post.findById(req.params.id);
+  const identifierQuery = buildPostIdentifierQuery(req.params.id);
+  if (!identifierQuery) {
+    throw new ApiError(404, 'Post not found');
+  }
+
+  const post = await Post.findOne(identifierQuery);
   if (!post) {
     throw new ApiError(404, 'Post not found');
   }
 
   const comment = await Comment.create({
-    post: req.params.id,
+    post: post._id,
     user: req.user._id,
     content,
   });
 
-  await Post.findByIdAndUpdate(req.params.id, { $inc: { commentsCount: 1 } });
+  await Post.findByIdAndUpdate(post._id, { $inc: { commentsCount: 1 } });
+  await ensurePostShortId(post);
 
   if (String(post.author) !== String(req.user._id)) {
     await Notification.create({
@@ -403,7 +462,7 @@ const addComment = asyncHandler(async (req, res) => {
       type: 'comment',
       title: 'Шинэ сэтгэгдэл',
       message: `${req.user.name} таны "${post.title}" нийтлэлд сэтгэгдэл бичлээ`,
-      link: `/post/${post._id}`,
+      link: `/post/${post.shortId || post._id}`,
     });
   }
 
@@ -412,19 +471,25 @@ const addComment = asyncHandler(async (req, res) => {
 });
 
 const toggleBookmark = asyncHandler(async (req, res) => {
-  const post = await Post.findById(req.params.id);
-  if (!post) {
+  const identifierQuery = buildPostIdentifierQuery(req.params.id);
+  if (!identifierQuery) {
     throw new ApiError(404, 'Post not found');
   }
 
-  const existing = await Bookmark.findOne({ user: req.user._id, post: req.params.id });
+  const post = await Post.findOne(identifierQuery);
+  if (!post) {
+    throw new ApiError(404, 'Post not found');
+  }
+  await ensurePostShortId(post);
+
+  const existing = await Bookmark.findOne({ user: req.user._id, post: post._id });
 
   if (existing) {
     await Bookmark.findByIdAndDelete(existing._id);
     return res.json({ success: true, data: { bookmarked: false } });
   }
 
-  await Bookmark.create({ user: req.user._id, post: req.params.id });
+  await Bookmark.create({ user: req.user._id, post: post._id });
   res.json({ success: true, data: { bookmarked: true } });
 });
 
@@ -440,30 +505,37 @@ const myBookmarks = asyncHandler(async (req, res) => {
     .sort({ createdAt: -1 });
 
   const items = rows.map((row) => row.post).filter(Boolean);
+  await Promise.all(items.map((item) => ensurePostShortId(item)));
   res.json({ success: true, data: { items } });
 });
 
 const toggleLike = asyncHandler(async (req, res) => {
-  const post = await Post.findById(req.params.id);
-  if (!post) {
+  const identifierQuery = buildPostIdentifierQuery(req.params.id);
+  if (!identifierQuery) {
     throw new ApiError(404, 'Post not found');
   }
 
-  const existing = await PostLike.findOne({ user: req.user._id, post: req.params.id });
+  const post = await Post.findOne(identifierQuery);
+  if (!post) {
+    throw new ApiError(404, 'Post not found');
+  }
+  await ensurePostShortId(post);
+
+  const existing = await PostLike.findOne({ user: req.user._id, post: post._id });
 
   if (existing) {
     await PostLike.findByIdAndDelete(existing._id);
     const updated = await Post.findByIdAndUpdate(
-      req.params.id,
+      post._id,
       { $inc: { likesCount: -1 } },
       { new: true }
     );
     return res.json({ success: true, data: { liked: false, likesCount: updated?.likesCount || 0 } });
   }
 
-  await PostLike.create({ user: req.user._id, post: req.params.id });
+  await PostLike.create({ user: req.user._id, post: post._id });
   const updated = await Post.findByIdAndUpdate(
-    req.params.id,
+    post._id,
     { $inc: { likesCount: 1 } },
     { new: true }
   );
@@ -475,7 +547,7 @@ const toggleLike = asyncHandler(async (req, res) => {
       type: 'like',
       title: 'Шинэ лайк',
       message: `${req.user.name} таны "${post.title}" нийтлэлд лайк дарлаа`,
-      link: `/post/${post._id}`,
+      link: `/post/${post.shortId || post._id}`,
     });
   }
 
@@ -483,9 +555,19 @@ const toggleLike = asyncHandler(async (req, res) => {
 });
 
 const getMyEngagement = asyncHandler(async (req, res) => {
+  const identifierQuery = buildPostIdentifierQuery(req.params.id);
+  if (!identifierQuery) {
+    throw new ApiError(404, 'Post not found');
+  }
+
+  const post = await Post.findOne(identifierQuery).select('_id');
+  if (!post) {
+    throw new ApiError(404, 'Post not found');
+  }
+
   const [liked, bookmarked] = await Promise.all([
-    PostLike.exists({ user: req.user._id, post: req.params.id }),
-    Bookmark.exists({ user: req.user._id, post: req.params.id }),
+    PostLike.exists({ user: req.user._id, post: post._id }),
+    Bookmark.exists({ user: req.user._id, post: post._id }),
   ]);
 
   res.json({
