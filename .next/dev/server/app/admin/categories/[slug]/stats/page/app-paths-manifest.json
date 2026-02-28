@@ -1,0 +1,3 @@
+{
+  "/admin/categories/[slug]/stats/page": "app/admin/categories/[slug]/stats/page.js"
+}
