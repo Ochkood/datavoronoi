@@ -174,7 +174,13 @@ export default function CategoryStatsEditorPage() {
       icon: chart.icon || "",
     })
     setChartDataInput(
-      chart.data.map((d) => `${d.name}:${d.value}`).join("\n")
+      chart.data
+        .map((d) =>
+          d.value2 !== undefined
+            ? `${d.name}:${d.value}:${d.value2}`
+            : `${d.name}:${d.value}`
+        )
+        .join("\n")
     )
     setShowChartModal(true)
   }
@@ -193,7 +199,13 @@ export default function CategoryStatsEditorPage() {
         }
       })
 
-    const newChart = { ...chartForm, data }
+    const hasSecondSeries = data.some((d) => d.value2 !== undefined)
+    const newChart = {
+      ...chartForm,
+      data,
+      dataKey: chartForm.dataKey || "value",
+      dataKey2: hasSecondSeries ? (chartForm.dataKey2 || "value2") : undefined,
+    }
 
     if (editingChart !== null) {
       const updated = [...charts]
