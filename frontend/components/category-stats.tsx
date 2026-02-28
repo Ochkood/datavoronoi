@@ -70,11 +70,23 @@ interface ChartCardProps {
   data: ChartDataPoint[]
   dataKey?: string
   dataKey2?: string
+  dataKey3?: string
+  dataKey4?: string
   color: string
   icon?: string
 }
 
-function ChartCard({ title, type, data, dataKey = "value", dataKey2, color, icon }: ChartCardProps) {
+function ChartCard({
+  title,
+  type,
+  data,
+  dataKey = "value",
+  dataKey2,
+  dataKey3,
+  dataKey4,
+  color,
+  icon,
+}: ChartCardProps) {
   const chartColor = color === "text-chart-1" ? "var(--chart-1)" :
                     color === "text-chart-2" ? "var(--chart-2)" :
                     color === "text-chart-3" ? "var(--chart-3)" :
@@ -82,7 +94,15 @@ function ChartCard({ title, type, data, dataKey = "value", dataKey2, color, icon
                     color === "text-chart-5" ? "var(--chart-5)" :
                     color === "text-destructive" ? "var(--destructive)" : "var(--primary)"
 
-  const secondaryColor = "var(--muted-foreground)"
+  const seriesKeys = [dataKey, dataKey2, dataKey3, dataKey4].filter(
+    (key): key is string => Boolean(key)
+  )
+  const seriesColors = [
+    chartColor,
+    "var(--chart-2)",
+    "var(--chart-3)",
+    "var(--chart-5)",
+  ]
 
   return (
     <div className="rounded-xl bg-card p-4 ring-1 ring-border">
@@ -99,10 +119,12 @@ function ChartCard({ title, type, data, dataKey = "value", dataKey2, color, icon
           {type === "area" ? (
             <AreaChart data={data} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
               <defs>
-                <linearGradient id={`gradient-${title}`} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor={chartColor} stopOpacity={0.3} />
-                  <stop offset="95%" stopColor={chartColor} stopOpacity={0} />
-                </linearGradient>
+                {seriesKeys.map((key, idx) => (
+                  <linearGradient key={key} id={`gradient-${title}-${idx}`} x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor={seriesColors[idx % seriesColors.length]} stopOpacity={0.25} />
+                    <stop offset="95%" stopColor={seriesColors[idx % seriesColors.length]} stopOpacity={0} />
+                  </linearGradient>
+                ))}
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
               <XAxis 
@@ -124,13 +146,18 @@ function ChartCard({ title, type, data, dataKey = "value", dataKey2, color, icon
                   fontSize: "12px",
                 }}
               />
-              <Area
-                type="monotone"
-                dataKey={dataKey}
-                stroke={chartColor}
-                strokeWidth={2}
-                fill={`url(#gradient-${title})`}
-              />
+              {seriesKeys.length > 1 && <Legend wrapperStyle={{ fontSize: "11px" }} />}
+              {seriesKeys.map((key, idx) => (
+                <Area
+                  key={key}
+                  type="monotone"
+                  dataKey={key}
+                  name={key}
+                  stroke={seriesColors[idx % seriesColors.length]}
+                  strokeWidth={2}
+                  fill={`url(#gradient-${title}-${idx})`}
+                />
+              ))}
             </AreaChart>
           ) : type === "line" ? (
             <LineChart data={data} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
@@ -154,14 +181,19 @@ function ChartCard({ title, type, data, dataKey = "value", dataKey2, color, icon
                   fontSize: "12px",
                 }}
               />
-              <Line
-                type="monotone"
-                dataKey={dataKey}
-                stroke={chartColor}
-                strokeWidth={2}
-                dot={{ fill: chartColor, strokeWidth: 0, r: 3 }}
-                activeDot={{ r: 5, strokeWidth: 0 }}
-              />
+              {seriesKeys.length > 1 && <Legend wrapperStyle={{ fontSize: "11px" }} />}
+              {seriesKeys.map((key, idx) => (
+                <Line
+                  key={key}
+                  type="monotone"
+                  dataKey={key}
+                  name={key}
+                  stroke={seriesColors[idx % seriesColors.length]}
+                  strokeWidth={2}
+                  dot={{ fill: seriesColors[idx % seriesColors.length], strokeWidth: 0, r: 3 }}
+                  activeDot={{ r: 5, strokeWidth: 0 }}
+                />
+              ))}
             </LineChart>
           ) : (
             <BarChart data={data} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
@@ -185,21 +217,16 @@ function ChartCard({ title, type, data, dataKey = "value", dataKey2, color, icon
                   fontSize: "12px",
                 }}
               />
-              {dataKey2 && <Legend wrapperStyle={{ fontSize: "11px" }} />}
-              <Bar 
-                dataKey={dataKey} 
-                fill={chartColor} 
-                radius={[4, 4, 0, 0]}
-                name={dataKey2 ? "Орлого" : undefined}
-              />
-              {dataKey2 && (
-                <Bar 
-                  dataKey={dataKey2} 
-                  fill={secondaryColor} 
+              {seriesKeys.length > 1 && <Legend wrapperStyle={{ fontSize: "11px" }} />}
+              {seriesKeys.map((key, idx) => (
+                <Bar
+                  key={key}
+                  dataKey={key}
+                  fill={seriesColors[idx % seriesColors.length]}
                   radius={[4, 4, 0, 0]}
-                  name="Зарлага"
+                  name={key}
                 />
-              )}
+              ))}
             </BarChart>
           )}
         </ResponsiveContainer>
@@ -239,6 +266,8 @@ export function CategoryStatsView({ stats, categoryColor }: CategoryStatsProps) 
               data={chart.data}
               dataKey={chart.dataKey}
               dataKey2={chart.dataKey2}
+              dataKey3={chart.dataKey3}
+              dataKey4={chart.dataKey4}
               color={categoryColor}
               icon={chart.icon}
             />

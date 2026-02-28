@@ -42,9 +42,11 @@ interface Highlight {
 interface ChartData {
   title: string
   type: ChartType
-  data: { name: string; value: number; value2?: number }[]
+  data: { name: string; value: number; value2?: number; value3?: number; value4?: number }[]
   dataKey?: string
   dataKey2?: string
+  dataKey3?: string
+  dataKey4?: string
   icon?: string
 }
 
@@ -160,6 +162,9 @@ export default function CategoryStatsEditorPage() {
       type: "area",
       data: [],
       dataKey: "value",
+      dataKey2: undefined,
+      dataKey3: undefined,
+      dataKey4: undefined,
       icon: "",
     })
     setChartDataInput("")
@@ -175,11 +180,13 @@ export default function CategoryStatsEditorPage() {
     })
     setChartDataInput(
       chart.data
-        .map((d) =>
-          d.value2 !== undefined
-            ? `${d.name}:${d.value}:${d.value2}`
-            : `${d.name}:${d.value}`
-        )
+        .map((d) => {
+          const parts = [d.name, d.value]
+          if (d.value2 !== undefined) parts.push(d.value2)
+          if (d.value3 !== undefined) parts.push(d.value3)
+          if (d.value4 !== undefined) parts.push(d.value4)
+          return parts.join(":")
+        })
         .join("\n")
     )
     setShowChartModal(true)
@@ -190,21 +197,29 @@ export default function CategoryStatsEditorPage() {
       .split("\n")
       .filter((line) => line.trim())
       .map((line) => {
-        const [name, value, value2] = line.split(":")
+        const [name, value, value2, value3, value4] = line.split(":")
         const second = value2 !== undefined ? parseFloat(value2) : undefined
+        const third = value3 !== undefined ? parseFloat(value3) : undefined
+        const fourth = value4 !== undefined ? parseFloat(value4) : undefined
         return {
           name: (name || "").trim(),
           value: parseFloat(value) || 0,
           ...(second !== undefined && !Number.isNaN(second) ? { value2: second } : {}),
+          ...(third !== undefined && !Number.isNaN(third) ? { value3: third } : {}),
+          ...(fourth !== undefined && !Number.isNaN(fourth) ? { value4: fourth } : {}),
         }
       })
 
     const hasSecondSeries = data.some((d) => d.value2 !== undefined)
+    const hasThirdSeries = data.some((d) => d.value3 !== undefined)
+    const hasFourthSeries = data.some((d) => d.value4 !== undefined)
     const newChart = {
       ...chartForm,
       data,
       dataKey: chartForm.dataKey || "value",
       dataKey2: hasSecondSeries ? (chartForm.dataKey2 || "value2") : undefined,
+      dataKey3: hasThirdSeries ? (chartForm.dataKey3 || "value3") : undefined,
+      dataKey4: hasFourthSeries ? (chartForm.dataKey4 || "value4") : undefined,
     }
 
     if (editingChart !== null) {
@@ -682,7 +697,7 @@ export default function CategoryStatsEditorPage() {
                   Дата оруулга
                 </label>
                 <p className="mb-2 text-xs text-muted-foreground">
-                  Мөр бүрт "нэр:утга" эсвэл "нэр:утга:утга2" форматаар оруулна.
+                  Мөр бүрт "нэр:утга[:утга2[:утга3[:утга4]]]" форматаар оруулна.
                 </p>
                 <textarea
                   rows={8}

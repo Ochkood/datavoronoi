@@ -257,6 +257,8 @@ export interface ChartDataPoint {
   name: string
   value: number
   value2?: number
+  value3?: number
+  value4?: number
 }
 
 export interface CategoryStats {
@@ -267,6 +269,8 @@ export interface CategoryStats {
     data: ChartDataPoint[]
     dataKey?: string
     dataKey2?: string
+    dataKey3?: string
+    dataKey4?: string
     icon?: string
   }[]
 }
