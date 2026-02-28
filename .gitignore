@@ -9,7 +9,12 @@ node_modules/
 .DS_Store
 
 # Environment files (keep only *.example in git)
-.env
+backend/.env.example
+backend/.env
+frontend/.env.local
+frontend/.env.development
+frontend/.env.production
+frontend/.env.test
 .env.*
 !.env.example
 backend/.env
