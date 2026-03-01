@@ -7,6 +7,11 @@ import Link from "@tiptap/extension-link"
 import TextAlign from "@tiptap/extension-text-align"
 import Placeholder from "@tiptap/extension-placeholder"
 import TiptapImage from "@tiptap/extension-image"
+import Table from "@tiptap/extension-table"
+import TableRow from "@tiptap/extension-table-row"
+import TableHeader from "@tiptap/extension-table-header"
+import TableCell from "@tiptap/extension-table-cell"
+import Youtube from "@tiptap/extension-youtube"
 import {
   Bold,
   Italic,
@@ -30,6 +35,8 @@ import {
   ImageIcon,
   Minus,
   Code2,
+  Table2,
+  Youtube as YoutubeIcon,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useCallback, useEffect, useRef, useState, type ChangeEvent } from "react"
@@ -48,8 +55,12 @@ export function TiptapEditor({
 }: TiptapEditorProps) {
   const [linkUrl, setLinkUrl] = useState("")
   const [showLinkInput, setShowLinkInput] = useState(false)
+  const [showYoutubeInput, setShowYoutubeInput] = useState(false)
+  const [youtubeUrl, setYoutubeUrl] = useState("")
   const [isUploadingImage, setIsUploadingImage] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const isApplyingExternalRef = useRef(false)
+  const latestContentRef = useRef(content || "")
 
   const editor = useEditor({
     extensions: [
@@ -76,12 +87,26 @@ export function TiptapEditor({
           class: "rounded-lg max-w-full h-auto",
         },
       }),
+      Table.configure({
+        resizable: true,
+      }),
+      TableRow,
+      TableHeader,
+      TableCell,
+      Youtube.configure({
+        controls: true,
+        nocookie: true,
+        allowFullscreen: true,
+        HTMLAttributes: {
+          class: "w-full rounded-lg aspect-video",
+        },
+      }),
     ],
     content,
     editorProps: {
       attributes: {
         class:
-          "prose prose-sm sm:prose-base dark:prose-invert max-w-none focus:outline-none min-h-[400px] px-4 py-3",
+          "tiptap-content prose prose-sm sm:prose-base dark:prose-invert max-w-none focus:outline-none min-h-[400px] px-4 py-3",
       },
       handlePaste: (view, event) => {
         const files = event.clipboardData?.files
@@ -105,15 +130,24 @@ export function TiptapEditor({
       },
     },
     onUpdate: ({ editor }) => {
-      onChange?.(editor.getHTML())
+      const html = editor.getHTML()
+      latestContentRef.current = html
+      if (!isApplyingExternalRef.current) {
+        onChange?.(html)
+      }
     },
   })
 
   useEffect(() => {
     if (!editor) return
-    const current = editor.getHTML()
-    if (content !== current) {
-      editor.commands.setContent(content || "", false)
+    const nextContent = content || ""
+    if (nextContent !== latestContentRef.current) {
+      isApplyingExternalRef.current = true
+      editor.commands.setContent(nextContent, false)
+      latestContentRef.current = nextContent
+      queueMicrotask(() => {
+        isApplyingExternalRef.current = false
+      })
     }
   }, [content, editor])
 
@@ -157,6 +191,22 @@ export function TiptapEditor({
     setShowLinkInput(false)
   }, [editor, linkUrl])
 
+  const setYoutubeVideo = useCallback(() => {
+    if (!editor) return
+    const url = youtubeUrl.trim()
+    if (!url) return
+
+    editor
+      .chain()
+      .focus()
+      .setYoutubeVideo({
+        src: url,
+      })
+      .run()
+    setYoutubeUrl("")
+    setShowYoutubeInput(false)
+  }, [editor, youtubeUrl])
+
   if (!editor) {
     return null
   }
@@ -176,6 +226,7 @@ export function TiptapEditor({
   }) => (
     <button
       type="button"
+      onMouseDown={(e) => e.preventDefault()}
       onClick={onClick}
       disabled={disabled}
       title={title}
@@ -400,6 +451,81 @@ export function TiptapEditor({
         <ToolbarButton onClick={addImage} title="Зураг">
           <ImageIcon className="h-4 w-4" />
         </ToolbarButton>
+
+        {/* Table */}
+        <ToolbarButton
+          onClick={() => {
+            if (editor.isActive("table")) {
+              editor.chain().focus().deleteTable().run()
+              return
+            }
+            editor
+              .chain()
+              .focus()
+              .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
+              .run()
+          }}
+          isActive={editor.isActive("table")}
+          title={editor.isActive("table") ? "Хүснэгт устгах" : "Хүснэгт нэмэх"}
+        >
+          <Table2 className="h-4 w-4" />
+        </ToolbarButton>
+        {editor.isActive("table") && (
+          <>
+            <ToolbarButton
+              onClick={() => editor.chain().focus().addColumnAfter().run()}
+              title="Багана нэмэх"
+            >
+              +C
+            </ToolbarButton>
+            <ToolbarButton
+              onClick={() => editor.chain().focus().addRowAfter().run()}
+              title="Мөр нэмэх"
+            >
+              +R
+            </ToolbarButton>
+            <ToolbarButton
+              onClick={() => editor.chain().focus().deleteColumn().run()}
+              title="Багана устгах"
+            >
+              -C
+            </ToolbarButton>
+            <ToolbarButton
+              onClick={() => editor.chain().focus().deleteRow().run()}
+              title="Мөр устгах"
+            >
+              -R
+            </ToolbarButton>
+          </>
+        )}
+
+        {/* Youtube */}
+        <div className="relative">
+          <ToolbarButton
+            onClick={() => setShowYoutubeInput((prev) => !prev)}
+            title="YouTube видео"
+          >
+            <YoutubeIcon className="h-4 w-4" />
+          </ToolbarButton>
+          {showYoutubeInput && (
+            <div className="absolute left-0 top-full z-10 mt-1 flex items-center gap-2 rounded-lg border border-border bg-card p-2 shadow-lg">
+              <input
+                type="url"
+                placeholder="YouTube URL..."
+                value={youtubeUrl}
+                onChange={(e) => setYoutubeUrl(e.target.value)}
+                className="w-56 rounded-md border border-border bg-background px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                onKeyDown={(e) => e.key === "Enter" && setYoutubeVideo()}
+              />
+              <button
+                onClick={setYoutubeVideo}
+                className="rounded-md bg-primary px-2 py-1 text-xs font-medium text-primary-foreground"
+              >
+                Нэмэх
+              </button>
+            </div>
+          )}
+        </div>
         <input
           ref={fileInputRef}
           type="file"
@@ -452,6 +578,44 @@ export function TiptapEditor({
         </span>
         <span>{editor.storage.characterCount?.words?.() ?? 0} үг</span>
       </div>
+
+      <style jsx global>{`
+        .tiptap-content ol {
+          list-style: decimal;
+          padding-left: 1.25rem;
+          margin: 0.5rem 0;
+        }
+        .tiptap-content ul {
+          list-style: disc;
+          padding-left: 1.25rem;
+          margin: 0.5rem 0;
+        }
+        .tiptap-content li {
+          margin: 0.25rem 0;
+        }
+        .tiptap-content table {
+          border-collapse: collapse;
+          width: 100%;
+          margin: 0.75rem 0;
+        }
+        .tiptap-content th,
+        .tiptap-content td {
+          border: 1px solid oklch(0.9 0.01 240);
+          padding: 0.5rem;
+          vertical-align: top;
+        }
+        .tiptap-content th {
+          background: oklch(0.97 0.01 240);
+          font-weight: 600;
+        }
+        .tiptap-content iframe {
+          width: 100%;
+          aspect-ratio: 16 / 9;
+          border: 0;
+          border-radius: 0.5rem;
+          margin: 0.75rem 0;
+        }
+      `}</style>
     </div>
   )
 }
