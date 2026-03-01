@@ -39,6 +39,7 @@ export function PostContentRenderer({ html, categoryColor }: PostContentRenderer
                 highlightsTitle={
                   section === "highlights" ? segment.embed.title || "Гол үзүүлэлтүүд" : undefined
                 }
+                highlightsPerRow={section === "highlights" ? (segment.embed.highlightsPerRow || 3) : 3}
                 chartsTitle={
                   section === "charts" ? segment.embed.title || "Статистик график" : undefined
                 }

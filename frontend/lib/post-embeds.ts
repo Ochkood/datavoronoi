@@ -6,6 +6,7 @@ export type PostStatsEmbed = {
   kind: PostEmbedKind
   stats: CategoryStats
   title?: string
+  highlightsPerRow?: 2 | 3
   chartsPerRow?: 1 | 2
 }
 
@@ -79,6 +80,7 @@ export function createPostEmbedToken(embed: PostStatsEmbed): string {
     kind: embed.kind,
     stats: normalizeStats(embed.stats),
     title: embed.title?.trim() || undefined,
+    highlightsPerRow: embed.highlightsPerRow === 2 ? 2 : 3,
     chartsPerRow: embed.chartsPerRow === 1 ? 1 : 2,
   })
 
@@ -95,6 +97,7 @@ export function parsePostEmbedToken(token: string): PostStatsEmbed | null {
       kind?: PostEmbedKind
       stats?: CategoryStats
       title?: string
+      highlightsPerRow?: number
       chartsPerRow?: number
     }
 
@@ -106,6 +109,7 @@ export function parsePostEmbedToken(token: string): PostStatsEmbed | null {
       kind: parsed.kind,
       stats: normalizeStats(parsed.stats),
       title: typeof parsed.title === "string" ? parsed.title : undefined,
+      highlightsPerRow: parsed.highlightsPerRow === 2 ? 2 : 3,
       chartsPerRow: parsed.chartsPerRow === 1 ? 1 : 2,
     }
   } catch {

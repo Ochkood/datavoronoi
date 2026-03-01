@@ -72,6 +72,7 @@ export function TiptapEditor({
   const [showChartModal, setShowChartModal] = useState(false)
   const [isMounted, setIsMounted] = useState(false)
   const [highlightBlockTitle, setHighlightBlockTitle] = useState("Гол үзүүлэлтүүд")
+  const [highlightsPerRow, setHighlightsPerRow] = useState<2 | 3>(3)
   const [chartBlockTitle, setChartBlockTitle] = useState("Статистик график")
   const [chartsPerRow, setChartsPerRow] = useState<1 | 2>(2)
   const [highlightItems, setHighlightItems] = useState<CategoryStats["highlights"]>([])
@@ -107,6 +108,7 @@ export function TiptapEditor({
 
   const resetHighlightBuilder = useCallback(() => {
     setHighlightBlockTitle("Гол үзүүлэлтүүд")
+    setHighlightsPerRow(3)
     setHighlightItems([])
     setHighlightForm({
       label: "",
@@ -316,6 +318,7 @@ export function TiptapEditor({
     const token = createPostEmbedToken({
       kind: "highlights",
       title: highlightBlockTitle,
+      highlightsPerRow,
       stats: {
         highlights: highlightItems,
         charts: [],
@@ -324,7 +327,7 @@ export function TiptapEditor({
     editor.chain().focus().insertContent(`\n${token}\n`).run()
     setShowHighlightModal(false)
     resetHighlightBuilder()
-  }, [editor, highlightBlockTitle, highlightItems, resetHighlightBuilder])
+  }, [editor, highlightBlockTitle, highlightItems, highlightsPerRow, resetHighlightBuilder])
 
   const addChartItem = useCallback(() => {
     const title = chartForm.title.trim()
@@ -786,6 +789,20 @@ export function TiptapEditor({
                 placeholder="Гол үзүүлэлтүүд"
                 className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
               />
+            </div>
+
+            <div className="mb-3">
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                Нэг мөрөнд харуулах card тоо
+              </label>
+              <select
+                value={highlightsPerRow}
+                onChange={(e) => setHighlightsPerRow(Number(e.target.value) === 2 ? 2 : 3)}
+                className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
+              >
+                <option value={3}>3 card</option>
+                <option value={2}>2 card</option>
+              </select>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2">

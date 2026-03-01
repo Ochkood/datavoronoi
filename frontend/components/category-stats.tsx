@@ -35,6 +35,7 @@ interface CategoryStatsProps {
   section?: "all" | "highlights" | "charts"
   showSourceNote?: boolean
   highlightsTitle?: string
+  highlightsPerRow?: 2 | 3
   chartsTitle?: string
   chartsPerRow?: 1 | 2
   fullWidthBarChart?: boolean
@@ -328,6 +329,7 @@ export function CategoryStatsView({
   section = "all",
   showSourceNote = true,
   highlightsTitle = "Гол үзүүлэлтүүд",
+  highlightsPerRow = 3,
   chartsTitle = "Статистик график",
   chartsPerRow = 2,
   fullWidthBarChart = false,
@@ -344,7 +346,12 @@ export function CategoryStatsView({
             <ArrowUpRight className="h-5 w-5 text-primary" />
             <h3 className="text-base font-bold text-foreground">{highlightsTitle}</h3>
           </div>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div
+            className={cn(
+              "grid gap-4 sm:grid-cols-2",
+              highlightsPerRow === 3 ? "lg:grid-cols-3" : "lg:grid-cols-2"
+            )}
+          >
             {stats.highlights.map((item, idx) => (
               <StatCard key={idx} item={item} />
             ))}
