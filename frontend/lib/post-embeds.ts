@@ -15,24 +15,52 @@ const TOKEN_PREFIX = "[[DV_EMBED:"
 const TOKEN_REGEX =
   /<p[^>]*>\s*\[\[DV_EMBED:([A-Za-z0-9_-]+)\]\]\s*<\/p>|\[\[DV_EMBED:([A-Za-z0-9_-]+)\]\]/g
 
-function toBase64Url(value: string): string {
-  const base64 =
-    typeof window === "undefined"
-      ? Buffer.from(value, "utf8").toString("base64")
-      : btoa(unescape(encodeURIComponent(value)))
+function bytesToBinary(bytes: Uint8Array): string {
+  let out = ""
+  for (let i = 0; i < bytes.length; i += 1) {
+    out += String.fromCharCode(bytes[i])
+  }
+  return out
+}
 
+function binaryToBytes(binary: string): Uint8Array {
+  const bytes = new Uint8Array(binary.length)
+  for (let i = 0; i < binary.length; i += 1) {
+    bytes[i] = binary.charCodeAt(i)
+  }
+  return bytes
+}
+
+function encodeBase64(input: string): string {
+  const bufferCtor = (globalThis as { Buffer?: { from: (...args: unknown[]) => { toString: (enc: string) => string } } }).Buffer
+  if (bufferCtor) {
+    return bufferCtor.from(input, "utf8").toString("base64")
+  }
+
+  const bytes = new TextEncoder().encode(input)
+  return btoa(bytesToBinary(bytes))
+}
+
+function decodeBase64(input: string): string {
+  const bufferCtor = (globalThis as { Buffer?: { from: (...args: unknown[]) => { toString: (enc: string) => string } } }).Buffer
+  if (bufferCtor) {
+    return bufferCtor.from(input, "base64").toString("utf8")
+  }
+
+  const binary = atob(input)
+  const bytes = binaryToBytes(binary)
+  return new TextDecoder().decode(bytes)
+}
+
+function toBase64Url(value: string): string {
+  const base64 = encodeBase64(value)
   return base64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "")
 }
 
 function fromBase64Url(value: string): string {
   const base64 = value.replace(/-/g, "+").replace(/_/g, "/")
   const padded = `${base64}${"=".repeat((4 - (base64.length % 4)) % 4)}`
-
-  if (typeof window === "undefined") {
-    return Buffer.from(padded, "base64").toString("utf8")
-  }
-
-  return decodeURIComponent(escape(atob(padded)))
+  return decodeBase64(padded)
 }
 
 function normalizeStats(input: unknown): CategoryStats {
