@@ -92,7 +92,7 @@ export function PostCard({
           />
           <span
             className={cn(
-              "absolute left-2 top-2 inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold",
+              "absolute left-0 top-0 sm:left-2 sm:top-2 inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold",
               post.categoryColor
             )}
           >
@@ -102,7 +102,7 @@ export function PostCard({
         <div className="flex flex-1 flex-col justify-between py-0.5">
           <div>
             <Link href={`/post/${post.id}`}>
-              <h3 className="line-clamp-3 sm:line-clamp-2 text-[14px] sm:text-[15px] font-bold leading-snug text-card-foreground text-pretty hover:text-primary">
+              <h3 className="line-clamp-3 sm:line-clamp-2 text-[12px] sm:text-[15px] font-bold leading-snug text-card-foreground text-pretty hover:text-primary">
                 {post.title}
               </h3>
             </Link>
