@@ -96,7 +96,7 @@ export function PostCard({
               post.categoryColor
             )}
           >
-            {post.category}
+            <span className="text-white">{post.category}</span>
           </span>
         </Link>
         <div className="flex flex-1 flex-col justify-between py-0.5">
