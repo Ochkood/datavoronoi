@@ -37,16 +37,25 @@ import {
   Code2,
   Table2,
   Youtube as YoutubeIcon,
+  ArrowUpRight,
+  BarChart3,
+  Plus,
+  Trash2,
+  X,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useCallback, useEffect, useRef, useState, type ChangeEvent } from "react"
 import { uploadImageApi } from "@/lib/api"
+import type { CategoryStats } from "@/lib/data"
+import { createPostEmbedToken } from "@/lib/post-embeds"
 
 interface TiptapEditorProps {
   content?: string
   onChange?: (content: string) => void
   placeholder?: string
 }
+
+type HighlightChangeType = "positive" | "negative" | "neutral"
 
 export function TiptapEditor({
   content = "",
@@ -58,9 +67,64 @@ export function TiptapEditor({
   const [showYoutubeInput, setShowYoutubeInput] = useState(false)
   const [youtubeUrl, setYoutubeUrl] = useState("")
   const [isUploadingImage, setIsUploadingImage] = useState(false)
+  const [showHighlightModal, setShowHighlightModal] = useState(false)
+  const [showChartModal, setShowChartModal] = useState(false)
+  const [highlightItems, setHighlightItems] = useState<CategoryStats["highlights"]>([])
+  const [highlightForm, setHighlightForm] = useState<{
+    label: string
+    value: string
+    change: string
+    changeType: HighlightChangeType
+    description: string
+    link: string
+  }>({
+    label: "",
+    value: "",
+    change: "",
+    changeType: "neutral",
+    description: "",
+    link: "",
+  })
+  const [chartItems, setChartItems] = useState<CategoryStats["charts"]>([])
+  const [chartForm, setChartForm] = useState({
+    title: "",
+    type: "area" as "area" | "line" | "bar" | "pie",
+    dataLabel: "",
+    dataLabel2: "",
+    dataLabel3: "",
+    dataLabel4: "",
+    link: "",
+  })
+  const [chartDataInput, setChartDataInput] = useState("")
   const fileInputRef = useRef<HTMLInputElement>(null)
   const isApplyingExternalRef = useRef(false)
   const latestContentRef = useRef(content || "")
+
+  const resetHighlightBuilder = useCallback(() => {
+    setHighlightItems([])
+    setHighlightForm({
+      label: "",
+      value: "",
+      change: "",
+      changeType: "neutral",
+      description: "",
+      link: "",
+    })
+  }, [])
+
+  const resetChartBuilder = useCallback(() => {
+    setChartItems([])
+    setChartForm({
+      title: "",
+      type: "area",
+      dataLabel: "",
+      dataLabel2: "",
+      dataLabel3: "",
+      dataLabel4: "",
+      link: "",
+    })
+    setChartDataInput("")
+  }, [])
 
   const editor = useEditor({
     extensions: [
@@ -206,6 +270,122 @@ export function TiptapEditor({
     setYoutubeUrl("")
     setShowYoutubeInput(false)
   }, [editor, youtubeUrl])
+
+  const addHighlightItem = useCallback(() => {
+    if (!highlightForm.label.trim() || !highlightForm.value.trim()) return
+
+    setHighlightItems((prev) => [
+      ...prev,
+      {
+        label: highlightForm.label.trim(),
+        value: highlightForm.value.trim(),
+        change: highlightForm.change.trim() || undefined,
+        changeType: highlightForm.change.trim()
+          ? highlightForm.changeType
+          : undefined,
+        description: highlightForm.description.trim() || undefined,
+        link: highlightForm.link.trim() || undefined,
+      },
+    ])
+    setHighlightForm((prev) => ({
+      ...prev,
+      label: "",
+      value: "",
+      change: "",
+      description: "",
+      link: "",
+      changeType: "neutral",
+    }))
+  }, [highlightForm])
+
+  const insertHighlightsEmbed = useCallback(() => {
+    if (!editor || highlightItems.length === 0) return
+
+    const token = createPostEmbedToken({
+      kind: "highlights",
+      stats: {
+        highlights: highlightItems,
+        charts: [],
+      },
+    })
+    editor.chain().focus().insertContent(`\n${token}\n`).run()
+    setShowHighlightModal(false)
+    resetHighlightBuilder()
+  }, [editor, highlightItems, resetHighlightBuilder])
+
+  const addChartItem = useCallback(() => {
+    const title = chartForm.title.trim()
+    if (!title) return
+
+    const data = chartDataInput
+      .split("\n")
+      .filter((line) => line.trim())
+      .map((line) => {
+        const [name, value, value2, value3, value4] = line.split(":")
+        const n1 = parseFloat(value || "")
+        const n2 = value2 !== undefined ? parseFloat(value2) : undefined
+        const n3 = value3 !== undefined ? parseFloat(value3) : undefined
+        const n4 = value4 !== undefined ? parseFloat(value4) : undefined
+
+        return {
+          name: (name || "").trim(),
+          value: Number.isNaN(n1) ? 0 : n1,
+          ...(n2 !== undefined && !Number.isNaN(n2) ? { value2: n2 } : {}),
+          ...(n3 !== undefined && !Number.isNaN(n3) ? { value3: n3 } : {}),
+          ...(n4 !== undefined && !Number.isNaN(n4) ? { value4: n4 } : {}),
+        }
+      })
+      .filter((item) => item.name)
+
+    if (data.length === 0) return
+
+    const hasSecondSeries = data.some((item) => item.value2 !== undefined)
+    const hasThirdSeries = data.some((item) => item.value3 !== undefined)
+    const hasFourthSeries = data.some((item) => item.value4 !== undefined)
+
+    setChartItems((prev) => [
+      ...prev,
+      {
+        title,
+        type: chartForm.type,
+        data,
+        dataKey: "value",
+        dataKey2: hasSecondSeries ? "value2" : undefined,
+        dataKey3: hasThirdSeries ? "value3" : undefined,
+        dataKey4: hasFourthSeries ? "value4" : undefined,
+        dataLabel: chartForm.dataLabel.trim() || undefined,
+        dataLabel2: hasSecondSeries ? chartForm.dataLabel2.trim() || undefined : undefined,
+        dataLabel3: hasThirdSeries ? chartForm.dataLabel3.trim() || undefined : undefined,
+        dataLabel4: hasFourthSeries ? chartForm.dataLabel4.trim() || undefined : undefined,
+        link: chartForm.link.trim() || undefined,
+      },
+    ])
+    setChartForm({
+      title: "",
+      type: "area",
+      dataLabel: "",
+      dataLabel2: "",
+      dataLabel3: "",
+      dataLabel4: "",
+      link: "",
+    })
+    setChartDataInput("")
+  }, [chartDataInput, chartForm])
+
+  const insertChartsEmbed = useCallback(() => {
+    if (!editor || chartItems.length === 0) return
+
+    const token = createPostEmbedToken({
+      kind: "charts",
+      stats: {
+        highlights: [],
+        charts: chartItems,
+      },
+    })
+    editor.chain().focus().insertContent(`\n${token}\n`).run()
+    setShowChartModal(false)
+    resetChartBuilder()
+  }, [chartItems, editor, resetChartBuilder])
 
   if (!editor) {
     return null
@@ -526,6 +706,27 @@ export function TiptapEditor({
             </div>
           )}
         </div>
+
+        <ToolbarDivider />
+
+        <ToolbarButton
+          onClick={() => {
+            resetHighlightBuilder()
+            setShowHighlightModal(true)
+          }}
+          title="Голлох үзүүлэлт оруулах"
+        >
+          <ArrowUpRight className="h-4 w-4" />
+        </ToolbarButton>
+        <ToolbarButton
+          onClick={() => {
+            resetChartBuilder()
+            setShowChartModal(true)
+          }}
+          title="Инфо график оруулах"
+        >
+          <BarChart3 className="h-4 w-4" />
+        </ToolbarButton>
         <input
           ref={fileInputRef}
           type="file"
@@ -534,6 +735,293 @@ export function TiptapEditor({
           onChange={onSelectImage}
         />
       </div>
+
+      {showHighlightModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
+          <div className="w-full max-w-2xl rounded-xl border border-border bg-card p-5 shadow-xl">
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-foreground">
+                Голлох үзүүлэлт оруулах
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowHighlightModal(false)}
+                className="rounded-md p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <input
+                type="text"
+                value={highlightForm.label}
+                onChange={(e) =>
+                  setHighlightForm((prev) => ({ ...prev, label: e.target.value }))
+                }
+                placeholder="Нэр (ж: ДНБ)"
+                className="h-10 rounded-lg border border-input bg-background px-3 text-sm"
+              />
+              <input
+                type="text"
+                value={highlightForm.value}
+                onChange={(e) =>
+                  setHighlightForm((prev) => ({ ...prev, value: e.target.value }))
+                }
+                placeholder="Утга (ж: 5.2%)"
+                className="h-10 rounded-lg border border-input bg-background px-3 text-sm"
+              />
+              <input
+                type="text"
+                value={highlightForm.change}
+                onChange={(e) =>
+                  setHighlightForm((prev) => ({ ...prev, change: e.target.value }))
+                }
+                placeholder="Өөрчлөлт (ж: +0.8%)"
+                className="h-10 rounded-lg border border-input bg-background px-3 text-sm"
+              />
+              <select
+                value={highlightForm.changeType}
+                onChange={(e) =>
+                  setHighlightForm((prev) => ({
+                    ...prev,
+                    changeType: e.target.value as HighlightChangeType,
+                  }))
+                }
+                className="h-10 rounded-lg border border-input bg-background px-3 text-sm"
+              >
+                <option value="positive">Эерэг</option>
+                <option value="neutral">Саармаг</option>
+                <option value="negative">Сөрөг</option>
+              </select>
+              <input
+                type="text"
+                value={highlightForm.description}
+                onChange={(e) =>
+                  setHighlightForm((prev) => ({ ...prev, description: e.target.value }))
+                }
+                placeholder="Тайлбар (optional)"
+                className="h-10 rounded-lg border border-input bg-background px-3 text-sm sm:col-span-2"
+              />
+              <input
+                type="url"
+                value={highlightForm.link}
+                onChange={(e) =>
+                  setHighlightForm((prev) => ({ ...prev, link: e.target.value }))
+                }
+                placeholder="Дэлгэрэнгүй холбоос (optional)"
+                className="h-10 rounded-lg border border-input bg-background px-3 text-sm sm:col-span-2"
+              />
+            </div>
+
+            <div className="mt-3 flex justify-end">
+              <button
+                type="button"
+                onClick={addHighlightItem}
+                className="inline-flex items-center gap-1 rounded-md border border-border px-3 py-1.5 text-sm hover:bg-secondary"
+              >
+                <Plus className="h-4 w-4" />
+                Карт нэмэх
+              </button>
+            </div>
+
+            <div className="mt-4 max-h-44 space-y-2 overflow-y-auto rounded-lg border border-border bg-background p-2">
+              {highlightItems.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Карт нэмэгдээгүй байна</p>
+              ) : (
+                highlightItems.map((item, idx) => (
+                  <div
+                    key={`${item.label}-${idx}`}
+                    className="flex items-center justify-between rounded-md bg-card p-2 ring-1 ring-border"
+                  >
+                    <p className="text-sm text-foreground">
+                      {item.label}: <span className="font-semibold">{item.value}</span>
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setHighlightItems((prev) => prev.filter((_, i) => i !== idx))
+                      }
+                      className="rounded-md p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowHighlightModal(false)}
+                className="rounded-lg border border-border px-3 py-2 text-sm hover:bg-secondary"
+              >
+                Болих
+              </button>
+              <button
+                type="button"
+                onClick={insertHighlightsEmbed}
+                disabled={highlightItems.length === 0}
+                className="rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
+              >
+                Контент руу оруулах
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showChartModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
+          <div className="w-full max-w-3xl rounded-xl border border-border bg-card p-5 shadow-xl">
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-foreground">Инфо график оруулах</h3>
+              <button
+                type="button"
+                onClick={() => setShowChartModal(false)}
+                className="rounded-md p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <input
+                type="text"
+                value={chartForm.title}
+                onChange={(e) =>
+                  setChartForm((prev) => ({ ...prev, title: e.target.value }))
+                }
+                placeholder="Графикийн нэр"
+                className="h-10 rounded-lg border border-input bg-background px-3 text-sm"
+              />
+              <select
+                value={chartForm.type}
+                onChange={(e) =>
+                  setChartForm((prev) => ({
+                    ...prev,
+                    type: e.target.value as "area" | "line" | "bar" | "pie",
+                  }))
+                }
+                className="h-10 rounded-lg border border-input bg-background px-3 text-sm"
+              >
+                <option value="area">Area</option>
+                <option value="line">Line</option>
+                <option value="bar">Bar</option>
+              </select>
+              <input
+                type="text"
+                value={chartForm.dataLabel}
+                onChange={(e) =>
+                  setChartForm((prev) => ({ ...prev, dataLabel: e.target.value }))
+                }
+                placeholder="Series 1 нэр (optional)"
+                className="h-10 rounded-lg border border-input bg-background px-3 text-sm"
+              />
+              <input
+                type="text"
+                value={chartForm.dataLabel2}
+                onChange={(e) =>
+                  setChartForm((prev) => ({ ...prev, dataLabel2: e.target.value }))
+                }
+                placeholder="Series 2 нэр (optional)"
+                className="h-10 rounded-lg border border-input bg-background px-3 text-sm"
+              />
+              <input
+                type="text"
+                value={chartForm.dataLabel3}
+                onChange={(e) =>
+                  setChartForm((prev) => ({ ...prev, dataLabel3: e.target.value }))
+                }
+                placeholder="Series 3 нэр (optional)"
+                className="h-10 rounded-lg border border-input bg-background px-3 text-sm"
+              />
+              <input
+                type="text"
+                value={chartForm.dataLabel4}
+                onChange={(e) =>
+                  setChartForm((prev) => ({ ...prev, dataLabel4: e.target.value }))
+                }
+                placeholder="Series 4 нэр (optional)"
+                className="h-10 rounded-lg border border-input bg-background px-3 text-sm"
+              />
+              <input
+                type="url"
+                value={chartForm.link}
+                onChange={(e) =>
+                  setChartForm((prev) => ({ ...prev, link: e.target.value }))
+                }
+                placeholder="Дэлгэрэнгүй холбоос (optional)"
+                className="h-10 rounded-lg border border-input bg-background px-3 text-sm sm:col-span-2"
+              />
+            </div>
+
+            <textarea
+              value={chartDataInput}
+              onChange={(e) => setChartDataInput(e.target.value)}
+              placeholder={"Дата оруулга\\nмөр бүрт: нэр:утга эсвэл нэр:утга:утга2(:утга3:утга4)\\n2022:3.8:8.0\\n2023:2.0:6.7"}
+              rows={6}
+              className="mt-3 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+            />
+
+            <div className="mt-3 flex justify-end">
+              <button
+                type="button"
+                onClick={addChartItem}
+                className="inline-flex items-center gap-1 rounded-md border border-border px-3 py-1.5 text-sm hover:bg-secondary"
+              >
+                <Plus className="h-4 w-4" />
+                График нэмэх
+              </button>
+            </div>
+
+            <div className="mt-4 max-h-44 space-y-2 overflow-y-auto rounded-lg border border-border bg-background p-2">
+              {chartItems.length === 0 ? (
+                <p className="text-sm text-muted-foreground">График нэмэгдээгүй байна</p>
+              ) : (
+                chartItems.map((item, idx) => (
+                  <div
+                    key={`${item.title}-${idx}`}
+                    className="flex items-center justify-between rounded-md bg-card p-2 ring-1 ring-border"
+                  >
+                    <p className="text-sm text-foreground">
+                      {item.title} ({item.type}) - {item.data.length} мөр
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setChartItems((prev) => prev.filter((_, i) => i !== idx))
+                      }
+                      className="rounded-md p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowChartModal(false)}
+                className="rounded-lg border border-border px-3 py-2 text-sm hover:bg-secondary"
+              >
+                Болих
+              </button>
+              <button
+                type="button"
+                onClick={insertChartsEmbed}
+                disabled={chartItems.length === 0}
+                className="rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
+              >
+                Контент руу оруулах
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Bubble Menu */}
       {editor && (

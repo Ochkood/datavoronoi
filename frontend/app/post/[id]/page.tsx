@@ -22,6 +22,7 @@ import { cn } from "@/lib/utils"
 import { AppSidebar } from "@/components/app-sidebar"
 import { PostCard, type PostData } from "@/components/post-card"
 import { FollowButton } from "@/components/follow-button"
+import { PostContentRenderer } from "@/components/post-content-renderer"
 import {
   addCommentApi,
   getMeApi,
@@ -339,9 +340,9 @@ export default function PostDetailPage() {
           </div>
 
           {/* Article Content */}
-          <div
-            className="post-content max-w-none text-foreground/90 leading-relaxed [&_h1]:mt-8 [&_h1]:mb-4 [&_h1]:text-3xl [&_h1]:font-bold [&_h2]:mt-7 [&_h2]:mb-3 [&_h2]:text-2xl [&_h2]:font-bold [&_h3]:mt-6 [&_h3]:mb-3 [&_h3]:text-xl [&_h3]:font-semibold [&_p]:my-4 [&_strong]:font-bold [&_em]:italic [&_a]:text-primary [&_a]:underline [&_img]:my-5 [&_img]:max-w-full [&_img]:rounded-xl [&_img]:h-auto"
-            dangerouslySetInnerHTML={{ __html: articleContent }}
+          <PostContentRenderer
+            html={articleContent}
+            categoryColor={post.categoryColor}
           />
 
           {/* Share Section */}

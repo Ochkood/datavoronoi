@@ -29,6 +29,8 @@ import {
 interface CategoryStatsProps {
   stats: CategoryStats
   categoryColor: string
+  section?: "all" | "highlights" | "charts"
+  showSourceNote?: boolean
 }
 
 function StatCard({ item }: { item: StatItem }) {
@@ -280,58 +282,72 @@ function ChartCard({
   )
 }
 
-export function CategoryStatsView({ stats, categoryColor }: CategoryStatsProps) {
+export function CategoryStatsView({
+  stats,
+  categoryColor,
+  section = "all",
+  showSourceNote = true,
+}: CategoryStatsProps) {
+  const showHighlights = (section === "all" || section === "highlights") && stats.highlights.length > 0
+  const showCharts = (section === "all" || section === "charts") && stats.charts.length > 0
+
   return (
     <div className="space-y-6">
       {/* Key Highlights */}
-      <section>
-        <div className="mb-4 flex items-center gap-2">
-          <ArrowUpRight className="h-5 w-5 text-primary" />
-          <h3 className="text-base font-bold text-foreground">Гол үзүүлэлтүүд</h3>
-        </div>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {stats.highlights.map((item, idx) => (
-            <StatCard key={idx} item={item} />
-          ))}
-        </div>
-      </section>
+      {showHighlights && (
+        <section>
+          <div className="mb-4 flex items-center gap-2">
+            <ArrowUpRight className="h-5 w-5 text-primary" />
+            <h3 className="text-base font-bold text-foreground">Гол үзүүлэлтүүд</h3>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {stats.highlights.map((item, idx) => (
+              <StatCard key={idx} item={item} />
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Charts */}
-      <section>
-        <div className="mb-4 flex items-center gap-2">
-          <BarChart3 className="h-5 w-5 text-primary" />
-          <h3 className="text-base font-bold text-foreground">Статистик график</h3>
-        </div>
-        <div className="grid gap-4 lg:grid-cols-2">
-          {stats.charts.map((chart, idx) => (
-            <ChartCard
-              key={idx}
-              title={chart.title}
-              type={chart.type}
-              data={chart.data}
-              dataKey={chart.dataKey}
-              dataKey2={chart.dataKey2}
-              dataKey3={chart.dataKey3}
-              dataKey4={chart.dataKey4}
-              dataLabel={chart.dataLabel}
-              dataLabel2={chart.dataLabel2}
-              dataLabel3={chart.dataLabel3}
-              dataLabel4={chart.dataLabel4}
-              color={categoryColor}
-              icon={chart.icon}
-              link={chart.link}
-            />
-          ))}
-        </div>
-      </section>
+      {showCharts && (
+        <section>
+          <div className="mb-4 flex items-center gap-2">
+            <BarChart3 className="h-5 w-5 text-primary" />
+            <h3 className="text-base font-bold text-foreground">Статистик график</h3>
+          </div>
+          <div className="grid gap-4 lg:grid-cols-2">
+            {stats.charts.map((chart, idx) => (
+              <ChartCard
+                key={idx}
+                title={chart.title}
+                type={chart.type}
+                data={chart.data}
+                dataKey={chart.dataKey}
+                dataKey2={chart.dataKey2}
+                dataKey3={chart.dataKey3}
+                dataKey4={chart.dataKey4}
+                dataLabel={chart.dataLabel}
+                dataLabel2={chart.dataLabel2}
+                dataLabel3={chart.dataLabel3}
+                dataLabel4={chart.dataLabel4}
+                color={categoryColor}
+                icon={chart.icon}
+                link={chart.link}
+              />
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Data Source Note */}
-      <div className="rounded-lg bg-muted/50 px-4 py-3">
-        <p className="text-xs text-muted-foreground">
-          Эх сурвалж: Монгол Улсын Статистикийн Хороо, Монголбанк, Сангийн яам. 
-          Сүүлийн шинэчлэл: 2025 оны 2-р сар
-        </p>
-      </div>
+      {showSourceNote && (showHighlights || showCharts) && (
+        <div className="rounded-lg bg-muted/50 px-4 py-3">
+          <p className="text-xs text-muted-foreground">
+            Эх сурвалж: Монгол Улсын Статистикийн Хороо, Монголбанк, Сангийн яам. 
+            Сүүлийн шинэчлэл: 2025 оны 2-р сар
+          </p>
+        </div>
+      )}
     </div>
   )
 }
