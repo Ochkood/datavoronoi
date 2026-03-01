@@ -16,6 +16,9 @@ import {
   Area,
   BarChart,
   Bar,
+  PieChart,
+  Pie,
+  Cell,
   LineChart,
   Line,
   XAxis,
@@ -33,6 +36,8 @@ interface CategoryStatsProps {
   showSourceNote?: boolean
   highlightsTitle?: string
   chartsTitle?: string
+  chartsPerRow?: 1 | 2
+  fullWidthBarChart?: boolean
 }
 
 function StatCard({ item }: { item: StatItem }) {
@@ -99,6 +104,7 @@ interface ChartCardProps {
   color: string
   icon?: string
   link?: string
+  fullWidth?: boolean
 }
 
 function ChartCard({
@@ -116,6 +122,7 @@ function ChartCard({
   color,
   icon,
   link,
+  fullWidth = false,
 }: ChartCardProps) {
   const isExternal = Boolean(link && /^https?:\/\//i.test(link))
   const chartColor = color === "text-chart-1" ? "var(--chart-1)" :
@@ -141,7 +148,7 @@ function ChartCard({
   ]
 
   return (
-    <div className="rounded-xl bg-card p-4 ring-1 ring-border">
+    <div className={cn("rounded-xl bg-card p-4 ring-1 ring-border", fullWidth && "lg:col-span-2")}>
       <div className="mb-4 flex items-center justify-between">
         <h4 className="text-sm font-semibold text-card-foreground">{title}</h4>
         {icon ? (
@@ -231,7 +238,7 @@ function ChartCard({
                 />
               ))}
             </LineChart>
-          ) : (
+          ) : type === "bar" ? (
             <BarChart data={data} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
               <XAxis 
@@ -264,6 +271,37 @@ function ChartCard({
                 />
               ))}
             </BarChart>
+          ) : (
+            <PieChart>
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: "var(--card)",
+                  border: "1px solid var(--border)",
+                  borderRadius: "8px",
+                  fontSize: "12px",
+                }}
+              />
+              <Legend wrapperStyle={{ fontSize: "11px" }} />
+              <Pie
+                data={data}
+                dataKey={dataKey}
+                nameKey="name"
+                cx="50%"
+                cy="50%"
+                outerRadius={70}
+                labelLine={false}
+                label={({ name, percent }) =>
+                  `${name} ${((percent || 0) * 100).toFixed(0)}%`
+                }
+              >
+                {data.map((entry, idx) => (
+                  <Cell
+                    key={`pie-cell-${entry.name}-${idx}`}
+                    fill={seriesColors[idx % seriesColors.length]}
+                  />
+                ))}
+              </Pie>
+            </PieChart>
           )}
         </ResponsiveContainer>
       </div>
@@ -291,6 +329,8 @@ export function CategoryStatsView({
   showSourceNote = true,
   highlightsTitle = "Гол үзүүлэлтүүд",
   chartsTitle = "Статистик график",
+  chartsPerRow = 2,
+  fullWidthBarChart = false,
 }: CategoryStatsProps) {
   const showHighlights = (section === "all" || section === "highlights") && stats.highlights.length > 0
   const showCharts = (section === "all" || section === "charts") && stats.charts.length > 0
@@ -319,7 +359,7 @@ export function CategoryStatsView({
             <BarChart3 className="h-5 w-5 text-primary" />
             <h3 className="text-base font-bold text-foreground">{chartsTitle}</h3>
           </div>
-          <div className="grid gap-4 lg:grid-cols-2">
+          <div className={cn("grid gap-4", chartsPerRow === 1 ? "grid-cols-1" : "lg:grid-cols-2")}>
             {stats.charts.map((chart, idx) => (
               <ChartCard
                 key={idx}
@@ -337,6 +377,7 @@ export function CategoryStatsView({
                 color={categoryColor}
                 icon={chart.icon}
                 link={chart.link}
+                fullWidth={fullWidthBarChart && chart.type === "bar" && chartsPerRow === 2}
               />
             ))}
           </div>

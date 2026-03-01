@@ -73,6 +73,7 @@ export function TiptapEditor({
   const [isMounted, setIsMounted] = useState(false)
   const [highlightBlockTitle, setHighlightBlockTitle] = useState("Гол үзүүлэлтүүд")
   const [chartBlockTitle, setChartBlockTitle] = useState("Статистик график")
+  const [chartsPerRow, setChartsPerRow] = useState<1 | 2>(2)
   const [highlightItems, setHighlightItems] = useState<CategoryStats["highlights"]>([])
   const [highlightForm, setHighlightForm] = useState<{
     label: string
@@ -119,6 +120,7 @@ export function TiptapEditor({
 
   const resetChartBuilder = useCallback(() => {
     setChartBlockTitle("Статистик график")
+    setChartsPerRow(2)
     setChartItems([])
     setChartForm({
       title: "",
@@ -389,6 +391,7 @@ export function TiptapEditor({
     const token = createPostEmbedToken({
       kind: "charts",
       title: chartBlockTitle,
+      chartsPerRow,
       stats: {
         highlights: [],
         charts: chartItems,
@@ -397,7 +400,7 @@ export function TiptapEditor({
     editor.chain().focus().insertContent(`\n${token}\n`).run()
     setShowChartModal(false)
     resetChartBuilder()
-  }, [chartBlockTitle, chartItems, editor, resetChartBuilder])
+  }, [chartBlockTitle, chartItems, chartsPerRow, editor, resetChartBuilder])
 
   if (!editor) {
     return null
@@ -935,6 +938,20 @@ export function TiptapEditor({
               />
             </div>
 
+            <div className="mb-3">
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                Нэг мөрөнд харуулах графикийн тоо
+              </label>
+              <select
+                value={chartsPerRow}
+                onChange={(e) => setChartsPerRow(Number(e.target.value) === 1 ? 1 : 2)}
+                className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
+              >
+                <option value={2}>2 график</option>
+                <option value={1}>1 график (full width)</option>
+              </select>
+            </div>
+
             <div className="grid gap-3 sm:grid-cols-2">
               <input
                 type="text"
@@ -958,6 +975,7 @@ export function TiptapEditor({
                 <option value="area">Area</option>
                 <option value="line">Line</option>
                 <option value="bar">Bar</option>
+                <option value="pie">Pie</option>
               </select>
               <input
                 type="text"

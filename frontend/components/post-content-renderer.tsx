@@ -42,6 +42,8 @@ export function PostContentRenderer({ html, categoryColor }: PostContentRenderer
                 chartsTitle={
                   section === "charts" ? segment.embed.title || "Статистик график" : undefined
                 }
+                chartsPerRow={section === "charts" ? (segment.embed.chartsPerRow || 2) : 2}
+                fullWidthBarChart={section === "charts"}
               />
             </div>
           )
