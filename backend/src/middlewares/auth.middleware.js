@@ -13,7 +13,15 @@ const protect = asyncHandler(async (req, res, next) => {
     throw new ApiError(401, 'Unauthorized');
   }
 
-  const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+  let decoded;
+  try {
+    decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+  } catch (err) {
+    if (err?.name === 'TokenExpiredError') {
+      throw new ApiError(401, 'Token expired');
+    }
+    throw new ApiError(401, 'Invalid token');
+  }
   const user = await User.findById(decoded.userId);
 
   if (!user) {

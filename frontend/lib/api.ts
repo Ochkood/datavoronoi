@@ -1,5 +1,5 @@
 import type { AuthUser } from "@/lib/auth"
-import { getAccessToken } from "@/lib/auth"
+import { clearAuth, getAccessToken, getRefreshToken, setAccessToken } from "@/lib/auth"
 import type { PostData } from "@/components/post-card"
 import type { CategoryStats } from "@/lib/data"
 
@@ -482,22 +482,78 @@ function mapAdminFeedback(item: BackendFeedback): AdminFeedbackItem {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const token = getAccessToken()
-  const res = await fetch(`${API_BASE}${path}`, {
-    ...init,
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(init?.headers || {}),
-    },
-    cache: "no-store",
-  })
+  const isAuthEndpoint =
+    path.startsWith("/auth/login") ||
+    path.startsWith("/auth/register") ||
+    path.startsWith("/auth/refresh")
 
-  const json = await res.json().catch(() => null)
+  const doFetch = async (token?: string | null) => {
+    const res = await fetch(`${API_BASE}${path}`, {
+      ...init,
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(init?.headers || {}),
+      },
+      cache: "no-store",
+    })
+    const json = await res.json().catch(() => null)
+    return { res, json }
+  }
+
+  const accessToken = getAccessToken()
+  let { res, json } = await doFetch(accessToken)
+
+  if (!res.ok && res.status === 401 && !isAuthEndpoint) {
+    const refreshToken = getRefreshToken()
+    if (refreshToken) {
+      const refreshed = await refreshAccessTokenOnce(refreshToken)
+      if (refreshed) {
+        ;({ res, json } = await doFetch(refreshed))
+      }
+    }
+  }
+
   if (!res.ok) {
     throw new Error(json?.message || "Request failed")
   }
+
   return json
+}
+
+let refreshPromise: Promise<string | null> | null = null
+
+async function refreshAccessTokenOnce(refreshToken: string): Promise<string | null> {
+  if (!refreshPromise) {
+    refreshPromise = (async () => {
+      try {
+        const res = await fetch(`${API_BASE}/auth/refresh`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ refreshToken }),
+          cache: "no-store",
+        })
+        const json = await res.json().catch(() => null)
+        if (!res.ok) {
+          clearAuth()
+          return null
+        }
+        const newAccessToken = json?.data?.accessToken as string | undefined
+        if (!newAccessToken) {
+          clearAuth()
+          return null
+        }
+        setAccessToken(newAccessToken)
+        return newAccessToken
+      } catch {
+        clearAuth()
+        return null
+      } finally {
+        refreshPromise = null
+      }
+    })()
+  }
+  return refreshPromise
 }
 
 function fileToBase64(file: File): Promise<string> {

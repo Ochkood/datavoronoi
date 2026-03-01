@@ -235,7 +235,7 @@ export default function PostDetailPage() {
               {post.category}
             </Link>
             
-            <h1 className="mt-4 text-xl font-bold leading-tight text-foreground md:text-3xl lg:text-4xl text-balance">
+            <h1 className="mt-4 text-xl font-bold leading-tight text-foreground md:text-2xl lg:text-3xl text-balance">
               {post.title}
             </h1>
             
