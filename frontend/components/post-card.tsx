@@ -83,7 +83,7 @@ export function PostCard({
   if (variant === "list") {
     return (
       <article className="group flex gap-4 rounded-xl bg-card p-4 ring-1 ring-border transition-all hover:shadow-md hover:ring-border/80">
-        <Link href={`/post/${post.id}`} className="relative h-24 w-40 flex-shrink-0 overflow-hidden rounded-lg sm:h-32 sm:w-52">
+        <Link href={`/post/${post.id}`} className="relative h-20 w-32 flex-shrink-0 overflow-hidden rounded-lg sm:h-32 sm:w-52">
           <Image
             src={post.image}
             alt={post.title}
