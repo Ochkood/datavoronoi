@@ -71,6 +71,8 @@ export function TiptapEditor({
   const [showHighlightModal, setShowHighlightModal] = useState(false)
   const [showChartModal, setShowChartModal] = useState(false)
   const [isMounted, setIsMounted] = useState(false)
+  const [highlightBlockTitle, setHighlightBlockTitle] = useState("Гол үзүүлэлтүүд")
+  const [chartBlockTitle, setChartBlockTitle] = useState("Статистик график")
   const [highlightItems, setHighlightItems] = useState<CategoryStats["highlights"]>([])
   const [highlightForm, setHighlightForm] = useState<{
     label: string
@@ -103,6 +105,7 @@ export function TiptapEditor({
   const latestContentRef = useRef(content || "")
 
   const resetHighlightBuilder = useCallback(() => {
+    setHighlightBlockTitle("Гол үзүүлэлтүүд")
     setHighlightItems([])
     setHighlightForm({
       label: "",
@@ -115,6 +118,7 @@ export function TiptapEditor({
   }, [])
 
   const resetChartBuilder = useCallback(() => {
+    setChartBlockTitle("Статистик график")
     setChartItems([])
     setChartForm({
       title: "",
@@ -309,6 +313,7 @@ export function TiptapEditor({
 
     const token = createPostEmbedToken({
       kind: "highlights",
+      title: highlightBlockTitle,
       stats: {
         highlights: highlightItems,
         charts: [],
@@ -317,7 +322,7 @@ export function TiptapEditor({
     editor.chain().focus().insertContent(`\n${token}\n`).run()
     setShowHighlightModal(false)
     resetHighlightBuilder()
-  }, [editor, highlightItems, resetHighlightBuilder])
+  }, [editor, highlightBlockTitle, highlightItems, resetHighlightBuilder])
 
   const addChartItem = useCallback(() => {
     const title = chartForm.title.trim()
@@ -383,6 +388,7 @@ export function TiptapEditor({
 
     const token = createPostEmbedToken({
       kind: "charts",
+      title: chartBlockTitle,
       stats: {
         highlights: [],
         charts: chartItems,
@@ -391,7 +397,7 @@ export function TiptapEditor({
     editor.chain().focus().insertContent(`\n${token}\n`).run()
     setShowChartModal(false)
     resetChartBuilder()
-  }, [chartItems, editor, resetChartBuilder])
+  }, [chartBlockTitle, chartItems, editor, resetChartBuilder])
 
   if (!editor) {
     return null
@@ -766,6 +772,19 @@ export function TiptapEditor({
               </button>
             </div>
 
+            <div className="mb-3">
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                Хэсгийн гарчиг
+              </label>
+              <input
+                type="text"
+                value={highlightBlockTitle}
+                onChange={(e) => setHighlightBlockTitle(e.target.value)}
+                placeholder="Гол үзүүлэлтүүд"
+                className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
+              />
+            </div>
+
             <div className="grid gap-3 sm:grid-cols-2">
               <input
                 type="text"
@@ -901,6 +920,19 @@ export function TiptapEditor({
               >
                 <X className="h-4 w-4" />
               </button>
+            </div>
+
+            <div className="mb-3">
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                Хэсгийн гарчиг
+              </label>
+              <input
+                type="text"
+                value={chartBlockTitle}
+                onChange={(e) => setChartBlockTitle(e.target.value)}
+                placeholder="Статистик график"
+                className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
+              />
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2">

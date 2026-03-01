@@ -31,6 +31,8 @@ interface CategoryStatsProps {
   categoryColor: string
   section?: "all" | "highlights" | "charts"
   showSourceNote?: boolean
+  highlightsTitle?: string
+  chartsTitle?: string
 }
 
 function StatCard({ item }: { item: StatItem }) {
@@ -287,6 +289,8 @@ export function CategoryStatsView({
   categoryColor,
   section = "all",
   showSourceNote = true,
+  highlightsTitle = "Гол үзүүлэлтүүд",
+  chartsTitle = "Статистик график",
 }: CategoryStatsProps) {
   const showHighlights = (section === "all" || section === "highlights") && stats.highlights.length > 0
   const showCharts = (section === "all" || section === "charts") && stats.charts.length > 0
@@ -298,7 +302,7 @@ export function CategoryStatsView({
         <section>
           <div className="mb-4 flex items-center gap-2">
             <ArrowUpRight className="h-5 w-5 text-primary" />
-            <h3 className="text-base font-bold text-foreground">Гол үзүүлэлтүүд</h3>
+            <h3 className="text-base font-bold text-foreground">{highlightsTitle}</h3>
           </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {stats.highlights.map((item, idx) => (
@@ -313,7 +317,7 @@ export function CategoryStatsView({
         <section>
           <div className="mb-4 flex items-center gap-2">
             <BarChart3 className="h-5 w-5 text-primary" />
-            <h3 className="text-base font-bold text-foreground">Статистик график</h3>
+            <h3 className="text-base font-bold text-foreground">{chartsTitle}</h3>
           </div>
           <div className="grid gap-4 lg:grid-cols-2">
             {stats.charts.map((chart, idx) => (

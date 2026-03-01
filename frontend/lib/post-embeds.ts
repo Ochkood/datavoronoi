@@ -5,6 +5,7 @@ export type PostEmbedKind = "highlights" | "charts"
 export type PostStatsEmbed = {
   kind: PostEmbedKind
   stats: CategoryStats
+  title?: string
 }
 
 export type PostContentSegment =
@@ -76,6 +77,7 @@ export function createPostEmbedToken(embed: PostStatsEmbed): string {
     v: 1,
     kind: embed.kind,
     stats: normalizeStats(embed.stats),
+    title: embed.title?.trim() || undefined,
   })
 
   return `${TOKEN_PREFIX}${toBase64Url(payload)}]]`
@@ -90,6 +92,7 @@ export function parsePostEmbedToken(token: string): PostStatsEmbed | null {
     const parsed = JSON.parse(raw) as {
       kind?: PostEmbedKind
       stats?: CategoryStats
+      title?: string
     }
 
     if (parsed.kind !== "highlights" && parsed.kind !== "charts") {
@@ -99,6 +102,7 @@ export function parsePostEmbedToken(token: string): PostStatsEmbed | null {
     return {
       kind: parsed.kind,
       stats: normalizeStats(parsed.stats),
+      title: typeof parsed.title === "string" ? parsed.title : undefined,
     }
   } catch {
     return null
