@@ -126,7 +126,7 @@ export function PostCard({
                   {post.author}
                 </span>
               </div>
-              <span className="text-xs text-muted-foreground">{post.date}</span>
+              <span className="hidden sm:block text-xs text-muted-foreground">{post.date}</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
