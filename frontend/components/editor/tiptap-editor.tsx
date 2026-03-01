@@ -45,6 +45,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useCallback, useEffect, useRef, useState, type ChangeEvent } from "react"
+import { createPortal } from "react-dom"
 import { uploadImageApi } from "@/lib/api"
 import type { CategoryStats } from "@/lib/data"
 import { createPostEmbedToken } from "@/lib/post-embeds"
@@ -69,6 +70,7 @@ export function TiptapEditor({
   const [isUploadingImage, setIsUploadingImage] = useState(false)
   const [showHighlightModal, setShowHighlightModal] = useState(false)
   const [showChartModal, setShowChartModal] = useState(false)
+  const [isMounted, setIsMounted] = useState(false)
   const [highlightItems, setHighlightItems] = useState<CategoryStats["highlights"]>([])
   const [highlightForm, setHighlightForm] = useState<{
     label: string
@@ -124,6 +126,10 @@ export function TiptapEditor({
       link: "",
     })
     setChartDataInput("")
+  }, [])
+
+  useEffect(() => {
+    setIsMounted(true)
   }, [])
 
   const editor = useEditor({
@@ -736,8 +742,10 @@ export function TiptapEditor({
         />
       </div>
 
-      {showHighlightModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
+      {showHighlightModal &&
+        isMounted &&
+        createPortal(
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
           <div className="w-full max-w-2xl rounded-xl border border-border bg-card p-5 shadow-xl">
             <div className="mb-4 flex items-center justify-between">
               <h3 className="text-lg font-semibold text-foreground">
@@ -869,11 +877,14 @@ export function TiptapEditor({
               </button>
             </div>
           </div>
-        </div>
-      )}
+        </div>,
+          document.body
+        )}
 
-      {showChartModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
+      {showChartModal &&
+        isMounted &&
+        createPortal(
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
           <div className="w-full max-w-3xl rounded-xl border border-border bg-card p-5 shadow-xl">
             <div className="mb-4 flex items-center justify-between">
               <h3 className="text-lg font-semibold text-foreground">Инфо график оруулах</h3>
@@ -1020,11 +1031,12 @@ export function TiptapEditor({
               </button>
             </div>
           </div>
-        </div>
-      )}
+        </div>,
+          document.body
+        )}
 
       {/* Bubble Menu */}
-      {editor && (
+      {editor && !showHighlightModal && !showChartModal && (
         <BubbleMenu
           editor={editor}
           tippyOptions={{ duration: 100 }}
