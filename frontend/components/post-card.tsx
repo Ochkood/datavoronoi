@@ -176,7 +176,7 @@ export function PostCard({
                 post.categoryColor
               )}
             >
-              {post.category}
+            <span className="text-white">{post.category}</span>
             </span>
             <h3 className="mt-1 line-clamp-2 text-sm font-semibold leading-tight text-card-foreground">
               {post.title}
@@ -207,7 +207,7 @@ export function PostCard({
             post.categoryColor
           )}
         >
-          {post.category}
+        <span className="text-white">{post.category}</span>
         </span>
       </Link>
       <div className="p-4">
