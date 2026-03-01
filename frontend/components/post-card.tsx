@@ -82,7 +82,7 @@ export function PostCard({
 
   if (variant === "list") {
     return (
-      <article className="group flex gap-4 rounded-xl bg-card p-4 ring-1 ring-border transition-all hover:shadow-md hover:ring-border/80">
+      <article className="group flex gap-4 rounded-xl bg-card p-2 sm:p-4 ring-1 ring-border transition-all hover:shadow-md hover:ring-border/80">
         <Link href={`/post/${post.id}`} className="relative h-20 w-32 flex-shrink-0 overflow-hidden rounded-lg sm:h-32 sm:w-52">
           <Image
             src={post.image}
@@ -102,7 +102,7 @@ export function PostCard({
         <div className="flex flex-1 flex-col justify-between py-0.5">
           <div>
             <Link href={`/post/${post.id}`}>
-              <h3 className="line-clamp-3 sm:line-clamp-2 text-[15px] font-bold leading-snug text-card-foreground text-pretty hover:text-primary">
+              <h3 className="line-clamp-3 sm:line-clamp-2 text-[14px] sm:text-[15px] font-bold leading-snug text-card-foreground text-pretty hover:text-primary">
                 {post.title}
               </h3>
             </Link>
