@@ -1,6 +1,6 @@
 "use client"
 
-import { useEditor, EditorContent, BubbleMenu } from "@tiptap/react"
+import { useEditor, EditorContent } from "@tiptap/react"
 import StarterKit from "@tiptap/starter-kit"
 import Underline from "@tiptap/extension-underline"
 import Link from "@tiptap/extension-link"
@@ -401,18 +401,22 @@ export function TiptapEditor({
     onClick,
     isActive = false,
     disabled = false,
+    preventMouseDown = true,
     children,
     title,
   }: {
     onClick: () => void
     isActive?: boolean
     disabled?: boolean
+    preventMouseDown?: boolean
     children: React.ReactNode
     title?: string
   }) => (
     <button
       type="button"
-      onMouseDown={(e) => e.preventDefault()}
+      onMouseDown={(e) => {
+        if (preventMouseDown) e.preventDefault()
+      }}
       onClick={onClick}
       disabled={disabled}
       title={title}
@@ -720,6 +724,7 @@ export function TiptapEditor({
             resetHighlightBuilder()
             setShowHighlightModal(true)
           }}
+          preventMouseDown={false}
           title="Голлох үзүүлэлт оруулах"
         >
           <ArrowUpRight className="h-4 w-4" />
@@ -729,6 +734,7 @@ export function TiptapEditor({
             resetChartBuilder()
             setShowChartModal(true)
           }}
+          preventMouseDown={false}
           title="Инфо график оруулах"
         >
           <BarChart3 className="h-4 w-4" />
@@ -1034,34 +1040,6 @@ export function TiptapEditor({
         </div>,
           document.body
         )}
-
-      {/* Bubble Menu */}
-      {editor && !showHighlightModal && !showChartModal && (
-        <BubbleMenu
-          editor={editor}
-          tippyOptions={{ duration: 100 }}
-          className="flex items-center gap-0.5 rounded-lg border border-border bg-card p-1 shadow-lg"
-        >
-          <ToolbarButton
-            onClick={() => editor.chain().focus().toggleBold().run()}
-            isActive={editor.isActive("bold")}
-          >
-            <Bold className="h-3.5 w-3.5" />
-          </ToolbarButton>
-          <ToolbarButton
-            onClick={() => editor.chain().focus().toggleItalic().run()}
-            isActive={editor.isActive("italic")}
-          >
-            <Italic className="h-3.5 w-3.5" />
-          </ToolbarButton>
-          <ToolbarButton
-            onClick={() => editor.chain().focus().toggleUnderline().run()}
-            isActive={editor.isActive("underline")}
-          >
-            <UnderlineIcon className="h-3.5 w-3.5" />
-          </ToolbarButton>
-        </BubbleMenu>
-      )}
 
       {/* Editor Content */}
       <EditorContent editor={editor} />
