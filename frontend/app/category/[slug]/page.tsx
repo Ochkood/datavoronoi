@@ -369,7 +369,7 @@ export default function CategoryPage() {
                         {topAuthors.map((author, index) => (
                           <Link
                             key={author.id}
-                            href={`/publisher/${author.id}`}
+                            href={`/publisher/${author.slug || author.id}`}
                             className="group flex items-center gap-3 rounded-lg border border-border p-3 transition-colors hover:bg-secondary"
                           >
                             <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-md bg-secondary text-xs font-bold text-secondary-foreground">

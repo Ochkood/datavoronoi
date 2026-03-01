@@ -12,6 +12,7 @@ import { toast } from "sonner"
 export interface PostData {
   id: string
   authorId?: string
+  authorSlug?: string
   authorVerified?: boolean
   title: string
   excerpt: string

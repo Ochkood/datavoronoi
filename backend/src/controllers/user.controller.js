@@ -10,8 +10,10 @@ function sanitizeProfile(user) {
     id: user._id,
     name: user.name,
     email: user.email,
+    slug: user.slug || '',
     role: user.role,
     isActive: user.isActive,
+    experience: user.experience || '',
     bio: user.bio || '',
     avatar: user.avatar || '',
     coverImage: user.coverImage || '',
@@ -135,6 +137,8 @@ const updateMyProfile = asyncHandler(async (req, res) => {
   const {
     name,
     email,
+    slug,
+    experience,
     bio,
     avatar,
     coverImage,
@@ -156,8 +160,20 @@ const updateMyProfile = asyncHandler(async (req, res) => {
     }
   }
 
+  if (slug !== undefined) {
+    const normalizedSlug = String(slug || '').trim().toLowerCase();
+    if (normalizedSlug && normalizedSlug !== user.slug) {
+      const exists = await User.findOne({ slug: normalizedSlug });
+      if (exists && String(exists._id) !== String(user._id)) {
+        throw new ApiError(409, 'Slug already in use');
+      }
+    }
+    user.slug = normalizedSlug || undefined;
+  }
+
   if (name !== undefined) user.name = name;
   if (email !== undefined) user.email = email;
+  if (experience !== undefined) user.experience = experience;
   if (bio !== undefined) user.bio = bio;
   if (avatar !== undefined) user.avatar = avatar;
   if (coverImage !== undefined) user.coverImage = coverImage;
@@ -207,7 +223,7 @@ const getMyFollowing = asyncHandler(async (req, res) => {
     : 30;
 
   const follows = await Follow.find({ follower: req.user._id })
-    .populate('following', 'name avatar bio isActive')
+    .populate('following', 'name slug avatar bio isActive')
     .sort({ createdAt: -1 });
 
   const followedUsers = follows
@@ -233,7 +249,7 @@ const getMyFollowing = asyncHandler(async (req, res) => {
       author: { $in: followedIds },
       status: 'published',
     })
-      .populate('author', 'name avatar role')
+      .populate('author', 'name avatar role slug')
       .populate('category', 'name slug')
       .sort({ createdAt: -1 })
       .limit(limit),
@@ -246,6 +262,7 @@ const getMyFollowing = asyncHandler(async (req, res) => {
 
   const authors = followedUsers.map((u) => ({
     id: u._id,
+    slug: u.slug || '',
     name: u.name,
     avatar: u.avatar || '',
     bio: u.bio || '',
@@ -276,7 +293,7 @@ const getMyFollowPeople = asyncHandler(async (req, res) => {
     Follow.find(filter)
       .populate(
         type === 'followers' ? 'follower' : 'following',
-        'name avatar bio isActive'
+        'name slug avatar bio isActive'
       )
       .sort({ createdAt: -1 })
       .skip(skip)
@@ -309,6 +326,7 @@ const getMyFollowPeople = asyncHandler(async (req, res) => {
 
   const items = users.map((u) => ({
     id: u._id,
+    slug: u.slug || '',
     name: u.name,
     avatar: u.avatar || '',
     bio: u.bio || '',
@@ -349,9 +367,13 @@ function getRequesterUserId(req) {
 
 const getPublicUserProfile = asyncHandler(async (req, res) => {
   const { id } = req.params;
+  const raw = String(id || '').trim();
+  const identifierQuery = /^[a-f\d]{24}$/i.test(raw)
+    ? { $or: [{ _id: raw }, { slug: raw.toLowerCase() }] }
+    : { slug: raw.toLowerCase() };
 
-  const user = await User.findById(id).select(
-    'name avatar bio role isActive createdAt'
+  const user = await User.findOne(identifierQuery).select(
+    'name slug avatar bio role isActive createdAt phone social experience'
   );
   if (!user || !user.isActive) {
     throw new ApiError(404, 'user not found');
@@ -368,7 +390,7 @@ const getPublicUserProfile = asyncHandler(async (req, res) => {
         ? Follow.exists({ follower: requesterId, following: user._id })
         : false,
       Post.find({ author: user._id, status: 'published' })
-        .populate('author', 'name avatar role')
+        .populate('author', 'name avatar role slug')
         .populate('category', 'name slug')
         .sort({ createdAt: -1 })
         .limit(12),
@@ -379,9 +401,18 @@ const getPublicUserProfile = asyncHandler(async (req, res) => {
     data: {
       profile: {
         id: user._id,
+        slug: user.slug || '',
         name: user.name,
         avatar: user.avatar || '',
         bio: user.bio || '',
+        phone: user.phone || '',
+        experience: user.experience || '',
+        social: {
+          twitter: user.social?.twitter || '',
+          linkedin: user.social?.linkedin || '',
+          facebook: user.social?.facebook || '',
+          instagram: user.social?.instagram || '',
+        },
         role: user.role,
         verified: user.role === 'publisher' || user.role === 'admin',
         joinedAt: user.createdAt,

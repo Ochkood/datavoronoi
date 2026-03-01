@@ -3,7 +3,20 @@
 import { useEffect, useState } from "react"
 import { useParams, notFound } from "next/navigation"
 import Image from "next/image"
-import { LayoutGrid, List, CheckCircle2, Users, FileText } from "lucide-react"
+import Link from "next/link"
+import {
+  LayoutGrid,
+  List,
+  Users,
+  FileText,
+  Phone,
+  PenSquare,
+  Globe,
+  Twitter,
+  Facebook,
+  Instagram,
+  Linkedin,
+} from "lucide-react"
 import { cn } from "@/lib/utils"
 import { AppSidebar } from "@/components/app-sidebar"
 import { ContentHeader } from "@/components/content-header"
@@ -20,7 +33,7 @@ import { toast } from "sonner"
 
 export default function PublisherProfilePage() {
   const params = useParams()
-  const id = params.id as string
+  const identifier = params.id as string
 
   const [activeTab, setActiveTab] = useState("latest")
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
@@ -37,7 +50,7 @@ export default function PublisherProfilePage() {
     setError("")
     setNotFoundUser(false)
 
-    getPublicAuthorProfileApi(id)
+    getPublicAuthorProfileApi(identifier)
       .then((data) => {
         if (cancelled) return
         setProfile(data.profile)
@@ -62,7 +75,7 @@ export default function PublisherProfilePage() {
     return () => {
       cancelled = true
     }
-  }, [id])
+  }, [identifier])
 
   const handleToggleFollow = async () => {
     if (!profile) return
@@ -141,13 +154,74 @@ export default function PublisherProfilePage() {
                   <div>
                     <h1 className="inline-flex items-center gap-2 text-2xl font-bold text-foreground">
                       {profile.name}
-                      {profile.verified && (
-                        <CheckCircle2 className="h-5 w-5 text-primary" />
-                      )}
+                      <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
+                        <PenSquare className="h-3.5 w-3.5" />
+                        Publisher
+                      </span>
                     </h1>
                     <p className="mt-1 text-sm text-muted-foreground">
                       {profile.bio || "Тайлбар байхгүй"}
                     </p>
+                    <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                      {profile.experience ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-1">
+                          <PenSquare className="h-3 w-3" />
+                          {profile.experience}
+                        </span>
+                      ) : null}
+                      {profile.phone ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-1">
+                          <Phone className="h-3 w-3" />
+                          {profile.phone}
+                        </span>
+                      ) : null}
+                    </div>
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      {profile.social?.twitter ? (
+                        <Link
+                          href={profile.social.twitter}
+                          target="_blank"
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-secondary text-muted-foreground hover:text-foreground"
+                        >
+                          <Twitter className="h-4 w-4" />
+                        </Link>
+                      ) : null}
+                      {profile.social?.facebook ? (
+                        <Link
+                          href={profile.social.facebook}
+                          target="_blank"
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-secondary text-muted-foreground hover:text-foreground"
+                        >
+                          <Facebook className="h-4 w-4" />
+                        </Link>
+                      ) : null}
+                      {profile.social?.instagram ? (
+                        <Link
+                          href={profile.social.instagram}
+                          target="_blank"
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-secondary text-muted-foreground hover:text-foreground"
+                        >
+                          <Instagram className="h-4 w-4" />
+                        </Link>
+                      ) : null}
+                      {profile.social?.linkedin ? (
+                        <Link
+                          href={profile.social.linkedin}
+                          target="_blank"
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-secondary text-muted-foreground hover:text-foreground"
+                        >
+                          <Linkedin className="h-4 w-4" />
+                        </Link>
+                      ) : null}
+                      {profile.slug ? (
+                        <Link
+                          href={`/publisher/${profile.slug}`}
+                          className="inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-1 text-xs text-muted-foreground hover:text-foreground"
+                        >
+                          <Globe className="h-3 w-3" />@{profile.slug}
+                        </Link>
+                      ) : null}
+                    </div>
                     <div className="mt-2 flex items-center gap-4 text-sm text-muted-foreground">
                       <span className="inline-flex items-center gap-1">
                         <FileText className="h-4 w-4" />

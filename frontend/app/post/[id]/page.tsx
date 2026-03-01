@@ -16,7 +16,7 @@ import {
   Twitter,
   Link2,
   Send,
-  CheckCircle2,
+  PenSquare,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { AppSidebar } from "@/components/app-sidebar"
@@ -247,7 +247,7 @@ export default function PostDetailPage() {
             <div className="mt-6 flex flex-wrap items-center justify-between gap-4 border-y border-border py-4">
               <div className="flex items-center gap-3">
                 <Link
-                  href={post.authorId ? `/publisher/${post.authorId}` : "#"}
+                  href={post.authorId ? `/publisher/${post.authorSlug || post.authorId}` : "#"}
                   className="h-12 w-12 overflow-hidden rounded-full bg-muted"
                 >
                   <Image
@@ -260,12 +260,15 @@ export default function PostDetailPage() {
                 </Link>
                 <div>
                   <Link
-                    href={post.authorId ? `/publisher/${post.authorId}` : "#"}
+                    href={post.authorId ? `/publisher/${post.authorSlug || post.authorId}` : "#"}
                     className="inline-flex items-center gap-1.5 font-semibold text-foreground hover:text-primary"
                   >
                     {post.author}
                     {authorVerified && (
-                      <CheckCircle2 className="h-4 w-4 text-primary" />
+                      <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+                        <PenSquare className="h-3 w-3" />
+                        Publisher
+                      </span>
                     )}
                   </Link>
                   <div className="flex items-center gap-3 text-xs text-muted-foreground">

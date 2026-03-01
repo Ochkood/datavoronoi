@@ -287,7 +287,7 @@ export function CategoryStatsView({ stats, categoryColor }: CategoryStatsProps) 
       <section>
         <div className="mb-4 flex items-center gap-2">
           <ArrowUpRight className="h-5 w-5 text-primary" />
-          <h3 className="text-base font-bold text-foreground">Гол үзүүлэлт��үд</h3>
+          <h3 className="text-base font-bold text-foreground">Гол үзүүлэлтүүд</h3>
         </div>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {stats.highlights.map((item, idx) => (

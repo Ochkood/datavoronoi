@@ -104,7 +104,7 @@ const listPosts = asyncHandler(async (req, res) => {
 
   const [items, total] = await Promise.all([
     Post.find(filter)
-      .populate('author', 'name avatar role')
+      .populate('author', 'name avatar role slug')
       .populate('category', 'name slug')
       .populate('topics', 'name slug')
       .sort(sortQuery)
@@ -187,7 +187,7 @@ const listAdminPosts = asyncHandler(async (req, res) => {
 
   const [items, total] = await Promise.all([
     Post.find(filter)
-      .populate('author', 'name avatar role')
+      .populate('author', 'name avatar role slug')
       .populate('category', 'name slug')
       .populate('topics', 'name slug')
       .sort({ createdAt: -1 })
@@ -256,6 +256,7 @@ const listTopAuthors = asyncHandler(async (req, res) => {
       $project: {
         _id: 0,
         id: '$_id',
+        slug: '$author.slug',
         name: '$author.name',
         avatar: '$author.avatar',
         role: '$author.role',
@@ -306,7 +307,7 @@ const getPostById = asyncHandler(async (req, res) => {
     { $inc: { viewsCount: 1 } },
     { new: true }
   )
-    .populate('author', 'name avatar bio role')
+    .populate('author', 'name avatar bio role slug')
     .populate('category', 'name slug')
     .populate('topics', 'name slug');
 

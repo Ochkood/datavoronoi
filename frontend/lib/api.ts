@@ -29,6 +29,7 @@ type BackendPost = {
   commentsCount?: number
   author?: {
     _id?: string
+    slug?: string
     name?: string
     avatar?: string
     role?: "user" | "publisher" | "admin"
@@ -91,6 +92,7 @@ function mapPost(post: BackendPost): PostData {
   return {
     id: post.shortId || post._id,
     authorId: post.author?._id || "",
+    authorSlug: post.author?.slug || "",
     authorVerified: post.author?.role === "publisher" || post.author?.role === "admin",
     title: post.title,
     excerpt: post.excerpt || "",
@@ -332,10 +334,12 @@ export type BackendNotification = {
 
 export type UserProfile = {
   id: string
+  slug?: string
   name: string
   email: string
   role: "user" | "publisher" | "admin"
   isActive: boolean
+  experience?: string
   bio: string
   avatar: string
   coverImage: string
@@ -354,6 +358,7 @@ export type UserProfile = {
 
 export type FollowingAuthor = {
   id: string
+  slug?: string
   name: string
   avatar: string
   bio: string
@@ -364,6 +369,7 @@ export type FollowingAuthor = {
 
 export type TopAuthor = {
   id: string
+  slug?: string
   name: string
   avatar: string
   role?: "user" | "publisher" | "admin"
@@ -373,9 +379,18 @@ export type TopAuthor = {
 
 export type PublicAuthorProfile = {
   id: string
+  slug?: string
   name: string
   avatar: string
   bio: string
+  phone?: string
+  experience?: string
+  social?: {
+    twitter?: string
+    linkedin?: string
+    facebook?: string
+    instagram?: string
+  }
   role: "user" | "publisher" | "admin"
   verified: boolean
   joinedAt: string
@@ -1022,6 +1037,8 @@ export async function updateMyProfileApi(
   payload: Partial<{
     name: string
     email: string
+    slug: string
+    experience: string
     bio: string
     avatar: string
     coverImage: string

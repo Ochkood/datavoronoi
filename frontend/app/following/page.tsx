@@ -179,7 +179,7 @@ export default function FollowingPage() {
                     className="flex-1 justify-center text-xs"
                   />
                   <Link
-                    href={`/publisher/${author.id}`}
+                    href={`/publisher/${author.slug || author.id}`}
                     className="flex-1 rounded-lg border border-border px-3 py-2 text-xs font-semibold text-foreground transition-colors hover:bg-secondary"
                   >
                     Профайл үзэх

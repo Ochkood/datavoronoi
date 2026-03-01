@@ -179,7 +179,7 @@ export default function FollowPeoplePage() {
                         className="flex-1 justify-center text-xs"
                       />
                       <Link
-                        href={`/publisher/${person.id}`}
+                        href={`/publisher/${person.slug || person.id}`}
                         className="flex-1 rounded-lg border border-border px-3 py-2 text-xs font-semibold text-foreground transition-colors hover:bg-secondary"
                       >
                         Профайл үзэх

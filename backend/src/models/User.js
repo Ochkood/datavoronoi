@@ -13,6 +13,8 @@ const userSchema = new mongoose.Schema(
     },
     isActive: { type: Boolean, default: true },
     lastLoginAt: { type: Date },
+    slug: { type: String, unique: true, sparse: true, lowercase: true, trim: true },
+    experience: { type: String, default: '' },
     bio: { type: String, default: '' },
     avatar: { type: String, default: '' },
     coverImage: { type: String, default: '' },

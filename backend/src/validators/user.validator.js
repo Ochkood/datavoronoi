@@ -19,6 +19,14 @@ const socialSchema = z.object({
 const updateMyProfileSchema = z.object({
   name: z.string().min(2).max(80).optional(),
   email: z.string().email().optional(),
+  slug: z
+    .string()
+    .trim()
+    .min(3)
+    .max(40)
+    .regex(/^[a-z0-9-]+$/, 'slug must contain only lowercase letters, numbers and hyphen')
+    .optional(),
+  experience: z.string().max(300).optional(),
   bio: z.string().max(1000).optional(),
   avatar: z.string().optional(),
   coverImage: z.string().optional(),

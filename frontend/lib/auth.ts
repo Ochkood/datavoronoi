@@ -2,8 +2,10 @@ export interface AuthUser {
   id: string
   name: string
   email: string
+  slug?: string
   role: "user" | "publisher" | "admin"
   isActive?: boolean
+  experience?: string
   bio?: string
   avatar?: string
   coverImage?: string
