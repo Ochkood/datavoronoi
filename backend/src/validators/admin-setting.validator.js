@@ -2,6 +2,7 @@ const { z } = require('zod');
 
 const optionalText = z.string().max(500).optional();
 const optionalUrl = z.string().trim().max(400).optional();
+const fontChoice = z.enum(['inter', 'finlandica']);
 
 const updateAdminSettingsSchema = z.object({
   general: z
@@ -37,9 +38,15 @@ const updateAdminSettingsSchema = z.object({
       systemError: z.boolean().optional(),
     })
     .optional(),
+  typography: z
+    .object({
+      headingFont: fontChoice.optional(),
+      sectionTitleFont: fontChoice.optional(),
+      cardTitleFont: fontChoice.optional(),
+    })
+    .optional(),
 });
 
 module.exports = {
   updateAdminSettingsSchema,
 };
-

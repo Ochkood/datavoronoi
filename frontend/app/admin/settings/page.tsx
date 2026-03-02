@@ -55,6 +55,11 @@ const defaultSettings: AdminSettings = {
     feedback: true,
     systemError: true,
   },
+  typography: {
+    headingFont: "inter",
+    sectionTitleFont: "inter",
+    cardTitleFont: "inter",
+  },
 }
 
 function ToggleRow({
@@ -136,6 +141,10 @@ export default function AdminSettingsPage() {
             ...defaultSettings.notifications,
             ...data.notifications,
           },
+          typography: {
+            ...defaultSettings.typography,
+            ...data.typography,
+          },
         })
       })
       .catch((e) => {
@@ -149,6 +158,7 @@ export default function AdminSettingsPage() {
       general: settings.general,
       email: settings.email,
       notifications: settings.notifications,
+      typography: settings.typography,
     }),
     [settings]
   )
@@ -417,6 +427,72 @@ export default function AdminSettingsPage() {
                       }
                       className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm text-foreground"
                     />
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-border bg-card p-6">
+                <h2 className="text-lg font-semibold text-foreground">Фонтын тохиргоо</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Гарчиг, section title, card title-ийн фонтыг Inter эсвэл Finlandica-аар сонгоно.
+                </p>
+                <div className="mt-6 grid gap-4 sm:grid-cols-3">
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-foreground">Гол гарчиг (H1)</label>
+                    <select
+                      value={settings.typography.headingFont}
+                      onChange={(e) =>
+                        setSettings((prev) => ({
+                          ...prev,
+                          typography: {
+                            ...prev.typography,
+                            headingFont: e.target.value as "inter" | "finlandica",
+                          },
+                        }))
+                      }
+                      className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm text-foreground"
+                    >
+                      <option value="inter">Inter</option>
+                      <option value="finlandica">Finlandica</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-foreground">Section title (H2)</label>
+                    <select
+                      value={settings.typography.sectionTitleFont}
+                      onChange={(e) =>
+                        setSettings((prev) => ({
+                          ...prev,
+                          typography: {
+                            ...prev.typography,
+                            sectionTitleFont: e.target.value as "inter" | "finlandica",
+                          },
+                        }))
+                      }
+                      className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm text-foreground"
+                    >
+                      <option value="inter">Inter</option>
+                      <option value="finlandica">Finlandica</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-foreground">Card title (H3)</label>
+                    <select
+                      value={settings.typography.cardTitleFont}
+                      onChange={(e) =>
+                        setSettings((prev) => ({
+                          ...prev,
+                          typography: {
+                            ...prev.typography,
+                            cardTitleFont: e.target.value as "inter" | "finlandica",
+                          },
+                        }))
+                      }
+                      className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm text-foreground"
+                    >
+                      <option value="inter">Inter</option>
+                      <option value="finlandica">Finlandica</option>
+                    </select>
                   </div>
                 </div>
               </div>

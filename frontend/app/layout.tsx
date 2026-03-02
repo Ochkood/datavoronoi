@@ -1,7 +1,8 @@
 import type { Metadata, Viewport } from 'next'
-import { Inter, Playfair_Display } from 'next/font/google'
+import { Finlandica, Inter } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { Toaster } from '@/components/ui/sonner'
+import { SiteFontSync } from '@/components/site-font-sync'
 import { mergeSiteSettings, type SiteSettings } from '@/lib/site-settings'
 import './globals.css'
 
@@ -10,9 +11,9 @@ const inter = Inter({
   variable: '--font-inter',
 })
 
-const playfair = Playfair_Display({ 
-  subsets: ["latin", "cyrillic"],
-  variable: '--font-playfair',
+const finlandica = Finlandica({ 
+  subsets: ["latin"],
+  variable: '--font-finlandica',
 })
 
 const siteUrl =
@@ -80,7 +81,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="mn">
-      <body className={`${inter.variable} ${playfair.variable} font-sans antialiased`}>
+      <body className={`${inter.variable} ${finlandica.variable} font-sans antialiased`}>
+        <SiteFontSync />
         {children}
         <Toaster richColors position="top-right" />
         <Analytics />

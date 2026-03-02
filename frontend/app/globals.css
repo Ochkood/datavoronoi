@@ -39,6 +39,9 @@
   --sidebar-ring: oklch(0.55 0.18 230);
   --sidebar-muted: oklch(0.55 0.01 240);
   --sidebar: oklch(0.18 0.02 240);
+  --font-heading-family: var(--font-inter);
+  --font-section-title-family: var(--font-inter);
+  --font-card-title-family: var(--font-inter);
 }
 
 .dark {
@@ -79,8 +82,8 @@
 }
 
 @theme inline {
-  --font-sans: 'Inter', 'Geist', 'Geist Fallback';
-  --font-serif: 'Playfair Display', 'Georgia', serif;
+  --font-sans: var(--font-inter), 'Inter', 'Geist', 'Geist Fallback';
+  --font-serif: var(--font-finlandica), 'Finlandica', serif;
   --font-mono: 'Geist Mono', 'Geist Mono Fallback';
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -128,6 +131,15 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+  h1 {
+    font-family: var(--font-heading-family), var(--font-inter), 'Inter', sans-serif;
+  }
+  h2 {
+    font-family: var(--font-section-title-family), var(--font-inter), 'Inter', sans-serif;
+  }
+  h3 {
+    font-family: var(--font-card-title-family), var(--font-inter), 'Inter', sans-serif;
   }
 }
 

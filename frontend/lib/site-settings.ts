@@ -18,6 +18,11 @@ export type SiteSettings = {
     replyTo: string
     newsletterEnabled: boolean
   }
+  typography: {
+    headingFont: "inter" | "finlandica"
+    sectionTitleFont: "inter" | "finlandica"
+    cardTitleFont: "inter" | "finlandica"
+  }
 }
 
 export const defaultSiteSettings: SiteSettings = {
@@ -41,6 +46,11 @@ export const defaultSiteSettings: SiteSettings = {
     replyTo: "",
     newsletterEnabled: true,
   },
+  typography: {
+    headingFont: "inter",
+    sectionTitleFont: "inter",
+    cardTitleFont: "inter",
+  },
 }
 
 export function mergeSiteSettings(
@@ -60,6 +70,9 @@ export function mergeSiteSettings(
       ...defaultSiteSettings.email,
       ...(incoming.email || {}),
     },
+    typography: {
+      ...defaultSiteSettings.typography,
+      ...(incoming.typography || {}),
+    },
   }
 }
-

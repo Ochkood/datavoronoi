@@ -44,6 +44,18 @@ function mergeAdminSettings(doc, payload, userId) {
     };
   }
 
+  if (payload.typography) {
+    doc.typography = {
+      headingFont: payload.typography.headingFont ?? doc.typography?.headingFont ?? 'inter',
+      sectionTitleFont:
+        payload.typography.sectionTitleFont ??
+        doc.typography?.sectionTitleFont ??
+        'inter',
+      cardTitleFont:
+        payload.typography.cardTitleFont ?? doc.typography?.cardTitleFont ?? 'inter',
+    };
+  }
+
   doc.updatedBy = userId;
 }
 
@@ -81,6 +93,11 @@ const getPublicAdminSettings = asyncHandler(async (req, res) => {
       fromEmail: settings.email?.fromEmail || '',
       replyTo: settings.email?.replyTo || '',
       newsletterEnabled: settings.email?.newsletterEnabled !== false,
+    },
+    typography: {
+      headingFont: settings.typography?.headingFont || 'inter',
+      sectionTitleFont: settings.typography?.sectionTitleFont || 'inter',
+      cardTitleFont: settings.typography?.cardTitleFont || 'inter',
     },
     updatedAt: settings.updatedAt,
   };

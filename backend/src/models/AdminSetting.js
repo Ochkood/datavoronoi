@@ -28,10 +28,26 @@ const adminSettingSchema = new mongoose.Schema(
       feedback: { type: Boolean, default: true },
       systemError: { type: Boolean, default: true },
     },
+    typography: {
+      headingFont: {
+        type: String,
+        enum: ['inter', 'finlandica'],
+        default: 'inter',
+      },
+      sectionTitleFont: {
+        type: String,
+        enum: ['inter', 'finlandica'],
+        default: 'inter',
+      },
+      cardTitleFont: {
+        type: String,
+        enum: ['inter', 'finlandica'],
+        default: 'inter',
+      },
+    },
     updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   },
   { timestamps: true }
 );
 
 module.exports = mongoose.model('AdminSetting', adminSettingSchema);
-

@@ -303,6 +303,11 @@ export type AdminSettings = {
     feedback: boolean
     systemError: boolean
   }
+  typography: {
+    headingFont: "inter" | "finlandica"
+    sectionTitleFont: "inter" | "finlandica"
+    cardTitleFont: "inter" | "finlandica"
+  }
   updatedAt?: string
 }
 
@@ -325,6 +330,11 @@ export type PublicSiteSettings = {
     fromEmail: string
     replyTo: string
     newsletterEnabled: boolean
+  }
+  typography: {
+    headingFont: "inter" | "finlandica"
+    sectionTitleFont: "inter" | "finlandica"
+    cardTitleFont: "inter" | "finlandica"
   }
   updatedAt?: string
 }
@@ -1373,6 +1383,7 @@ export async function updateAdminSettingsApi(
     general: Partial<AdminSettings["general"]>
     email: Partial<AdminSettings["email"]>
     notifications: Partial<AdminSettings["notifications"]>
+    typography: Partial<AdminSettings["typography"]>
   }>
 ) {
   const res = await request<ApiResponse<{ settings: AdminSettings }>>(
