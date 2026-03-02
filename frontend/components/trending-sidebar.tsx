@@ -1,7 +1,6 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import Image from "next/image"
 import Link from "next/link"
 import { TrendingUp, ArrowUpRight } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -54,23 +53,28 @@ export function TrendingSidebar() {
 
   useEffect(() => {
     let cancelled = false
-    getPublicAdminSettingsApi()
-      .then((incoming) => {
-        if (cancelled) return
-        const settings = mergeSiteSettings(incoming)
-        setBanner(settings.sidebarBanner)
-      })
-      .catch(() => {
-        if (cancelled) return
-        setBanner({
-          enabled: false,
-          imageUrl: "",
-          linkUrl: "",
-          alt: "Сурталгааны баннер",
+    const loadBanner = () => {
+      getPublicAdminSettingsApi()
+        .then((incoming) => {
+          if (cancelled) return
+          const settings = mergeSiteSettings(incoming)
+          setBanner(settings.sidebarBanner)
         })
-      })
+        .catch(() => {
+          if (cancelled) return
+          setBanner({
+            enabled: false,
+            imageUrl: "",
+            linkUrl: "",
+            alt: "Сурталгааны баннер",
+          })
+        })
+    }
+    loadBanner()
+    window.addEventListener("dn-site-settings-updated", loadBanner)
     return () => {
       cancelled = true
+      window.removeEventListener("dn-site-settings-updated", loadBanner)
     }
   }, [])
 
@@ -124,26 +128,20 @@ export function TrendingSidebar() {
               rel="noopener noreferrer"
               className="block transition-opacity hover:opacity-95"
             >
-              <div className="relative h-36 w-full">
-                <Image
-                  src={banner.imageUrl}
-                  alt={banner.alt || "Сурталгааны баннер"}
-                  fill
-                  className="object-cover"
-                  sizes="(max-width: 1024px) 100vw, 320px"
-                />
-              </div>
-            </Link>
-          ) : (
-            <div className="relative h-36 w-full">
-              <Image
+              <img
                 src={banner.imageUrl}
                 alt={banner.alt || "Сурталгааны баннер"}
-                fill
-                className="object-cover"
-                sizes="(max-width: 1024px) 100vw, 320px"
+                className="h-36 w-full object-cover"
+                loading="lazy"
               />
-            </div>
+            </Link>
+          ) : (
+            <img
+              src={banner.imageUrl}
+              alt={banner.alt || "Сурталгааны баннер"}
+              className="h-36 w-full object-cover"
+              loading="lazy"
+            />
           )}
         </div>
       ) : null}

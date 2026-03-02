@@ -5,6 +5,7 @@ import Image from "next/image"
 import {
   Bell,
   Check,
+  Image as ImageIcon,
   Loader2,
   Mail,
   Save,
@@ -21,10 +22,11 @@ import {
   type AdminSettings,
 } from "@/lib/api"
 
-type TabKey = "general" | "email" | "notifications" | "security"
+type TabKey = "general" | "banner" | "email" | "notifications" | "security"
 
 const tabs: Array<{ id: TabKey; label: string; icon: LucideIcon }> = [
   { id: "general", label: "Ерөнхий", icon: Settings },
+  { id: "banner", label: "Banner", icon: ImageIcon },
   { id: "email", label: "Имэйл", icon: Mail },
   { id: "notifications", label: "Мэдэгдэл", icon: Bell },
   { id: "security", label: "Аюулгүй байдал", icon: Shield },
@@ -538,81 +540,88 @@ export default function AdminSettingsPage() {
                 </div>
               </div>
 
-              <div className="rounded-xl border border-border bg-card p-6">
-                <h2 className="text-lg font-semibold text-foreground">Sidebar баннер</h2>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Нүүр хуудасны баруун талын sidebar-ийн дээд хэсэгт харагдах сурталгааны баннер.
-                </p>
-                <div className="mt-4">
-                  <ToggleRow
-                    label="Баннер харуулах"
-                    checked={settings.sidebarBanner.enabled}
-                    onChange={(next) =>
+            </div>
+          ) : null}
+
+          {activeTab === "banner" ? (
+            <div className="rounded-xl border border-border bg-card p-6">
+              <h2 className="text-lg font-semibold text-foreground">Sidebar баннер</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Нүүр хуудасны баруун талын sidebar-ийн дээд хэсэгт харагдах сурталгааны баннер.
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Өөрчлөлт оруулсны дараа баруун дээд талын "Хадгалах" товч дарж хадгална.
+              </p>
+
+              <div className="mt-4">
+                <ToggleRow
+                  label="Баннер харуулах"
+                  checked={settings.sidebarBanner.enabled}
+                  onChange={(next) =>
+                    setSettings((prev) => ({
+                      ...prev,
+                      sidebarBanner: { ...prev.sidebarBanner, enabled: next },
+                    }))
+                  }
+                />
+              </div>
+
+              <div className="mt-6 space-y-4">
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-foreground">Зураг оруулах</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    disabled={bannerUploading}
+                    onChange={(e) => void handleBannerUpload(e.target.files?.[0])}
+                    className="h-10 w-full max-w-md rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground file:mr-3 file:rounded-md file:border-0 file:bg-secondary file:px-3 file:py-1.5 file:text-xs file:font-medium disabled:opacity-70"
+                  />
+                  {bannerUploading ? (
+                    <p className="mt-2 text-xs text-muted-foreground">Upload хийж байна...</p>
+                  ) : null}
+                </div>
+
+                {settings.sidebarBanner.imageUrl ? (
+                  <div className="relative h-32 w-full max-w-md overflow-hidden rounded-lg border border-border bg-muted/40">
+                    <Image
+                      src={settings.sidebarBanner.imageUrl}
+                      alt={settings.sidebarBanner.alt || "Сурталгааны баннер"}
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                ) : null}
+
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-foreground">Очих холбоос (optional)</label>
+                  <input
+                    type="url"
+                    value={settings.sidebarBanner.linkUrl}
+                    onChange={(e) =>
                       setSettings((prev) => ({
                         ...prev,
-                        sidebarBanner: { ...prev.sidebarBanner, enabled: next },
+                        sidebarBanner: { ...prev.sidebarBanner, linkUrl: e.target.value },
                       }))
                     }
+                    className="h-10 w-full max-w-md rounded-lg border border-input bg-background px-3 text-sm text-foreground"
+                    placeholder="https://..."
                   />
                 </div>
 
-                <div className="mt-6 space-y-4">
-                  <div>
-                    <label className="mb-1.5 block text-sm font-medium text-foreground">Зураг оруулах</label>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      disabled={bannerUploading}
-                      onChange={(e) => void handleBannerUpload(e.target.files?.[0])}
-                      className="h-10 w-full max-w-md rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground file:mr-3 file:rounded-md file:border-0 file:bg-secondary file:px-3 file:py-1.5 file:text-xs file:font-medium disabled:opacity-70"
-                    />
-                    {bannerUploading ? (
-                      <p className="mt-2 text-xs text-muted-foreground">Upload хийж байна...</p>
-                    ) : null}
-                  </div>
-
-                  {settings.sidebarBanner.imageUrl ? (
-                    <div className="relative h-32 w-full max-w-md overflow-hidden rounded-lg border border-border bg-muted/40">
-                      <Image
-                        src={settings.sidebarBanner.imageUrl}
-                        alt={settings.sidebarBanner.alt || "Сурталгааны баннер"}
-                        fill
-                        className="object-cover"
-                      />
-                    </div>
-                  ) : null}
-
-                  <div>
-                    <label className="mb-1.5 block text-sm font-medium text-foreground">Очих холбоос (optional)</label>
-                    <input
-                      type="url"
-                      value={settings.sidebarBanner.linkUrl}
-                      onChange={(e) =>
-                        setSettings((prev) => ({
-                          ...prev,
-                          sidebarBanner: { ...prev.sidebarBanner, linkUrl: e.target.value },
-                        }))
-                      }
-                      className="h-10 w-full max-w-md rounded-lg border border-input bg-background px-3 text-sm text-foreground"
-                      placeholder="https://..."
-                    />
-                  </div>
-
-                  <div>
-                    <label className="mb-1.5 block text-sm font-medium text-foreground">Alt текст</label>
-                    <input
-                      type="text"
-                      value={settings.sidebarBanner.alt}
-                      onChange={(e) =>
-                        setSettings((prev) => ({
-                          ...prev,
-                          sidebarBanner: { ...prev.sidebarBanner, alt: e.target.value },
-                        }))
-                      }
-                      className="h-10 w-full max-w-md rounded-lg border border-input bg-background px-3 text-sm text-foreground"
-                      placeholder="Сурталгааны баннер"
-                    />
-                  </div>
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-foreground">Alt текст</label>
+                  <input
+                    type="text"
+                    value={settings.sidebarBanner.alt}
+                    onChange={(e) =>
+                      setSettings((prev) => ({
+                        ...prev,
+                        sidebarBanner: { ...prev.sidebarBanner, alt: e.target.value },
+                      }))
+                    }
+                    className="h-10 w-full max-w-md rounded-lg border border-input bg-background px-3 text-sm text-foreground"
+                    placeholder="Сурталгааны баннер"
+                  />
                 </div>
               </div>
             </div>
