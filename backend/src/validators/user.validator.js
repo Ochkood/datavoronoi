@@ -16,6 +16,20 @@ const socialSchema = z.object({
   instagram: z.string().optional().default(''),
 });
 
+const notificationSettingsSchema = z.object({
+  email: z.boolean().optional(),
+  inApp: z.boolean().optional(),
+  comments: z.boolean().optional(),
+  follows: z.boolean().optional(),
+});
+
+const privacySettingsSchema = z.object({
+  showPhone: z.boolean().optional(),
+  showEmail: z.boolean().optional(),
+  showExperience: z.boolean().optional(),
+  showSocial: z.boolean().optional(),
+});
+
 const updateMyProfileSchema = z.object({
   name: z.string().min(2).max(80).optional(),
   email: z.string().email().optional(),
@@ -34,6 +48,12 @@ const updateMyProfileSchema = z.object({
   location: z.string().max(120).optional(),
   website: z.string().max(240).optional(),
   social: socialSchema.optional(),
+  settings: z
+    .object({
+      notifications: notificationSettingsSchema.optional(),
+      privacy: privacySettingsSchema.optional(),
+    })
+    .optional(),
 });
 
 const changePasswordSchema = z.object({

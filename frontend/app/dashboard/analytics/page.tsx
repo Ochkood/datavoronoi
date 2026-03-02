@@ -18,9 +18,6 @@ import {
   Area,
   BarChart,
   Bar,
-  PieChart,
-  Pie,
-  Cell,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -201,8 +198,8 @@ export default function AnalyticsPage() {
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2 rounded-xl border border-border bg-card">
+      <div className="grid gap-6">
+        <div className="rounded-xl border border-border bg-card">
           <div className="flex items-center justify-between border-b border-border px-5 py-4">
             <h2 className="text-base font-semibold text-foreground">Шилдэг нийтлэлүүд</h2>
             <Link href="/dashboard/posts" className="flex items-center gap-1 text-xs font-medium text-primary hover:underline">
@@ -226,85 +223,6 @@ export default function AnalyticsPage() {
                 </div>
               </div>
             ))}
-          </div>
-        </div>
-
-        <div className="space-y-6">
-          <div className="rounded-xl border border-border bg-card p-5">
-            <h2 className="mb-4 text-base font-semibold text-foreground">Төхөөрөмжийн тархалт</h2>
-            <div className="h-[160px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={analytics?.deviceData || []}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={40}
-                    outerRadius={60}
-                    paddingAngle={4}
-                    dataKey="value"
-                    nameKey="name"
-                  >
-                    {(analytics?.deviceData || []).map((entry, index) => (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={
-                          index === 0
-                            ? "hsl(var(--primary))"
-                            : index === 1
-                              ? "hsl(var(--chart-2))"
-                              : "hsl(var(--chart-4))"
-                        }
-                      />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "hsl(var(--card))",
-                      border: "1px solid hsl(var(--border))",
-                      borderRadius: "8px",
-                      fontSize: "12px",
-                    }}
-                    formatter={(value: number, name: string) => [`${value}%`, name]}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="mt-2 flex justify-center gap-4">
-              {(analytics?.deviceData || []).map((item) => (
-                <div key={item.name} className="flex items-center gap-2">
-                  <div
-                    className="h-2.5 w-2.5 rounded-full"
-                    style={{
-                      backgroundColor:
-                        item.name === "Desktop"
-                          ? "hsl(var(--primary))"
-                          : item.name === "Mobile"
-                            ? "hsl(var(--chart-2))"
-                            : "hsl(var(--chart-4))",
-                    }}
-                  />
-                  <span className="text-xs text-muted-foreground">{item.name} ({item.value}%)</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="rounded-xl border border-border bg-card p-5">
-            <h2 className="mb-4 text-base font-semibold text-foreground">Улс орноор</h2>
-            <div className="space-y-3">
-              {(analytics?.countryData || []).map((item) => (
-                <div key={item.country}>
-                  <div className="mb-1 flex items-center justify-between text-xs">
-                    <span className="text-foreground">{item.country}</span>
-                    <span className="text-muted-foreground">{item.views.toLocaleString()}</span>
-                  </div>
-                  <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-                    <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${item.percentage}%` }} />
-                  </div>
-                </div>
-              ))}
-            </div>
           </div>
         </div>
       </div>

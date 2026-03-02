@@ -27,6 +27,20 @@ const userSchema = new mongoose.Schema(
       facebook: { type: String, default: '' },
       instagram: { type: String, default: '' },
     },
+    settings: {
+      notifications: {
+        email: { type: Boolean, default: true },
+        inApp: { type: Boolean, default: true },
+        comments: { type: Boolean, default: true },
+        follows: { type: Boolean, default: true },
+      },
+      privacy: {
+        showPhone: { type: Boolean, default: false },
+        showEmail: { type: Boolean, default: false },
+        showExperience: { type: Boolean, default: true },
+        showSocial: { type: Boolean, default: true },
+      },
+    },
     refreshToken: { type: String, select: false },
   },
   { timestamps: true }

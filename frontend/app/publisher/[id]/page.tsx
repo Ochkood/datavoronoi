@@ -9,6 +9,7 @@ import {
   List,
   Users,
   FileText,
+  Mail,
   Phone,
   PenSquare,
   Globe,
@@ -202,6 +203,15 @@ export default function PublisherProfilePage() {
                       <span className="inline-flex items-center gap-1">
                         <Phone className="h-4 w-4" />
                         {profile.phone}
+                      </span>
+                    </>
+                  ) : null}
+                  {profile.email ? (
+                    <>
+                      <span className="hidden h-4 w-px bg-border sm:inline-block" />
+                      <span className="inline-flex items-center gap-1">
+                        <Mail className="h-4 w-4" />
+                        {profile.email}
                       </span>
                     </>
                   ) : null}

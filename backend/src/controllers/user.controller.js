@@ -6,6 +6,10 @@ const asyncHandler = require('../utils/async-handler');
 const ApiError = require('../utils/api-error');
 
 function sanitizeProfile(user) {
+  const settings = user.settings || {};
+  const notifications = settings.notifications || {};
+  const privacy = settings.privacy || {};
+
   return {
     id: user._id,
     name: user.name,
@@ -25,6 +29,20 @@ function sanitizeProfile(user) {
       linkedin: user.social?.linkedin || '',
       facebook: user.social?.facebook || '',
       instagram: user.social?.instagram || '',
+    },
+    settings: {
+      notifications: {
+        email: notifications.email !== false,
+        inApp: notifications.inApp !== false,
+        comments: notifications.comments !== false,
+        follows: notifications.follows !== false,
+      },
+      privacy: {
+        showPhone: Boolean(privacy.showPhone),
+        showEmail: Boolean(privacy.showEmail),
+        showExperience: privacy.showExperience !== false,
+        showSocial: privacy.showSocial !== false,
+      },
     },
     joinedAt: user.createdAt,
     lastActive: user.lastLoginAt || user.createdAt,
@@ -146,6 +164,7 @@ const updateMyProfile = asyncHandler(async (req, res) => {
     location,
     website,
     social,
+    settings,
   } = req.body;
 
   const user = await User.findById(req.user._id);
@@ -186,6 +205,50 @@ const updateMyProfile = asyncHandler(async (req, res) => {
       linkedin: social.linkedin || '',
       facebook: social.facebook || '',
       instagram: social.instagram || '',
+    };
+  }
+
+  if (settings !== undefined) {
+    const nextNotifications = settings.notifications || {};
+    const nextPrivacy = settings.privacy || {};
+
+    user.settings = {
+      notifications: {
+        email:
+          nextNotifications.email !== undefined
+            ? Boolean(nextNotifications.email)
+            : user.settings?.notifications?.email !== false,
+        inApp:
+          nextNotifications.inApp !== undefined
+            ? Boolean(nextNotifications.inApp)
+            : user.settings?.notifications?.inApp !== false,
+        comments:
+          nextNotifications.comments !== undefined
+            ? Boolean(nextNotifications.comments)
+            : user.settings?.notifications?.comments !== false,
+        follows:
+          nextNotifications.follows !== undefined
+            ? Boolean(nextNotifications.follows)
+            : user.settings?.notifications?.follows !== false,
+      },
+      privacy: {
+        showPhone:
+          nextPrivacy.showPhone !== undefined
+            ? Boolean(nextPrivacy.showPhone)
+            : Boolean(user.settings?.privacy?.showPhone),
+        showEmail:
+          nextPrivacy.showEmail !== undefined
+            ? Boolean(nextPrivacy.showEmail)
+            : Boolean(user.settings?.privacy?.showEmail),
+        showExperience:
+          nextPrivacy.showExperience !== undefined
+            ? Boolean(nextPrivacy.showExperience)
+            : user.settings?.privacy?.showExperience !== false,
+        showSocial:
+          nextPrivacy.showSocial !== undefined
+            ? Boolean(nextPrivacy.showSocial)
+            : user.settings?.privacy?.showSocial !== false,
+      },
     };
   }
 
@@ -373,13 +436,19 @@ const getPublicUserProfile = asyncHandler(async (req, res) => {
     : { slug: raw.toLowerCase() };
 
   const user = await User.findOne(identifierQuery).select(
-    'name slug avatar bio role isActive createdAt phone social experience'
+    'name slug avatar bio role isActive createdAt email phone social experience settings'
   );
   if (!user || !user.isActive) {
     throw new ApiError(404, 'user not found');
   }
 
   const requesterId = getRequesterUserId(req);
+
+  const privacy = user.settings?.privacy || {};
+  const showPhone = Boolean(privacy.showPhone);
+  const showEmail = Boolean(privacy.showEmail);
+  const showExperience = privacy.showExperience !== false;
+  const showSocial = privacy.showSocial !== false;
 
   const [postsCount, followersCount, followingCount, isFollowing, posts] =
     await Promise.all([
@@ -405,14 +474,22 @@ const getPublicUserProfile = asyncHandler(async (req, res) => {
         name: user.name,
         avatar: user.avatar || '',
         bio: user.bio || '',
-        phone: user.phone || '',
-        experience: user.experience || '',
-        social: {
-          twitter: user.social?.twitter || '',
-          linkedin: user.social?.linkedin || '',
-          facebook: user.social?.facebook || '',
-          instagram: user.social?.instagram || '',
-        },
+        email: showEmail ? user.email || '' : '',
+        phone: showPhone ? user.phone || '' : '',
+        experience: showExperience ? user.experience || '' : '',
+        social: showSocial
+          ? {
+              twitter: user.social?.twitter || '',
+              linkedin: user.social?.linkedin || '',
+              facebook: user.social?.facebook || '',
+              instagram: user.social?.instagram || '',
+            }
+          : {
+              twitter: '',
+              linkedin: '',
+              facebook: '',
+              instagram: '',
+            },
         role: user.role,
         verified: user.role === 'publisher' || user.role === 'admin',
         joinedAt: user.createdAt,

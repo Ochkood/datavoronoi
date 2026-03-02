@@ -362,6 +362,20 @@ export type UserProfile = {
     facebook: string
     instagram: string
   }
+  settings: {
+    notifications: {
+      email: boolean
+      inApp: boolean
+      comments: boolean
+      follows: boolean
+    }
+    privacy: {
+      showPhone: boolean
+      showEmail: boolean
+      showExperience: boolean
+      showSocial: boolean
+    }
+  }
   joinedAt: string
   lastActive: string
 }
@@ -393,6 +407,7 @@ export type PublicAuthorProfile = {
   name: string
   avatar: string
   bio: string
+  email?: string
   phone?: string
   experience?: string
   social?: {
@@ -1084,6 +1099,20 @@ export async function updateMyProfileApi(
       linkedin: string
       facebook: string
       instagram: string
+    }
+    settings: {
+      notifications: {
+        email: boolean
+        inApp: boolean
+        comments: boolean
+        follows: boolean
+      }
+      privacy: {
+        showPhone: boolean
+        showEmail: boolean
+        showExperience: boolean
+        showSocial: boolean
+      }
     }
   }>
 ) {
