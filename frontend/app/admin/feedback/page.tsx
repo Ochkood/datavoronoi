@@ -8,6 +8,7 @@ import {
   CheckCircle,
   Clock,
   AlertCircle,
+  XCircle,
   Trash2,
   Mail,
   X,
@@ -49,6 +50,8 @@ const statusLabels: Record<FeedbackStatus, string> = {
   pending: "Хүлээгдэж буй",
   in_progress: "Шийдвэрлэж буй",
   resolved: "Шийдсэн",
+  approved: "Зөвшөөрсөн",
+  rejected: "Татгалзсан",
 }
 
 const statusColors: Record<FeedbackStatus, string> = {
@@ -56,6 +59,8 @@ const statusColors: Record<FeedbackStatus, string> = {
   pending: "bg-chart-5/10 text-chart-5",
   in_progress: "bg-chart-2/10 text-chart-2",
   resolved: "bg-chart-4/10 text-chart-4",
+  approved: "bg-chart-4/10 text-chart-4",
+  rejected: "bg-destructive/10 text-destructive",
 }
 
 const statusIcons: Record<FeedbackStatus, ElementType> = {
@@ -63,6 +68,8 @@ const statusIcons: Record<FeedbackStatus, ElementType> = {
   pending: Clock,
   in_progress: MessageSquare,
   resolved: CheckCircle,
+  approved: CheckCircle,
+  rejected: XCircle,
 }
 
 export default function AdminFeedbackPage() {
@@ -85,6 +92,8 @@ export default function AdminFeedbackPage() {
     pending: 0,
     in_progress: 0,
     resolved: 0,
+    approved: 0,
+    rejected: 0,
   })
 
   const [selectedFeedback, setSelectedFeedback] = useState<AdminFeedbackItem | null>(null)
@@ -270,6 +279,8 @@ export default function AdminFeedbackPage() {
               <option value="pending">Хүлээгдэж буй</option>
               <option value="in_progress">Шийдвэрлэж буй</option>
               <option value="resolved">Шийдсэн</option>
+              <option value="approved">Зөвшөөрсөн</option>
+              <option value="rejected">Татгалзсан</option>
             </select>
           </div>
         </div>
@@ -417,10 +428,20 @@ export default function AdminFeedbackPage() {
                     onChange={(e) => setStatusDraft(e.target.value as FeedbackStatus)}
                     className="h-10 flex-1 rounded-lg border border-input bg-background px-3 text-sm text-foreground focus:border-primary focus:outline-none"
                   >
-                    <option value="new">Шинэ</option>
-                    <option value="pending">Хүлээгдэж буй</option>
-                    <option value="in_progress">Шийдвэрлэж буй</option>
-                    <option value="resolved">Шийдсэн</option>
+                    {selectedFeedback.type === "publisher_request" ? (
+                      <>
+                        <option value="pending">Хүлээгдэж буй</option>
+                        <option value="approved">Зөвшөөрөх</option>
+                        <option value="rejected">Татгалзах</option>
+                      </>
+                    ) : (
+                      <>
+                        <option value="new">Шинэ</option>
+                        <option value="pending">Хүлээгдэж буй</option>
+                        <option value="in_progress">Шийдвэрлэж буй</option>
+                        <option value="resolved">Шийдсэн</option>
+                      </>
+                    )}
                   </select>
                   <button
                     onClick={applyStatusUpdate}

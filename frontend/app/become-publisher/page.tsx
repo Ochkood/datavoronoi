@@ -1,7 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import {
   BarChart3,
   ArrowLeft,
@@ -16,6 +17,9 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { AppSidebar } from "@/components/app-sidebar"
+import { createFeedbackApi, getMeApi } from "@/lib/api"
+import { getAccessToken } from "@/lib/auth"
+import { toast } from "sonner"
 
 const benefits = [
   {
@@ -41,8 +45,10 @@ const benefits = [
 ]
 
 export default function BecomePublisherPage() {
+  const router = useRouter()
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [isAuthed, setIsAuthed] = useState<boolean | null>(null)
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -56,6 +62,24 @@ export default function BecomePublisherPage() {
     bio: "",
     agreeTerms: false,
   })
+
+  useEffect(() => {
+    if (!getAccessToken()) {
+      setIsAuthed(false)
+      return
+    }
+    getMeApi()
+      .then((me) => {
+        setIsAuthed(true)
+        setFormData((prev) => ({
+          ...prev,
+          name: prev.name || me.name || "",
+          email: prev.email || me.email || "",
+          phone: prev.phone || me.phone || "",
+        }))
+      })
+      .catch(() => setIsAuthed(false))
+  }, [])
 
   const categoryOptions = [
     "Эдийн засаг",
@@ -77,13 +101,79 @@ export default function BecomePublisherPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!isAuthed) {
+      toast.error("Та эхлээд бүртгүүлнэ үү.")
+      router.push("/register")
+      return
+    }
+    if (formData.categories.length === 0) {
+      toast.error("Та аль салбарын судлаач вэ? хэсгээс дор хаяж нэгийг сонгоно уу.")
+      return
+    }
+
     setIsLoading(true)
+    try {
+      const subject = `Publisher хүсэлт: ${formData.name || "Хэрэглэгч"}`
+      const message = [
+        `Нэр: ${formData.name}`,
+        `Имэйл: ${formData.email}`,
+        `Утас: ${formData.phone || "-"}`,
+        `Байгууллага: ${formData.organization || "-"}`,
+        `Албан тушаал: ${formData.position || "-"}`,
+        `Туршлага: ${formData.experience || "-"}`,
+        `Портфолио: ${formData.portfolio || "-"}`,
+        `Салбар: ${formData.categories.join(", ") || "-"}`,
+        `Жишээ бүтээл: ${formData.sampleWork || "-"}`,
+        `Танилцуулга: ${formData.bio || "-"}`,
+      ].join("\n")
 
-    // Simulate submission
-    await new Promise((resolve) => setTimeout(resolve, 1500))
+      await createFeedbackApi({
+        name: formData.name.trim(),
+        email: formData.email.trim(),
+        subject,
+        message,
+        type: "publisher_request",
+      })
 
-    setIsSubmitted(true)
-    setIsLoading(false)
+      setIsSubmitted(true)
+      toast.success("Нийтлэгч болох хүсэлт илгээгдлээ.")
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Хүсэлт илгээх үед алдаа гарлаа."
+      )
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  if (isAuthed === false && !isSubmitted) {
+    return (
+      <div className="flex min-h-screen bg-background">
+        <AppSidebar />
+        <main className="flex flex-1 items-center justify-center lg:ml-[260px] px-4">
+          <div className="max-w-md rounded-2xl bg-card p-6 text-center ring-1 ring-border">
+            <h1 className="text-xl font-bold text-foreground">Нийтлэгч болох</h1>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Нийтлэгч болох хүсэлт илгээхийн тулд та эхлээд бүртгүүлнэ үү.
+            </p>
+            <div className="mt-5 flex justify-center gap-3">
+              <Link
+                href="/register"
+                className="rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
+              >
+                Бүртгүүлэх
+              </Link>
+              <Link
+                href="/login"
+                className="rounded-lg border border-input bg-card px-4 py-2.5 text-sm font-semibold text-foreground hover:bg-secondary"
+              >
+                Нэвтрэх
+              </Link>
+            </div>
+          </div>
+        </main>
+      </div>
+    )
   }
 
   if (isSubmitted) {
@@ -315,7 +405,7 @@ export default function BecomePublisherPage() {
               <div>
                 <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground">
                   <TrendingUp className="h-4 w-4 text-primary" />
-                  Сонирхож буй ангилал{" "}
+                  Та аль салбарын судлаач вэ?{" "}
                   <span className="text-destructive">*</span>
                 </h3>
                 <p className="mt-1 text-xs text-muted-foreground">
@@ -392,11 +482,11 @@ export default function BecomePublisherPage() {
                 />
                 <span className="text-sm text-muted-foreground">
                   Би{" "}
-                  <Link href="/terms" className="text-primary hover:underline">
+                  <Link href="/publisher-contract" className="text-primary hover:underline">
                     Нийтлэгчийн гэрээ
                   </Link>{" "}
                   болон{" "}
-                  <Link href="/guidelines" className="text-primary hover:underline">
+                  <Link href="/content-guidelines" className="text-primary hover:underline">
                     Контентын удирдамж
                   </Link>
                   -ыг уншиж, зөвшөөрч байна.

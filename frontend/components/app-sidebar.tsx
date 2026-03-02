@@ -1,9 +1,10 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import type { MouseEvent } from "react"
 import type { ElementType } from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import {
   Home,
   Compass,
@@ -36,6 +37,7 @@ import {
 import { DynamicIcon } from "@/components/admin/icon-picker"
 import { categoryTextClass } from "@/lib/color-palette"
 import { Sheet, SheetContent } from "@/components/ui/sheet"
+import { toast } from "sonner"
 
 let categoriesCache: BackendCategory[] | null = null
 let topicsCache: BackendTopic[] | null = null
@@ -105,6 +107,7 @@ type SidebarPanelProps = {
   setAuthed: (value: boolean) => void
   siteName: string
   onNavigate: () => void
+  onBecomePublisher: (e: MouseEvent<HTMLAnchorElement>) => void
 }
 
 function SidebarPanel({
@@ -119,6 +122,7 @@ function SidebarPanel({
   setAuthed,
   siteName,
   onNavigate,
+  onBecomePublisher,
 }: SidebarPanelProps) {
   return (
     <div className="flex h-full min-h-0 flex-col bg-sidebar-bg text-sidebar-foreground">
@@ -264,7 +268,7 @@ function SidebarPanel({
         <div className="mx-3 mt-4">
           <Link
             href="/become-publisher"
-            onClick={onNavigate}
+            onClick={onBecomePublisher}
             className="flex items-center justify-center gap-2 rounded-lg bg-primary/10 px-4 py-3 text-sm font-medium text-primary transition-colors hover:bg-primary/20"
           >
             <PenTool className="h-4 w-4" />
@@ -303,6 +307,7 @@ function SidebarPanel({
 
 export function AppSidebar() {
   const pathname = usePathname()
+  const router = useRouter()
   const [categoriesOpen, setCategoriesOpen] = useState(true)
   const [topicsOpen, setTopicsOpen] = useState(true)
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -381,6 +386,17 @@ export function AppSidebar() {
     )
     .slice(0, 5)
 
+  const handleBecomePublisher = (e: MouseEvent<HTMLAnchorElement>) => {
+    if (!authed) {
+      e.preventDefault()
+      toast.info("Та эхлээд бүртгүүлнэ үү.")
+      setMobileOpen(false)
+      router.push("/register")
+      return
+    }
+    setMobileOpen(false)
+  }
+
   return (
     <>
       <button
@@ -408,6 +424,7 @@ export function AppSidebar() {
             setAuthed={setAuthed}
             siteName={siteName}
             onNavigate={() => setMobileOpen(false)}
+            onBecomePublisher={handleBecomePublisher}
           />
         </SheetContent>
       </Sheet>
@@ -425,6 +442,7 @@ export function AppSidebar() {
           setAuthed={setAuthed}
           siteName={siteName}
           onNavigate={() => {}}
+          onBecomePublisher={handleBecomePublisher}
         />
       </aside>
     </>

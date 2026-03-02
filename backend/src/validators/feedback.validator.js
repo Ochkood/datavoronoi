@@ -8,7 +8,14 @@ const feedbackTypeEnum = z.enum([
   'other',
 ]);
 
-const feedbackStatusEnum = z.enum(['new', 'pending', 'in_progress', 'resolved']);
+const feedbackStatusEnum = z.enum([
+  'new',
+  'pending',
+  'in_progress',
+  'resolved',
+  'approved',
+  'rejected',
+]);
 
 const createFeedbackSchema = z.object({
   name: z.string().trim().min(2).max(100),

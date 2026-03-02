@@ -13,13 +13,14 @@ const feedbackSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['new', 'pending', 'in_progress', 'resolved'],
+      enum: ['new', 'pending', 'in_progress', 'resolved', 'approved', 'rejected'],
       default: 'new',
     },
     replyMessage: { type: String, default: '' },
     replySentAt: { type: Date },
     sourceIp: { type: String, default: '' },
     userAgent: { type: String, default: '' },
+    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   },
   { timestamps: true }
 );

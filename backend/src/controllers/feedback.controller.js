@@ -1,8 +1,16 @@
 const Feedback = require('../models/Feedback');
+const User = require('../models/User');
 const asyncHandler = require('../utils/async-handler');
 const ApiError = require('../utils/api-error');
 
-const FEEDBACK_STATUSES = ['new', 'pending', 'in_progress', 'resolved'];
+const FEEDBACK_STATUSES = [
+  'new',
+  'pending',
+  'in_progress',
+  'resolved',
+  'approved',
+  'rejected',
+];
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 function getClientIp(req) {
@@ -28,6 +36,13 @@ function buildSearchFilter(q) {
 
 const createFeedback = asyncHandler(async (req, res) => {
   const { name, email, subject, message, type } = req.body;
+  const isPublisherRequest = type === 'publisher_request';
+  if (isPublisherRequest && !req.user) {
+    throw new ApiError(401, 'Please sign up or login first');
+  }
+
+  const actorName = req.user?.name || name;
+  const actorEmail = req.user?.email || email;
   const clientIp = getClientIp(req);
   const userAgent = String(req.headers['user-agent'] || '').slice(0, 255);
   const now = new Date();
@@ -42,7 +57,7 @@ const createFeedback = asyncHandler(async (req, res) => {
       createdAt: { $gte: new Date(now.getTime() - DAY_MS) },
     }),
     Feedback.findOne({
-      email: email.trim().toLowerCase(),
+      email: actorEmail.trim().toLowerCase(),
       subject: subject.trim(),
       message: message.trim(),
       createdAt: { $gte: new Date(now.getTime() - duplicateWindowMs) },
@@ -65,14 +80,15 @@ const createFeedback = asyncHandler(async (req, res) => {
   }
 
   const feedback = await Feedback.create({
-    name,
-    email: email.trim().toLowerCase(),
+    name: actorName,
+    email: actorEmail.trim().toLowerCase(),
     subject: subject.trim(),
     message: message.trim(),
     type: type || 'feedback',
-    status: 'new',
+    status: isPublisherRequest ? 'pending' : 'new',
     sourceIp: clientIp,
     userAgent,
+    user: req.user?._id,
   });
 
   res.status(201).json({
@@ -161,6 +177,20 @@ const updateFeedback = asyncHandler(async (req, res) => {
   }
 
   await feedback.save();
+
+  if (
+    feedback.type === 'publisher_request' &&
+    feedback.user &&
+    (status === 'approved' || status === 'rejected' || status === 'pending')
+  ) {
+    const user = await User.findById(feedback.user);
+    if (user) {
+      if (status === 'approved') {
+        user.role = 'publisher';
+      }
+      await user.save();
+    }
+  }
 
   res.json({
     success: true,

@@ -45,4 +45,26 @@ const requireRole = (...roles) => {
   };
 };
 
-module.exports = { protect, requireRole };
+const optionalAuth = asyncHandler(async (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  const token = authHeader && authHeader.startsWith('Bearer ')
+    ? authHeader.split(' ')[1]
+    : null;
+
+  if (!token) {
+    req.user = null;
+    return next();
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+    const user = await User.findById(decoded.userId);
+    req.user = user && user.isActive ? user : null;
+  } catch {
+    req.user = null;
+  }
+
+  next();
+});
+
+module.exports = { protect, requireRole, optionalAuth };

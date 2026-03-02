@@ -6,7 +6,7 @@ const {
   updateFeedback,
   deleteFeedback,
 } = require('../controllers/feedback.controller');
-const { protect, requireRole } = require('../middlewares/auth.middleware');
+const { protect, requireRole, optionalAuth } = require('../middlewares/auth.middleware');
 const validate = require('../middlewares/validate.middleware');
 const {
   createFeedbackSchema,
@@ -23,7 +23,13 @@ const feedbackCreateLimiter = rateLimit({
   message: { success: false, message: 'Too many feedback requests, please try again later.' },
 });
 
-router.post('/', feedbackCreateLimiter, validate(createFeedbackSchema), createFeedback);
+router.post(
+  '/',
+  feedbackCreateLimiter,
+  optionalAuth,
+  validate(createFeedbackSchema),
+  createFeedback
+);
 router.get('/admin/list', protect, requireRole('admin'), listAdminFeedback);
 router.patch('/:id', protect, requireRole('admin'), validate(updateFeedbackSchema), updateFeedback);
 router.delete('/:id', protect, requireRole('admin'), deleteFeedback);

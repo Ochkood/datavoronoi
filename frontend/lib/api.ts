@@ -346,7 +346,13 @@ export type FeedbackType =
   | "publisher_request"
   | "other"
 
-export type FeedbackStatus = "new" | "pending" | "in_progress" | "resolved"
+export type FeedbackStatus =
+  | "new"
+  | "pending"
+  | "in_progress"
+  | "resolved"
+  | "approved"
+  | "rejected"
 
 export type AdminFeedbackItem = {
   id: string
