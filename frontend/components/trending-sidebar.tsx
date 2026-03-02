@@ -131,7 +131,7 @@ export function TrendingSidebar() {
               <img
                 src={banner.imageUrl}
                 alt={banner.alt || "Сурталгааны баннер"}
-                className="h-36 w-full object-cover"
+                className="h-auto w-full object-contain"
                 loading="lazy"
               />
             </Link>
@@ -139,7 +139,7 @@ export function TrendingSidebar() {
             <img
               src={banner.imageUrl}
               alt={banner.alt || "Сурталгааны баннер"}
-              className="h-36 w-full object-cover"
+              className="h-auto w-full object-contain"
               loading="lazy"
             />
           )}
