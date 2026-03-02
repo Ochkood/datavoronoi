@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import Image from "next/image"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import {
@@ -16,6 +17,7 @@ import {
   BarChart3,
   Bell,
   Mail,
+  Home,
   LogOut,
   Search,
   UserCog,
@@ -23,6 +25,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { clearAuth } from "@/lib/auth"
+import { getMyProfileApi } from "@/lib/api"
 
 const mainNavItems = [
   { label: "Dashboard", icon: LayoutDashboard, href: "/admin" },
@@ -43,6 +46,30 @@ export function AdminSidebar() {
   const pathname = usePathname()
   const router = useRouter()
   const [collapsed, setCollapsed] = useState(false)
+  const [adminName, setAdminName] = useState("Админ")
+  const [adminEmail, setAdminEmail] = useState("admin@datanews.mn")
+  const [adminAvatar, setAdminAvatar] = useState("")
+
+  useEffect(() => {
+    let cancelled = false
+    getMyProfileApi()
+      .then((res) => {
+        if (cancelled) return
+        setAdminName(res.profile.name || "Админ")
+        setAdminEmail(res.profile.email || "admin@datanews.mn")
+        setAdminAvatar(res.profile.avatar || "")
+      })
+      .catch(() => {
+        if (cancelled) return
+        setAdminName("Админ")
+        setAdminEmail("admin@datanews.mn")
+        setAdminAvatar("")
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   return (
     <aside
@@ -153,22 +180,44 @@ export function AdminSidebar() {
 
       {/* User Profile */}
       <div className="border-t border-border p-3">
+        <Link
+          href="/"
+          className={cn(
+            "mb-2 flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground",
+            collapsed && "justify-center px-2"
+          )}
+          title={collapsed ? "Үндсэн сайт руу буцах" : undefined}
+        >
+          <Home className="h-[18px] w-[18px] flex-shrink-0" />
+          {!collapsed && "Үндсэн сайт руу"}
+        </Link>
+
         <div
           className={cn(
             "flex items-center gap-3 rounded-lg p-2",
             collapsed && "justify-center"
           )}
         >
-          <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-primary/10">
-            <UserCog className="h-4 w-4 text-primary" />
+          <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/10">
+            {adminAvatar ? (
+              <Image
+                src={adminAvatar}
+                alt={adminName}
+                width={36}
+                height={36}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <UserCog className="h-4 w-4 text-primary" />
+            )}
           </div>
           {!collapsed && (
             <div className="flex-1 overflow-hidden">
               <p className="truncate text-sm font-medium text-foreground">
-                Админ
+                {adminName}
               </p>
               <p className="truncate text-xs text-muted-foreground">
-                admin@datanews.mn
+                {adminEmail}
               </p>
             </div>
           )}

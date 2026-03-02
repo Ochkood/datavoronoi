@@ -1226,6 +1226,45 @@ export async function getAdminNewsletterSubscribersApi(params?: {
   }
 }
 
+export async function downloadAdminNewsletterSubscribersCsv(params?: {
+  q?: string
+  status?: "all" | "active" | "unsubscribed"
+}) {
+  const search = new URLSearchParams()
+  if (params?.q) search.set("q", params.q)
+  if (params?.status) search.set("status", params.status)
+  const suffix = search.toString() ? `?${search.toString()}` : ""
+
+  const accessToken = getAccessToken()
+  const res = await fetch(
+    `${API_BASE}/newsletter/admin/subscribers/export${suffix}`,
+    {
+      method: "GET",
+      headers: {
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+      },
+      cache: "no-store",
+    }
+  )
+
+  if (!res.ok) {
+    const json = await res.json().catch(() => null)
+    throw new Error(json?.message || "CSV татаж чадсангүй")
+  }
+
+  const blob = await res.blob()
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement("a")
+  a.href = url
+  a.download = `newsletter-subscribers-${new Date()
+    .toISOString()
+    .slice(0, 10)}.csv`
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+}
+
 export async function updateUserApi(
   id: string,
   payload: Partial<{

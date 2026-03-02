@@ -1,12 +1,22 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Search, Mail, Calendar, Filter, ChevronLeft, ChevronRight } from "lucide-react"
+import {
+  Search,
+  Mail,
+  Calendar,
+  Filter,
+  ChevronLeft,
+  ChevronRight,
+  Download,
+} from "lucide-react"
 import { cn } from "@/lib/utils"
 import {
+  downloadAdminNewsletterSubscribersCsv,
   getAdminNewsletterSubscribersApi,
   type NewsletterSubscriberItem,
 } from "@/lib/api"
+import { toast } from "sonner"
 
 function formatDate(value: string) {
   const date = new Date(value)
@@ -26,6 +36,7 @@ export default function AdminNewsletterPage() {
   const [error, setError] = useState("")
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "unsubscribed">("all")
+  const [exporting, setExporting] = useState(false)
   const [page, setPage] = useState(1)
   const [pagination, setPagination] = useState({
     total: 0,
@@ -69,6 +80,21 @@ export default function AdminNewsletterPage() {
     setPage(1)
   }, [searchQuery, statusFilter])
 
+  const handleExportCsv = async () => {
+    try {
+      setExporting(true)
+      await downloadAdminNewsletterSubscribersCsv({
+        q: searchQuery || undefined,
+        status: statusFilter,
+      })
+      toast.success("CSV амжилттай татагдлаа")
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "CSV татахад алдаа гарлаа")
+    } finally {
+      setExporting(false)
+    }
+  }
+
   return (
     <div className="min-h-screen">
       <header className="sticky top-0 z-30 border-b border-border bg-card/80 backdrop-blur-sm">
@@ -79,6 +105,14 @@ export default function AdminNewsletterPage() {
               Нийт {pagination.total} бүртгэл
             </p>
           </div>
+          <button
+            onClick={() => void handleExportCsv()}
+            disabled={exporting}
+            className="inline-flex items-center gap-2 rounded-lg border border-input bg-background px-3 py-2 text-sm font-medium text-foreground hover:bg-secondary disabled:opacity-60"
+          >
+            <Download className="h-4 w-4" />
+            {exporting ? "Татаж байна..." : "CSV татах"}
+          </button>
         </div>
       </header>
 

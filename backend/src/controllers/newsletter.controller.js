@@ -131,7 +131,49 @@ const listAdminNewsletterSubscribers = asyncHandler(async (req, res) => {
   });
 });
 
+function escapeCsv(value) {
+  const text = String(value ?? '');
+  if (/[",\n]/.test(text)) {
+    return `"${text.replace(/"/g, '""')}"`;
+  }
+  return text;
+}
+
+const exportAdminNewsletterSubscribersCsv = asyncHandler(async (req, res) => {
+  const { q = '', status = 'all' } = req.query;
+
+  const filter = {};
+  const query = String(q || '').trim();
+  if (query) {
+    filter.email = { $regex: query, $options: 'i' };
+  }
+  if (status !== 'all') {
+    filter.status = status;
+  }
+
+  const items = await NewsletterSubscriber.find(filter)
+    .sort({ createdAt: -1 })
+    .select('email status source subscribedAt createdAt');
+
+  const header = ['email', 'status', 'source', 'subscribedAt', 'createdAt'];
+  const rows = items.map((item) => [
+    escapeCsv(item.email),
+    escapeCsv(item.status),
+    escapeCsv(item.source || ''),
+    escapeCsv(item.subscribedAt ? new Date(item.subscribedAt).toISOString() : ''),
+    escapeCsv(item.createdAt ? new Date(item.createdAt).toISOString() : ''),
+  ]);
+
+  const csv = [header.join(','), ...rows.map((row) => row.join(','))].join('\n');
+  const filename = `newsletter-subscribers-${new Date().toISOString().slice(0, 10)}.csv`;
+
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+  res.status(200).send(`\ufeff${csv}`);
+});
+
 module.exports = {
   subscribeNewsletter,
   listAdminNewsletterSubscribers,
+  exportAdminNewsletterSubscribersCsv,
 };

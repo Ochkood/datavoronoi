@@ -1,146 +1,158 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import {
-  TrendingUp,
-  TrendingDown,
-  Users,
+  ArrowDownRight,
+  ArrowUpRight,
+  BarChart3,
+  Clock,
   Eye,
   FileText,
-  Clock,
-  Globe,
-  Smartphone,
-  Monitor,
-  Tablet,
-  ArrowUpRight,
-  ArrowDownRight,
+  TrendingUp,
+  Users,
 } from "lucide-react"
 import {
   Area,
   AreaChart,
   Bar,
   BarChart,
-  Cell,
-  Pie,
-  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts"
 import { cn } from "@/lib/utils"
+import {
+  getAdminDashboardSummaryApi,
+  type AdminDashboardSummary,
+} from "@/lib/api"
 
-// Traffic data
-const trafficData = [
-  { name: "1-р", visitors: 2400, pageViews: 4800 },
-  { name: "2-р", visitors: 1398, pageViews: 3200 },
-  { name: "3-р", visitors: 3800, pageViews: 7200 },
-  { name: "4-р", visitors: 3908, pageViews: 7800 },
-  { name: "5-р", visitors: 4800, pageViews: 9200 },
-  { name: "6-р", visitors: 3800, pageViews: 7400 },
-  { name: "7-р", visitors: 4300, pageViews: 8600 },
-]
+type PeriodKey = "week" | "month" | "year"
 
-// Top pages data
-const topPagesData = [
-  { name: "Монголын ДНБ-ний өсөлт", views: 12400, growth: 23 },
-  { name: "AI технологийн хувьсгал", views: 9800, growth: 45 },
-  { name: "Уур амьсгалын өөрчлөлт", views: 8200, growth: -5 },
-  { name: "Крипто зах зээлийн тойм", views: 7600, growth: 12 },
-  { name: "Эрүүл мэндийн зардал", views: 5400, growth: 8 },
-]
+type PostStatus = "draft" | "pending" | "published" | "rejected"
 
-// Device data
-const deviceData = [
-  { name: "Desktop", value: 45, color: "oklch(0.55 0.18 230)" },
-  { name: "Mobile", value: 42, color: "oklch(0.65 0.15 175)" },
-  { name: "Tablet", value: 13, color: "oklch(0.75 0.12 55)" },
-]
+const statusLabel: Record<PostStatus, string> = {
+  draft: "Ноорог",
+  pending: "Хүлээгдэж буй",
+  published: "Нийтэлсэн",
+  rejected: "Татгалзсан",
+}
 
-// Country data
-const countryData = [
-  { name: "Монгол", visitors: 78400, percentage: 82 },
-  { name: "АНУ", visitors: 8200, percentage: 8.5 },
-  { name: "Солонгос", visitors: 4100, percentage: 4.3 },
-  { name: "Хятад", visitors: 2900, percentage: 3 },
-  { name: "Бусад", visitors: 2100, percentage: 2.2 },
-]
+const statusClass: Record<PostStatus, string> = {
+  draft: "bg-muted text-muted-foreground",
+  pending: "bg-chart-5/15 text-chart-5",
+  published: "bg-chart-4/15 text-chart-4",
+  rejected: "bg-destructive/15 text-destructive",
+}
 
-// Browser data
-const browserData = [
-  { name: "Chrome", value: 62 },
-  { name: "Safari", value: 18 },
-  { name: "Firefox", value: 12 },
-  { name: "Edge", value: 6 },
-  { name: "Бусад", value: 2 },
-]
+function toRange(period: PeriodKey): "7d" | "30d" | "1y" {
+  if (period === "week") return "7d"
+  if (period === "month") return "30d"
+  return "1y"
+}
 
-const statsCards = [
-  {
-    label: "Нийт үзэлт",
-    value: "245.8K",
-    change: "+18%",
-    changeType: "positive",
-    icon: Eye,
-    color: "bg-primary/10 text-primary",
-  },
-  {
-    label: "Давтагдашгүй зочин",
-    value: "89.2K",
-    change: "+12%",
-    changeType: "positive",
-    icon: Users,
-    color: "bg-chart-2/10 text-chart-2",
-  },
-  {
-    label: "Дундаж хугацаа",
-    value: "4м 32с",
-    change: "+5%",
-    changeType: "positive",
-    icon: Clock,
-    color: "bg-chart-4/10 text-chart-4",
-  },
-  {
-    label: "Bounce rate",
-    value: "42.3%",
-    change: "-3%",
-    changeType: "positive",
-    icon: TrendingDown,
-    color: "bg-chart-5/10 text-chart-5",
-  },
-]
+function formatCompactNumber(value: number) {
+  if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`
+  if (value >= 1000) return `${(value / 1000).toFixed(1)}K`
+  return String(value)
+}
+
+function formatDate(value: string) {
+  const d = new Date(value)
+  if (Number.isNaN(d.getTime())) return "-"
+  return d.toLocaleDateString("mn-MN")
+}
 
 export default function AdminAnalyticsPage() {
-  const [period, setPeriod] = useState("week")
+  const [period, setPeriod] = useState<PeriodKey>("month")
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
+  const [data, setData] = useState<AdminDashboardSummary | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    setLoading(true)
+    setError("")
+
+    getAdminDashboardSummaryApi(toRange(period))
+      .then((res) => {
+        if (cancelled) return
+        setData(res)
+      })
+      .catch((e) => {
+        if (cancelled) return
+        setError(e instanceof Error ? e.message : "Статистик татахад алдаа гарлаа")
+        setData(null)
+      })
+      .finally(() => {
+        if (cancelled) return
+        setLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [period])
+
+  const statsCards = useMemo(
+    () => [
+      {
+        label: "Нийт мэдээ",
+        value: formatCompactNumber(data?.stats.totalPosts.value || 0),
+        change: data?.stats.totalPosts.changePct || 0,
+        icon: FileText,
+        color: "bg-primary/10 text-primary",
+      },
+      {
+        label: "Нийт хэрэглэгч",
+        value: formatCompactNumber(data?.stats.totalUsers.value || 0),
+        change: data?.stats.totalUsers.changePct || 0,
+        icon: Users,
+        color: "bg-chart-2/10 text-chart-2",
+      },
+      {
+        label: "Өнөөдрийн үзэлт",
+        value: formatCompactNumber(data?.stats.todayViews.value || 0),
+        change: data?.stats.todayViews.changePct || 0,
+        icon: Eye,
+        color: "bg-chart-4/10 text-chart-4",
+      },
+      {
+        label: "Engagement rate",
+        value: `${(data?.stats.engagementRate.value || 0).toFixed(1)}%`,
+        change: data?.stats.engagementRate.changePct || 0,
+        icon: TrendingUp,
+        color: "bg-chart-5/10 text-chart-5",
+      },
+    ],
+    [data]
+  )
 
   return (
     <div className="min-h-screen">
-      {/* Header */}
       <header className="sticky top-0 z-30 border-b border-border bg-card/80 backdrop-blur-sm">
         <div className="flex h-16 items-center justify-between px-6">
           <div>
             <h1 className="text-xl font-bold text-foreground">Статистик</h1>
-            <p className="text-sm text-muted-foreground">
-              Сайтын үзэлт болон хандалтын мэдээлэл
-            </p>
+            <p className="text-sm text-muted-foreground">Backend датагаар шинэчлэгдэнэ</p>
           </div>
           <div className="flex items-center gap-1 rounded-lg bg-secondary p-1">
-            {[
+            {([
               { value: "week", label: "7 хоног" },
               { value: "month", label: "Сар" },
               { value: "year", label: "Жил" },
-            ].map((p) => (
+            ] as const).map((item) => (
               <button
-                key={p.value}
-                onClick={() => setPeriod(p.value)}
+                key={item.value}
+                onClick={() => setPeriod(item.value)}
                 className={cn(
                   "rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
-                  period === p.value
+                  period === item.value
                     ? "bg-card text-foreground shadow-sm"
                     : "text-muted-foreground hover:text-foreground"
                 )}
               >
-                {p.label}
+                {item.label}
               </button>
             ))}
           </div>
@@ -148,311 +160,143 @@ export default function AdminAnalyticsPage() {
       </header>
 
       <div className="p-6">
-        {/* Stats Cards */}
+        {error && (
+          <div className="mb-6 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            {error}
+          </div>
+        )}
+
         <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {statsCards.map((stat) => (
-            <div
-              key={stat.label}
-              className="rounded-xl border border-border bg-card p-5"
-            >
-              <div className="flex items-start justify-between">
-                <div
-                  className={cn(
-                    "flex h-10 w-10 items-center justify-center rounded-lg",
-                    stat.color
-                  )}
-                >
-                  <stat.icon className="h-5 w-5" />
-                </div>
-                <span
-                  className={cn(
-                    "flex items-center gap-0.5 text-xs font-medium",
-                    stat.changeType === "positive"
-                      ? "text-chart-4"
-                      : "text-destructive"
-                  )}
-                >
-                  {stat.changeType === "positive" ? (
-                    <ArrowUpRight className="h-3 w-3" />
-                  ) : (
-                    <ArrowDownRight className="h-3 w-3" />
-                  )}
-                  {stat.change}
-                </span>
-              </div>
-              <div className="mt-4">
-                <p className="text-2xl font-bold text-foreground">
-                  {stat.value}
-                </p>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {stat.label}
-                </p>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Main Charts */}
-        <div className="mb-6 grid gap-6 lg:grid-cols-3">
-          {/* Traffic Chart */}
-          <div className="lg:col-span-2 rounded-xl border border-border bg-card p-5">
-            <div className="mb-4">
-              <h3 className="font-semibold text-foreground">Трафикийн график</h3>
-              <p className="text-sm text-muted-foreground">
-                Зочин болон хуудас үзэлтийн тоо
-              </p>
-            </div>
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={trafficData}>
-                  <defs>
-                    <linearGradient id="colorVisitors" x1="0" y1="0" x2="0" y2="1">
-                      <stop
-                        offset="5%"
-                        stopColor="oklch(0.55 0.18 230)"
-                        stopOpacity={0.3}
-                      />
-                      <stop
-                        offset="95%"
-                        stopColor="oklch(0.55 0.18 230)"
-                        stopOpacity={0}
-                      />
-                    </linearGradient>
-                    <linearGradient id="colorPageViews" x1="0" y1="0" x2="0" y2="1">
-                      <stop
-                        offset="5%"
-                        stopColor="oklch(0.65 0.15 175)"
-                        stopOpacity={0.3}
-                      />
-                      <stop
-                        offset="95%"
-                        stopColor="oklch(0.65 0.15 175)"
-                        stopOpacity={0}
-                      />
-                    </linearGradient>
-                  </defs>
-                  <XAxis
-                    dataKey="name"
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fontSize: 12, fill: "oklch(0.50 0.01 240)" }}
-                  />
-                  <YAxis
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fontSize: 12, fill: "oklch(0.50 0.01 240)" }}
-                    tickFormatter={(value) => `${value / 1000}K`}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "oklch(1 0 0)",
-                      border: "1px solid oklch(0.91 0.005 240)",
-                      borderRadius: "8px",
-                      fontSize: "12px",
-                    }}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="visitors"
-                    name="Зочин"
-                    stroke="oklch(0.55 0.18 230)"
-                    strokeWidth={2}
-                    fill="url(#colorVisitors)"
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="pageViews"
-                    name="Хуудас үзэлт"
-                    stroke="oklch(0.65 0.15 175)"
-                    strokeWidth={2}
-                    fill="url(#colorPageViews)"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="mt-4 flex items-center justify-center gap-6">
-              <div className="flex items-center gap-2">
-                <div className="h-3 w-3 rounded-full bg-primary" />
-                <span className="text-sm text-muted-foreground">Зочин</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="h-3 w-3 rounded-full bg-accent" />
-                <span className="text-sm text-muted-foreground">Хуудас үзэлт</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Device Distribution */}
-          <div className="rounded-xl border border-border bg-card p-5">
-            <div className="mb-4">
-              <h3 className="font-semibold text-foreground">Төхөөрөмжийн төрөл</h3>
-              <p className="text-sm text-muted-foreground">Хандалтын эзлэх хувь</p>
-            </div>
-            <div className="h-[200px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={deviceData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={50}
-                    outerRadius={80}
-                    paddingAngle={4}
-                    dataKey="value"
-                  >
-                    {deviceData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "oklch(1 0 0)",
-                      border: "1px solid oklch(0.91 0.005 240)",
-                      borderRadius: "8px",
-                      fontSize: "12px",
-                    }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="mt-4 space-y-2">
-              {deviceData.map((item) => {
-                const Icon =
-                  item.name === "Desktop"
-                    ? Monitor
-                    : item.name === "Mobile"
-                    ? Smartphone
-                    : Tablet
-                return (
-                  <div
-                    key={item.name}
-                    className="flex items-center justify-between"
-                  >
-                    <div className="flex items-center gap-2">
-                      <Icon className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm text-foreground">{item.name}</span>
-                    </div>
-                    <span className="text-sm font-medium text-foreground">
-                      {item.value}%
-                    </span>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        </div>
-
-        {/* Second Row */}
-        <div className="mb-6 grid gap-6 lg:grid-cols-2">
-          {/* Top Pages */}
-          <div className="rounded-xl border border-border bg-card p-5">
-            <div className="mb-4">
-              <h3 className="font-semibold text-foreground">Шилдэг мэдээ</h3>
-              <p className="text-sm text-muted-foreground">
-                Хамгийн их үзэлттэй мэдээнүүд
-              </p>
-            </div>
-            <div className="space-y-4">
-              {topPagesData.map((page, index) => (
-                <div key={page.name} className="flex items-center gap-4">
-                  <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-secondary text-xs font-medium text-foreground">
-                    {index + 1}
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <p className="truncate text-sm font-medium text-foreground">
-                      {page.name}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {page.views.toLocaleString()} үзэлт
-                    </p>
+          {statsCards.map((stat) => {
+            const positive = stat.change >= 0
+            return (
+              <div key={stat.label} className="rounded-xl border border-border bg-card p-5">
+                <div className="flex items-start justify-between">
+                  <div className={cn("flex h-10 w-10 items-center justify-center rounded-lg", stat.color)}>
+                    <stat.icon className="h-5 w-5" />
                   </div>
                   <span
                     className={cn(
                       "flex items-center gap-0.5 text-xs font-medium",
-                      page.growth >= 0 ? "text-chart-4" : "text-destructive"
+                      positive ? "text-chart-4" : "text-destructive"
                     )}
                   >
-                    {page.growth >= 0 ? (
-                      <ArrowUpRight className="h-3 w-3" />
-                    ) : (
-                      <ArrowDownRight className="h-3 w-3" />
-                    )}
-                    {Math.abs(page.growth)}%
+                    {positive ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+                    {Math.abs(stat.change).toFixed(1)}%
                   </span>
                 </div>
-              ))}
+                <p className="mt-4 text-2xl font-bold text-foreground">{loading ? "..." : stat.value}</p>
+                <p className="mt-1 text-sm text-muted-foreground">{stat.label}</p>
+              </div>
+            )
+          })}
+        </div>
+
+        <div className="mb-6 grid gap-6 lg:grid-cols-2">
+          <div className="rounded-xl border border-border bg-card p-5">
+            <div className="mb-4">
+              <h3 className="font-semibold text-foreground">Үзэлтийн тренд</h3>
+              <p className="text-sm text-muted-foreground">Сүүлийн сарууд</p>
+            </div>
+            <div className="h-[280px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={data?.viewsTrend || []}>
+                  <defs>
+                    <linearGradient id="adminViews" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="oklch(0.55 0.18 230)" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="oklch(0.55 0.18 230)" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "oklch(0.50 0.01 240)" }} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "oklch(0.50 0.01 240)" }} tickFormatter={(v) => `${Math.round(v / 1000)}K`} />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "oklch(1 0 0)",
+                      border: "1px solid oklch(0.91 0.005 240)",
+                      borderRadius: "8px",
+                      fontSize: "12px",
+                    }}
+                  />
+                  <Area type="monotone" dataKey="views" stroke="oklch(0.55 0.18 230)" strokeWidth={2} fill="url(#adminViews)" />
+                </AreaChart>
+              </ResponsiveContainer>
             </div>
           </div>
 
-          {/* Country Distribution */}
           <div className="rounded-xl border border-border bg-card p-5">
             <div className="mb-4">
-              <h3 className="font-semibold text-foreground">Улс орноор</h3>
-              <p className="text-sm text-muted-foreground">
-                Зочдын байршлын тархалт
-              </p>
+              <h3 className="font-semibold text-foreground">Ангиллын тархалт</h3>
+              <p className="text-sm text-muted-foreground">Нийтлэл ангиллаар</p>
             </div>
-            <div className="space-y-4">
-              {countryData.map((country) => (
-                <div key={country.name}>
-                  <div className="mb-1.5 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Globe className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm font-medium text-foreground">
-                        {country.name}
-                      </span>
-                    </div>
-                    <span className="text-sm text-muted-foreground">
-                      {country.visitors.toLocaleString()} ({country.percentage}%)
-                    </span>
-                  </div>
-                  <div className="h-2 overflow-hidden rounded-full bg-secondary">
-                    <div
-                      className="h-full rounded-full bg-primary transition-all"
-                      style={{ width: `${country.percentage}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
+            <div className="h-[280px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={data?.categoryData || []} layout="vertical">
+                  <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "oklch(0.50 0.01 240)" }} />
+                  <YAxis type="category" dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "oklch(0.50 0.01 240)" }} width={90} />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "oklch(1 0 0)",
+                      border: "1px solid oklch(0.91 0.005 240)",
+                      borderRadius: "8px",
+                      fontSize: "12px",
+                    }}
+                  />
+                  <Bar dataKey="posts" fill="oklch(0.65 0.15 175)" radius={[0, 4, 4, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
             </div>
           </div>
         </div>
 
-        {/* Browser Stats */}
-        <div className="rounded-xl border border-border bg-card p-5">
-          <div className="mb-4">
-            <h3 className="font-semibold text-foreground">Хөтчөөр</h3>
-            <p className="text-sm text-muted-foreground">
-              Хэрэглэгчдийн ашиглаж буй хөтөч
-            </p>
+        <div className="rounded-xl border border-border bg-card">
+          <div className="flex items-center justify-between border-b border-border p-5">
+            <div>
+              <h3 className="font-semibold text-foreground">Сүүлийн мэдээнүүд</h3>
+              <p className="text-sm text-muted-foreground">Хяналтын хүснэгт</p>
+            </div>
+            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+              <Clock className="h-3.5 w-3.5" />
+              Realtime
+            </div>
           </div>
-          <div className="h-[200px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={browserData}>
-                <XAxis
-                  dataKey="name"
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fontSize: 12, fill: "oklch(0.50 0.01 240)" }}
-                />
-                <YAxis
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fontSize: 12, fill: "oklch(0.50 0.01 240)" }}
-                  tickFormatter={(value) => `${value}%`}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "oklch(1 0 0)",
-                    border: "1px solid oklch(0.91 0.005 240)",
-                    borderRadius: "8px",
-                    fontSize: "12px",
-                  }}
-                />
-                <Bar dataKey="value" fill="oklch(0.55 0.18 230)" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead className="bg-secondary/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
+                <tr>
+                  <th className="px-5 py-3">Гарчиг</th>
+                  <th className="px-5 py-3">Төлөв</th>
+                  <th className="px-5 py-3">Үзэлт</th>
+                  <th className="px-5 py-3">Огноо</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(data?.recentPosts || []).map((post) => (
+                  <tr key={post.id} className="border-t border-border/70">
+                    <td className="px-5 py-3 font-medium text-foreground">{post.title}</td>
+                    <td className="px-5 py-3">
+                      <span className={cn("inline-flex rounded-full px-2 py-0.5 text-xs font-medium", statusClass[post.status as PostStatus] || "bg-muted text-muted-foreground")}>
+                        {statusLabel[post.status as PostStatus] || post.status}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3 text-muted-foreground">{formatCompactNumber(post.views)}</td>
+                    <td className="px-5 py-3 text-muted-foreground">{formatDate(post.date)}</td>
+                  </tr>
+                ))}
+                {!loading && (data?.recentPosts || []).length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="px-5 py-8 text-center text-sm text-muted-foreground">
+                      Мэдээлэл байхгүй
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
+        </div>
+
+        <div className="mt-4 rounded-lg bg-muted/50 px-4 py-3 text-xs text-muted-foreground">
+          Төхөөрөмж, улс орон, веб хөтөчийн хүнд статистикуудыг энэ хувилбарт хассан.
+          Гол KPI болон тренд үзүүлэлтүүд backend-с бодитоор ачаалж байна.
         </div>
       </div>
     </div>
