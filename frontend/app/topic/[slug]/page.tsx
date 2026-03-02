@@ -394,7 +394,7 @@ export default function TopicPage() {
             {/* Right sidebar */}
             <div className="w-full flex-shrink-0 xl:w-[320px]">
               <div className="sticky top-[120px]">
-                <TrendingSidebar />
+                <TrendingSidebar pageType="topic" targetId={topic?._id} />
               </div>
             </div>
           </div>

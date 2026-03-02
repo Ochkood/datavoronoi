@@ -72,6 +72,34 @@ export type BackendTopic = {
   postsCount?: number
 }
 
+export type BannerTargetType = "home" | "category" | "topic"
+
+export type BannerItem = {
+  id: string
+  title: string
+  imageUrl: string
+  linkUrl: string
+  alt: string
+  placement: "sidebar"
+  targetType: BannerTargetType
+  category: { id: string; name: string; slug: string } | null
+  topic: { id: string; name: string; slug: string } | null
+  sortOrder: number
+  isActive: boolean
+  createdAt?: string
+  updatedAt?: string
+}
+
+export type AdminBannerList = {
+  items: BannerItem[]
+  pagination: {
+    total: number
+    page: number
+    limit: number
+    totalPages: number
+  }
+}
+
 function toRelativeDate(dateString?: string): string {
   if (!dateString) return "Саяхан"
   const d = new Date(dateString)
@@ -551,6 +579,30 @@ type BackendNewsletterSubscriber = {
   createdAt: string
 }
 
+type BackendBanner = {
+  _id: string
+  title: string
+  imageUrl: string
+  linkUrl?: string
+  alt?: string
+  placement?: "sidebar"
+  targetType: BannerTargetType
+  category?: {
+    _id?: string
+    name?: string
+    slug?: string
+  } | null
+  topic?: {
+    _id?: string
+    name?: string
+    slug?: string
+  } | null
+  sortOrder?: number
+  isActive?: boolean
+  createdAt?: string
+  updatedAt?: string
+}
+
 function mapDashboardPost(post: BackendPost): DashboardPost {
   return {
     id: post._id,
@@ -622,6 +674,36 @@ function mapNewsletterSubscriber(
     source: item.source || "sidebar",
     subscribedAt: item.subscribedAt || item.createdAt,
     createdAt: item.createdAt,
+  }
+}
+
+function mapBanner(item: BackendBanner): BannerItem {
+  return {
+    id: item._id,
+    title: item.title,
+    imageUrl: item.imageUrl,
+    linkUrl: item.linkUrl || "",
+    alt: item.alt || "Сурталгааны баннер",
+    placement: item.placement || "sidebar",
+    targetType: item.targetType,
+    category: item.category?._id
+      ? {
+          id: item.category._id,
+          name: item.category.name || "",
+          slug: item.category.slug || "",
+        }
+      : null,
+    topic: item.topic?._id
+      ? {
+          id: item.topic._id,
+          name: item.topic.name || "",
+          slug: item.topic.slug || "",
+        }
+      : null,
+    sortOrder: Number(item.sortOrder || 0),
+    isActive: Boolean(item.isActive),
+    createdAt: item.createdAt,
+    updatedAt: item.updatedAt,
   }
 }
 
@@ -1411,6 +1493,95 @@ export async function updateUserApi(
     body: JSON.stringify(payload),
   })
   return res.data.user
+}
+
+export async function getPublicBannersApi(params?: {
+  placement?: "sidebar"
+  pageType?: BannerTargetType
+  targetId?: string
+  limit?: number
+}) {
+  const search = new URLSearchParams()
+  if (params?.placement) search.set("placement", params.placement)
+  if (params?.pageType) search.set("pageType", params.pageType)
+  if (params?.targetId) search.set("targetId", params.targetId)
+  if (params?.limit) search.set("limit", String(params.limit))
+  const suffix = search.toString() ? `?${search.toString()}` : ""
+
+  const res = await request<ApiResponse<{ items: BackendBanner[] }>>(
+    `/banners/public${suffix}`
+  )
+  return res.data.items.map(mapBanner)
+}
+
+export async function getAdminBannersApi(params?: {
+  page?: number
+  limit?: number
+  q?: string
+  targetType?: "all" | BannerTargetType
+  status?: "all" | "active" | "inactive"
+}) {
+  const search = new URLSearchParams()
+  if (params?.page) search.set("page", String(params.page))
+  if (params?.limit) search.set("limit", String(params.limit))
+  if (params?.q) search.set("q", params.q)
+  if (params?.targetType) search.set("targetType", params.targetType)
+  if (params?.status) search.set("status", params.status)
+  const suffix = search.toString() ? `?${search.toString()}` : ""
+
+  const res = await request<
+    ApiResponse<{ items: BackendBanner[]; pagination: AdminBannerList["pagination"] }>
+  >(`/banners/admin/list${suffix}`)
+
+  return {
+    items: res.data.items.map(mapBanner),
+    pagination: res.data.pagination,
+  }
+}
+
+export async function createAdminBannerApi(payload: {
+  title: string
+  imageUrl: string
+  linkUrl?: string
+  alt?: string
+  targetType: BannerTargetType
+  categoryId?: string
+  topicId?: string
+  sortOrder?: number
+  isActive?: boolean
+}) {
+  const res = await request<ApiResponse<{ banner: BackendBanner }>>("/banners/admin", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  })
+  return mapBanner(res.data.banner)
+}
+
+export async function updateAdminBannerApi(
+  id: string,
+  payload: Partial<{
+    title: string
+    imageUrl: string
+    linkUrl?: string
+    alt?: string
+    targetType: BannerTargetType
+    categoryId?: string
+    topicId?: string
+    sortOrder?: number
+    isActive?: boolean
+  }>
+) {
+  const res = await request<ApiResponse<{ banner: BackendBanner }>>(`/banners/admin/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  })
+  return mapBanner(res.data.banner)
+}
+
+export async function deleteAdminBannerApi(id: string) {
+  await request<ApiResponse<{ message: string }>>(`/banners/admin/${id}`, {
+    method: "DELETE",
+  })
 }
 
 export async function getAdminSettingsApi() {

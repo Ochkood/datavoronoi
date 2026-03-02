@@ -1,25 +1,37 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import Image from "next/image"
 import {
   Bell,
   Check,
   Image as ImageIcon,
   Loader2,
   Mail,
+  Pencil,
+  Plus,
   Save,
   Settings,
   Shield,
+  Trash2,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import {
+  createAdminBannerApi,
   changeMyPasswordApi,
+  deleteAdminBannerApi,
+  getAdminBannersApi,
   getAdminSettingsApi,
+  getCategories,
+  getTopics,
   uploadImageApi,
+  updateAdminBannerApi,
   updateAdminSettingsApi,
   type AdminSettings,
+  type BannerItem,
+  type BannerTargetType,
+  type BackendCategory,
+  type BackendTopic,
 } from "@/lib/api"
 
 type TabKey = "general" | "banner" | "email" | "notifications" | "security"
@@ -123,7 +135,38 @@ export default function AdminSettingsPage() {
   const [passwordLoading, setPasswordLoading] = useState(false)
   const [passwordError, setPasswordError] = useState("")
   const [passwordSuccess, setPasswordSuccess] = useState("")
+  const [categories, setCategories] = useState<BackendCategory[]>([])
+  const [topics, setTopics] = useState<BackendTopic[]>([])
+  const [bannerItems, setBannerItems] = useState<BannerItem[]>([])
+  const [bannerLoading, setBannerLoading] = useState(false)
+  const [bannerSubmitting, setBannerSubmitting] = useState(false)
   const [bannerUploading, setBannerUploading] = useState(false)
+  const [bannerPage, setBannerPage] = useState(1)
+  const [bannerTotalPages, setBannerTotalPages] = useState(1)
+  const [bannerFilterType, setBannerFilterType] = useState<"all" | BannerTargetType>("all")
+  const [bannerFilterStatus, setBannerFilterStatus] = useState<
+    "all" | "active" | "inactive"
+  >("all")
+  const [bannerForm, setBannerForm] = useState<{
+    title: string
+    imageUrl: string
+    linkUrl: string
+    alt: string
+    targetType: BannerTargetType
+    targetId: string
+    sortOrder: number
+    isActive: boolean
+  }>({
+    title: "",
+    imageUrl: "",
+    linkUrl: "",
+    alt: "Сурталгааны баннер",
+    targetType: "home",
+    targetId: "",
+    sortOrder: 0,
+    isActive: true,
+  })
+  const [editingBannerId, setEditingBannerId] = useState<string | null>(null)
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: "",
     newPassword: "",
@@ -174,29 +217,178 @@ export default function AdminSettingsPage() {
       email: settings.email,
       notifications: settings.notifications,
       typography: settings.typography,
-      sidebarBanner: settings.sidebarBanner,
     }),
     [settings]
   )
 
-  const handleBannerUpload = async (file?: File) => {
+  useEffect(() => {
+    if (activeTab !== "banner") return
+    let cancelled = false
+    Promise.all([getCategories(), getTopics()])
+      .then(([categoryRows, topicRows]) => {
+        if (cancelled) return
+        setCategories(categoryRows)
+        setTopics(topicRows)
+      })
+      .catch(() => {
+        if (cancelled) return
+        setCategories([])
+        setTopics([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [activeTab])
+
+  const loadBanners = async (page = 1) => {
+    setBannerLoading(true)
+    try {
+      const res = await getAdminBannersApi({
+        page,
+        limit: 12,
+        targetType: bannerFilterType,
+        status: bannerFilterStatus,
+      })
+      setBannerItems(res.items)
+      setBannerPage(res.pagination.page)
+      setBannerTotalPages(res.pagination.totalPages)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Баннер жагсаалт ачаалж чадсангүй")
+      setBannerItems([])
+    } finally {
+      setBannerLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (activeTab !== "banner") return
+    void loadBanners(bannerPage)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, bannerPage, bannerFilterType, bannerFilterStatus])
+
+  const handleBannerImageUpload = async (file?: File) => {
     if (!file) return
     setBannerUploading(true)
     setError("")
     try {
       const uploadedUrl = await uploadImageApi(file, "banners")
-      setSettings((prev) => ({
+      setBannerForm((prev) => ({
         ...prev,
-        sidebarBanner: {
-          ...prev.sidebarBanner,
-          imageUrl: uploadedUrl,
-          enabled: true,
-        },
+        imageUrl: uploadedUrl,
       }))
     } catch (e) {
       setError(e instanceof Error ? e.message : "Баннер upload хийх үед алдаа гарлаа")
     } finally {
       setBannerUploading(false)
+    }
+  }
+
+  const resetBannerForm = () => {
+    setEditingBannerId(null)
+    setBannerForm({
+      title: "",
+      imageUrl: "",
+      linkUrl: "",
+      alt: "Сурталгааны баннер",
+      targetType: "home",
+      targetId: "",
+      sortOrder: 0,
+      isActive: true,
+    })
+  }
+
+  const handleEditBanner = (item: BannerItem) => {
+    setEditingBannerId(item.id)
+    setBannerForm({
+      title: item.title,
+      imageUrl: item.imageUrl,
+      linkUrl: item.linkUrl || "",
+      alt: item.alt || "Сурталгааны баннер",
+      targetType: item.targetType,
+      targetId:
+        item.targetType === "category"
+          ? item.category?.id || ""
+          : item.targetType === "topic"
+            ? item.topic?.id || ""
+            : "",
+      sortOrder: item.sortOrder || 0,
+      isActive: item.isActive,
+    })
+  }
+
+  const handleSaveBanner = async () => {
+    if (!bannerForm.title.trim()) {
+      setError("Баннерын нэр оруулна уу")
+      return
+    }
+    if (!bannerForm.imageUrl.trim()) {
+      setError("Баннерын зураг оруулна уу")
+      return
+    }
+    if ((bannerForm.targetType === "category" || bannerForm.targetType === "topic") && !bannerForm.targetId) {
+      setError("Ангилал/сэдвээ сонгоно уу")
+      return
+    }
+
+    setBannerSubmitting(true)
+    setError("")
+    const payload = {
+      title: bannerForm.title.trim(),
+      imageUrl: bannerForm.imageUrl.trim(),
+      linkUrl: bannerForm.linkUrl.trim(),
+      alt: bannerForm.alt.trim(),
+      targetType: bannerForm.targetType,
+      categoryId: bannerForm.targetType === "category" ? bannerForm.targetId : undefined,
+      topicId: bannerForm.targetType === "topic" ? bannerForm.targetId : undefined,
+      sortOrder: Number(bannerForm.sortOrder || 0),
+      isActive: bannerForm.isActive,
+    }
+
+    try {
+      if (editingBannerId) {
+        await updateAdminBannerApi(editingBannerId, payload)
+      } else {
+        await createAdminBannerApi(payload)
+      }
+      await loadBanners(1)
+      setBannerPage(1)
+      resetBannerForm()
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("dn-site-settings-updated"))
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Баннер хадгалах үед алдаа гарлаа")
+    } finally {
+      setBannerSubmitting(false)
+    }
+  }
+
+  const handleDeleteBanner = async (id: string) => {
+    if (!window.confirm("Энэ баннерыг устгах уу?")) return
+    try {
+      await deleteAdminBannerApi(id)
+      await loadBanners(bannerPage)
+      if (editingBannerId === id) resetBannerForm()
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("dn-site-settings-updated"))
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Баннер устгах үед алдаа гарлаа")
+    }
+  }
+
+  const handleToggleBannerActive = async (item: BannerItem) => {
+    try {
+      await updateAdminBannerApi(item.id, { isActive: !item.isActive })
+      await loadBanners(bannerPage)
+      if (editingBannerId === item.id) {
+        setBannerForm((prev) => ({ ...prev, isActive: !item.isActive }))
+      }
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("dn-site-settings-updated"))
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Баннер төлөв өөрчлөх үед алдаа гарлаа")
     }
   }
 
@@ -258,7 +450,7 @@ export default function AdminSettingsPage() {
             <h1 className="text-xl font-bold text-foreground">Тохиргоо</h1>
             <p className="text-sm text-muted-foreground">Админ хэсгийн суурь тохиргоонууд</p>
           </div>
-          {activeTab !== "security" ? (
+          {activeTab !== "security" && activeTab !== "banner" ? (
             <button
               onClick={handleSave}
               disabled={loading || saving}
@@ -544,84 +736,283 @@ export default function AdminSettingsPage() {
           ) : null}
 
           {activeTab === "banner" ? (
-            <div className="rounded-xl border border-border bg-card p-6">
-              <h2 className="text-lg font-semibold text-foreground">Sidebar баннер</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Нүүр хуудасны баруун талын sidebar-ийн дээд хэсэгт харагдах сурталгааны баннер.
-              </p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Өөрчлөлт оруулсны дараа баруун дээд талын "Хадгалах" товч дарж хадгална.
-              </p>
+            <div className="space-y-6">
+              <div className="rounded-xl border border-border bg-card p-6">
+                <h2 className="text-lg font-semibold text-foreground">
+                  Баннер нэмэх / засах
+                </h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Баннерыг Home, Category, Topic хуудас тус бүрт чиглүүлж өгнө.
+                </p>
 
-              <div className="mt-4">
-                <ToggleRow
-                  label="Баннер харуулах"
-                  checked={settings.sidebarBanner.enabled}
-                  onChange={(next) =>
-                    setSettings((prev) => ({
-                      ...prev,
-                      sidebarBanner: { ...prev.sidebarBanner, enabled: next },
-                    }))
-                  }
-                />
-              </div>
-
-              <div className="mt-6 space-y-4">
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium text-foreground">Зураг оруулах</label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    disabled={bannerUploading}
-                    onChange={(e) => void handleBannerUpload(e.target.files?.[0])}
-                    className="h-10 w-full max-w-md rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground file:mr-3 file:rounded-md file:border-0 file:bg-secondary file:px-3 file:py-1.5 file:text-xs file:font-medium disabled:opacity-70"
-                  />
-                  {bannerUploading ? (
-                    <p className="mt-2 text-xs text-muted-foreground">Upload хийж байна...</p>
-                  ) : null}
-                </div>
-
-                {settings.sidebarBanner.imageUrl ? (
-                  <div className="relative h-32 w-full max-w-md overflow-hidden rounded-lg border border-border bg-muted/40">
-                    <Image
-                      src={settings.sidebarBanner.imageUrl}
-                      alt={settings.sidebarBanner.alt || "Сурталгааны баннер"}
-                      fill
-                      className="object-cover"
+                <div className="mt-6 grid gap-4 sm:grid-cols-2">
+                  <div className="sm:col-span-2">
+                    <label className="mb-1.5 block text-sm font-medium text-foreground">Гарчиг</label>
+                    <input
+                      type="text"
+                      value={bannerForm.title}
+                      onChange={(e) =>
+                        setBannerForm((prev) => ({ ...prev, title: e.target.value }))
+                      }
+                      className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
+                      placeholder="Жишээ: Хаврын урамшуулал"
                     />
                   </div>
-                ) : null}
 
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium text-foreground">Очих холбоос (optional)</label>
-                  <input
-                    type="url"
-                    value={settings.sidebarBanner.linkUrl}
-                    onChange={(e) =>
-                      setSettings((prev) => ({
-                        ...prev,
-                        sidebarBanner: { ...prev.sidebarBanner, linkUrl: e.target.value },
-                      }))
-                    }
-                    className="h-10 w-full max-w-md rounded-lg border border-input bg-background px-3 text-sm text-foreground"
-                    placeholder="https://..."
-                  />
+                  <div className="sm:col-span-2">
+                    <label className="mb-1.5 block text-sm font-medium text-foreground">Зураг</label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      disabled={bannerUploading}
+                      onChange={(e) => void handleBannerImageUpload(e.target.files?.[0])}
+                      className="h-10 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm file:mr-3 file:rounded-md file:border-0 file:bg-secondary file:px-3 file:py-1.5 file:text-xs file:font-medium"
+                    />
+                    {bannerUploading ? (
+                      <p className="mt-2 text-xs text-muted-foreground">Upload хийж байна...</p>
+                    ) : null}
+                    {bannerForm.imageUrl ? (
+                      <img
+                        src={bannerForm.imageUrl}
+                        alt={bannerForm.alt || "preview"}
+                        className="mt-3 max-h-44 w-full rounded-lg border border-border object-contain"
+                      />
+                    ) : null}
+                  </div>
+
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-foreground">Харуулах хуудас</label>
+                    <select
+                      value={bannerForm.targetType}
+                      onChange={(e) =>
+                        setBannerForm((prev) => ({
+                          ...prev,
+                          targetType: e.target.value as BannerTargetType,
+                          targetId: "",
+                        }))
+                      }
+                      className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
+                    >
+                      <option value="home">Home</option>
+                      <option value="category">Category</option>
+                      <option value="topic">Topic</option>
+                    </select>
+                  </div>
+
+                  {bannerForm.targetType !== "home" ? (
+                    <div>
+                      <label className="mb-1.5 block text-sm font-medium text-foreground">
+                        {bannerForm.targetType === "category" ? "Ангилал" : "Сэдэв"}
+                      </label>
+                      <select
+                        value={bannerForm.targetId}
+                        onChange={(e) =>
+                          setBannerForm((prev) => ({ ...prev, targetId: e.target.value }))
+                        }
+                        className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
+                      >
+                        <option value="">Сонгох...</option>
+                        {(bannerForm.targetType === "category" ? categories : topics).map((item) => (
+                          <option key={item._id} value={item._id}>
+                            {item.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  ) : null}
+
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-foreground">Очих холбоос</label>
+                    <input
+                      type="url"
+                      value={bannerForm.linkUrl}
+                      onChange={(e) =>
+                        setBannerForm((prev) => ({ ...prev, linkUrl: e.target.value }))
+                      }
+                      className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
+                      placeholder="https://..."
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-foreground">Alt текст</label>
+                    <input
+                      type="text"
+                      value={bannerForm.alt}
+                      onChange={(e) =>
+                        setBannerForm((prev) => ({ ...prev, alt: e.target.value }))
+                      }
+                      className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-foreground">Эрэмбэ (sort)</label>
+                    <input
+                      type="number"
+                      value={bannerForm.sortOrder}
+                      onChange={(e) =>
+                        setBannerForm((prev) => ({
+                          ...prev,
+                          sortOrder: Number(e.target.value || 0),
+                        }))
+                      }
+                      className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
+                    />
+                  </div>
+
+                  <div className="flex items-end">
+                    <ToggleRow
+                      label="Идэвхтэй"
+                      checked={bannerForm.isActive}
+                      onChange={(next) =>
+                        setBannerForm((prev) => ({ ...prev, isActive: next }))
+                      }
+                    />
+                  </div>
                 </div>
 
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium text-foreground">Alt текст</label>
-                  <input
-                    type="text"
-                    value={settings.sidebarBanner.alt}
-                    onChange={(e) =>
-                      setSettings((prev) => ({
-                        ...prev,
-                        sidebarBanner: { ...prev.sidebarBanner, alt: e.target.value },
-                      }))
-                    }
-                    className="h-10 w-full max-w-md rounded-lg border border-input bg-background px-3 text-sm text-foreground"
-                    placeholder="Сурталгааны баннер"
-                  />
+                <div className="mt-4 flex items-center gap-2">
+                  <button
+                    onClick={() => void handleSaveBanner()}
+                    disabled={bannerSubmitting}
+                    className={cn(
+                      "inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90",
+                      bannerSubmitting && "cursor-not-allowed opacity-70"
+                    )}
+                  >
+                    {bannerSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                    {editingBannerId ? "Шинэчлэх" : "Баннер нэмэх"}
+                  </button>
+                  {editingBannerId ? (
+                    <button
+                      onClick={resetBannerForm}
+                      className="rounded-lg border border-border px-4 py-2 text-sm hover:bg-secondary"
+                    >
+                      Цуцлах
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-border bg-card p-6">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <h3 className="text-lg font-semibold text-foreground">Оруулсан баннерууд</h3>
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={bannerFilterType}
+                      onChange={(e) =>
+                        {
+                          setBannerFilterType(e.target.value as "all" | BannerTargetType)
+                          setBannerPage(1)
+                        }
+                      }
+                      className="h-9 rounded-lg border border-input bg-background px-2 text-xs"
+                    >
+                      <option value="all">Бүгд</option>
+                      <option value="home">Home</option>
+                      <option value="category">Category</option>
+                      <option value="topic">Topic</option>
+                    </select>
+                    <select
+                      value={bannerFilterStatus}
+                      onChange={(e) =>
+                        {
+                          setBannerFilterStatus(e.target.value as "all" | "active" | "inactive")
+                          setBannerPage(1)
+                        }
+                      }
+                      className="h-9 rounded-lg border border-input bg-background px-2 text-xs"
+                    >
+                      <option value="all">Бүх төлөв</option>
+                      <option value="active">Идэвхтэй</option>
+                      <option value="inactive">Идэвхгүй</option>
+                    </select>
+                  </div>
+                </div>
+
+                {bannerLoading ? (
+                  <p className="mt-4 text-sm text-muted-foreground">Уншиж байна...</p>
+                ) : bannerItems.length === 0 ? (
+                  <p className="mt-4 text-sm text-muted-foreground">Баннер алга байна.</p>
+                ) : (
+                  <div className="mt-4 space-y-3">
+                    {bannerItems.map((item) => (
+                      <div
+                        key={item.id}
+                        className="flex flex-col gap-3 rounded-lg border border-border p-3 md:flex-row md:items-center"
+                      >
+                        <img
+                          src={item.imageUrl}
+                          alt={item.alt || item.title}
+                          className="h-20 w-full rounded-md border border-border object-contain md:w-44"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-semibold text-foreground">{item.title}</p>
+                          <p className="mt-0.5 text-xs text-muted-foreground">
+                            {item.targetType === "home"
+                              ? "Home"
+                              : item.targetType === "category"
+                                ? `Category: ${item.category?.name || "-"}`
+                                : `Topic: ${item.topic?.name || "-"}`}
+                            {" • "}
+                            sort: {item.sortOrder}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => void handleToggleBannerActive(item)}
+                            className={cn(
+                              "rounded-md px-2.5 py-1 text-xs font-medium",
+                              item.isActive
+                                ? "bg-emerald-500/15 text-emerald-700"
+                                : "bg-muted text-muted-foreground"
+                            )}
+                          >
+                            {item.isActive ? "Active" : "Inactive"}
+                          </button>
+                          <button
+                            onClick={() => handleEditBanner(item)}
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border hover:bg-secondary"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => void handleDeleteBanner(item.id)}
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border text-destructive hover:bg-destructive/10"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="mt-4 flex items-center justify-center gap-2">
+                  <button
+                    onClick={() => setBannerPage((prev) => Math.max(1, prev - 1))}
+                    disabled={bannerPage <= 1}
+                    className={cn(
+                      "rounded-lg border border-border px-3 py-1.5 text-sm",
+                      bannerPage <= 1 ? "opacity-50" : "hover:bg-secondary"
+                    )}
+                  >
+                    Өмнөх
+                  </button>
+                  <span className="rounded-lg bg-secondary px-3 py-1.5 text-xs">
+                    {bannerPage} / {bannerTotalPages}
+                  </span>
+                  <button
+                    onClick={() => setBannerPage((prev) => Math.min(bannerTotalPages, prev + 1))}
+                    disabled={bannerPage >= bannerTotalPages}
+                    className={cn(
+                      "rounded-lg border border-border px-3 py-1.5 text-sm",
+                      bannerPage >= bannerTotalPages ? "opacity-50" : "hover:bg-secondary"
+                    )}
+                  >
+                    Дараах
+                  </button>
                 </div>
               </div>
             </div>

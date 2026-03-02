@@ -20,6 +20,7 @@ import { DynamicIcon } from "@/components/admin/icon-picker"
 import { AppSidebar } from "@/components/app-sidebar"
 import { PostCard, type PostData } from "@/components/post-card"
 import { CategoryStatsView } from "@/components/category-stats"
+import { SidebarBanner } from "@/components/sidebar-banner"
 import { Skeleton } from "@/components/ui/skeleton"
 import { categoryBgClass, categoryTextClass } from "@/lib/color-palette"
 import {
@@ -406,6 +407,7 @@ export default function CategoryPage() {
             <div className="w-full flex-shrink-0 xl:w-[320px]">
               <div className="sticky top-[120px]">
                 <aside className="space-y-4">
+                  <SidebarBanner pageType="category" targetId={category?._id} />
                   <div className="rounded-xl bg-card p-5 ring-1 ring-border">
                     <div className="mb-4 flex items-center gap-2">
                       <Trophy className="h-4 w-4 text-primary" />

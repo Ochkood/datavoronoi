@@ -4,11 +4,15 @@ import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { TrendingUp, ArrowUpRight } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { getPosts, getPublicAdminSettingsApi, subscribeNewsletterApi } from "@/lib/api"
+import {
+  getPosts,
+  subscribeNewsletterApi,
+  type BannerTargetType,
+} from "@/lib/api"
 import type { PostData } from "@/components/post-card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { toast } from "sonner"
-import { mergeSiteSettings } from "@/lib/site-settings"
+import { SidebarBanner } from "@/components/sidebar-banner"
 
 function extractTextColorClass(categoryColor: string) {
   const parts = categoryColor.split(" ")
@@ -16,17 +20,16 @@ function extractTextColorClass(categoryColor: string) {
   return textClass || "text-primary"
 }
 
-export function TrendingSidebar() {
+type TrendingSidebarProps = {
+  pageType?: BannerTargetType
+  targetId?: string
+}
+
+export function TrendingSidebar({ pageType = "home", targetId }: TrendingSidebarProps) {
   const [items, setItems] = useState<PostData[]>([])
   const [loading, setLoading] = useState(true)
   const [email, setEmail] = useState("")
   const [subscribing, setSubscribing] = useState(false)
-  const [banner, setBanner] = useState({
-    enabled: false,
-    imageUrl: "",
-    linkUrl: "",
-    alt: "Сурталгааны баннер",
-  })
 
   useEffect(() => {
     let cancelled = false
@@ -48,33 +51,6 @@ export function TrendingSidebar() {
 
     return () => {
       cancelled = true
-    }
-  }, [])
-
-  useEffect(() => {
-    let cancelled = false
-    const loadBanner = () => {
-      getPublicAdminSettingsApi()
-        .then((incoming) => {
-          if (cancelled) return
-          const settings = mergeSiteSettings(incoming)
-          setBanner(settings.sidebarBanner)
-        })
-        .catch(() => {
-          if (cancelled) return
-          setBanner({
-            enabled: false,
-            imageUrl: "",
-            linkUrl: "",
-            alt: "Сурталгааны баннер",
-          })
-        })
-    }
-    loadBanner()
-    window.addEventListener("dn-site-settings-updated", loadBanner)
-    return () => {
-      cancelled = true
-      window.removeEventListener("dn-site-settings-updated", loadBanner)
     }
   }, [])
 
@@ -119,32 +95,7 @@ export function TrendingSidebar() {
 
   return (
     <aside className="space-y-6">
-      {banner.enabled && banner.imageUrl ? (
-        <div className="overflow-hidden rounded-xl bg-card ring-1 ring-border">
-          {banner.linkUrl ? (
-            <Link
-              href={banner.linkUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block transition-opacity hover:opacity-95"
-            >
-              <img
-                src={banner.imageUrl}
-                alt={banner.alt || "Сурталгааны баннер"}
-                className="h-auto w-full object-contain"
-                loading="lazy"
-              />
-            </Link>
-          ) : (
-            <img
-              src={banner.imageUrl}
-              alt={banner.alt || "Сурталгааны баннер"}
-              className="h-auto w-full object-contain"
-              loading="lazy"
-            />
-          )}
-        </div>
-      ) : null}
+      <SidebarBanner pageType={pageType} targetId={targetId} />
 
       <div className="rounded-xl bg-card p-5 ring-1 ring-border">
         <div className="mb-4 flex items-center gap-2">
