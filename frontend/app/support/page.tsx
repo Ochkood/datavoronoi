@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import {
   HelpCircle,
   MessageCircle,
@@ -11,7 +11,11 @@ import {
 } from "lucide-react"
 import { AppSidebar } from "@/components/app-sidebar"
 import { ContentHeader } from "@/components/content-header"
-import { createFeedbackApi, type FeedbackType } from "@/lib/api"
+import {
+  createFeedbackApi,
+  getPublicAdminSettingsApi,
+  type FeedbackType,
+} from "@/lib/api"
 import { toast } from "sonner"
 
 const faqItems = [
@@ -54,6 +58,30 @@ export default function SupportPage() {
     type: "feedback" as FeedbackType,
     website: "",
   })
+  const [contact, setContact] = useState({
+    email: "info@datanews.mn",
+    phone: "—",
+    address: "Улаанбаатар хот",
+  })
+
+  useEffect(() => {
+    let cancelled = false
+    getPublicAdminSettingsApi()
+      .then((settings) => {
+        if (cancelled) return
+        setContact({
+          email: settings.general.contactEmail || settings.email.fromEmail || "info@datanews.mn",
+          phone: settings.general.contactPhone || "—",
+          address: settings.general.contactAddress || "Улаанбаатар хот",
+        })
+      })
+      .catch(() => {
+        if (cancelled) return
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const handleSubmit = async () => {
     if (!form.name.trim() || !form.email.trim() || !form.subject.trim() || !form.message.trim()) {
@@ -160,7 +188,7 @@ export default function SupportPage() {
                   Имэйл
                 </h3>
                 <p className="text-xs text-muted-foreground">
-                  info@datanews.mn
+                  {contact.email}
                 </p>
               </div>
               <div className="flex flex-col items-center gap-3 rounded-xl bg-card p-6 text-center ring-1 ring-border transition-all hover:shadow-md">
@@ -168,10 +196,10 @@ export default function SupportPage() {
                   <MessageCircle className="h-5 w-5 text-primary" />
                 </div>
                 <h3 className="text-sm font-bold text-card-foreground">
-                  Чат
+                  Утас
                 </h3>
                 <p className="text-xs text-muted-foreground">
-                  Шууд чатаар холбогдох
+                  {contact.phone}
                 </p>
               </div>
               <div className="flex flex-col items-center gap-3 rounded-xl bg-card p-6 text-center ring-1 ring-border transition-all hover:shadow-md">
@@ -179,10 +207,10 @@ export default function SupportPage() {
                   <FileText className="h-5 w-5 text-primary" />
                 </div>
                 <h3 className="text-sm font-bold text-card-foreground">
-                  Гарын авлага
+                  Хаяг
                 </h3>
                 <p className="text-xs text-muted-foreground">
-                  Дэлгэрэнгүй зааварчилгаа
+                  {contact.address}
                 </p>
               </div>
             </div>

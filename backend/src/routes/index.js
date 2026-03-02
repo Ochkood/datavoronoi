@@ -9,6 +9,7 @@ const dashboardRoutes = require('./dashboard.routes');
 const notificationRoutes = require('./notification.routes');
 const feedbackRoutes = require('./feedback.routes');
 const newsletterRoutes = require('./newsletter.routes');
+const adminSettingRoutes = require('./admin-setting.routes');
 
 const router = express.Router();
 
@@ -26,5 +27,6 @@ router.use('/dashboard', dashboardRoutes);
 router.use('/notifications', notificationRoutes);
 router.use('/feedback', feedbackRoutes);
 router.use('/newsletter', newsletterRoutes);
+router.use('/admin-settings', adminSettingRoutes);
 
 module.exports = router;

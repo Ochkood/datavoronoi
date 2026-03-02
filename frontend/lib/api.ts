@@ -276,6 +276,59 @@ export type AdminDashboardSummary = {
   }>
 }
 
+export type AdminSettings = {
+  key: string
+  general: {
+    siteName: string
+    siteDescription: string
+    siteUrl: string
+    contactEmail: string
+    contactPhone: string
+    contactAddress: string
+    social: {
+      facebook: string
+      instagram: string
+      linkedin: string
+    }
+  }
+  email: {
+    fromName: string
+    fromEmail: string
+    replyTo: string
+    newsletterEnabled: boolean
+  }
+  notifications: {
+    newUser: boolean
+    publisherRequest: boolean
+    feedback: boolean
+    systemError: boolean
+  }
+  updatedAt?: string
+}
+
+export type PublicSiteSettings = {
+  general: {
+    siteName: string
+    siteDescription: string
+    siteUrl: string
+    contactEmail: string
+    contactPhone: string
+    contactAddress: string
+    social: {
+      facebook: string
+      instagram: string
+      linkedin: string
+    }
+  }
+  email: {
+    fromName: string
+    fromEmail: string
+    replyTo: string
+    newsletterEnabled: boolean
+  }
+  updatedAt?: string
+}
+
 export type FeedbackType =
   | "suggestion"
   | "bug"
@@ -1306,6 +1359,37 @@ export async function updateUserApi(
     body: JSON.stringify(payload),
   })
   return res.data.user
+}
+
+export async function getAdminSettingsApi() {
+  const res = await request<ApiResponse<{ settings: AdminSettings }>>(
+    "/admin-settings"
+  )
+  return res.data.settings
+}
+
+export async function updateAdminSettingsApi(
+  payload: Partial<{
+    general: Partial<AdminSettings["general"]>
+    email: Partial<AdminSettings["email"]>
+    notifications: Partial<AdminSettings["notifications"]>
+  }>
+) {
+  const res = await request<ApiResponse<{ settings: AdminSettings }>>(
+    "/admin-settings",
+    {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }
+  )
+  return res.data.settings
+}
+
+export async function getPublicAdminSettingsApi() {
+  const res = await request<ApiResponse<{ settings: PublicSiteSettings }>>(
+    "/admin-settings/public"
+  )
+  return res.data.settings
 }
 
 export async function getMyFollowingFeedApi(limit = 30) {

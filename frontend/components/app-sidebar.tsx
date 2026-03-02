@@ -27,7 +27,13 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { clearAuth, isAuthenticated } from "@/lib/auth"
-import { getCategories, getTopics, type BackendCategory, type BackendTopic } from "@/lib/api"
+import {
+  getCategories,
+  getTopics,
+  getPublicAdminSettingsApi,
+  type BackendCategory,
+  type BackendTopic,
+} from "@/lib/api"
 import { DynamicIcon } from "@/components/admin/icon-picker"
 import { categoryTextClass } from "@/lib/color-palette"
 
@@ -95,9 +101,26 @@ export function AppSidebar() {
   const [authed, setAuthed] = useState(false)
   const [categories, setCategories] = useState<BackendCategory[]>([])
   const [topics, setTopics] = useState<BackendTopic[]>([])
+  const [siteName, setSiteName] = useState("Datanews.mn")
 
   useEffect(() => {
     setAuthed(isAuthenticated())
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    getPublicAdminSettingsApi()
+      .then((settings) => {
+        if (cancelled) return
+        setSiteName(settings.general.siteName || "Datanews.mn")
+      })
+      .catch(() => {
+        if (cancelled) return
+        setSiteName("Datanews.mn")
+      })
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   useEffect(() => {
@@ -194,7 +217,7 @@ export function AppSidebar() {
           </div>
           <div>
             <h1 className="text-lg font-bold tracking-tight text-sidebar-foreground">
-              Datanews
+              {siteName.replace(/\.mn$/i, "")}
             </h1>
             <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-sidebar-muted">
               Data Visual Stories
@@ -347,7 +370,7 @@ export function AppSidebar() {
         <div className="mt-auto border-t border-sidebar-border px-5 py-4">
           <div className="flex items-center justify-between">
             <p className="text-[11px] text-sidebar-muted">
-              &copy; 2026 Datanews.mn
+              &copy; 2026 {siteName}
             </p>
             <Link
               href={authed ? "#" : "/login"}

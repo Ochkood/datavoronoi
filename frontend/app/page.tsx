@@ -7,6 +7,7 @@ import { AppSidebar } from "@/components/app-sidebar"
 import { ContentHeader } from "@/components/content-header"
 import { PostCard, type PostData } from "@/components/post-card"
 import { TrendingSidebar } from "@/components/trending-sidebar"
+import { SiteFooter } from "@/components/site-footer"
 import { Skeleton } from "@/components/ui/skeleton"
 import { getPosts } from "@/lib/api"
 
@@ -146,6 +147,8 @@ export default function HomePage() {
               </div>
             </div>
           </div>
+
+          <SiteFooter />
         </div>
       </main>
     </div>
