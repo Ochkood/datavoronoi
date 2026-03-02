@@ -26,9 +26,10 @@ import {
   PenTool,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { clearAuth, isAuthenticated } from "@/lib/auth"
+import { clearAuth, getCurrentUser, isAuthenticated } from "@/lib/auth"
 import {
   getCategories,
+  getMeApi,
   getTopics,
   getPublicAdminSettingsApi,
   type BackendCategory,
@@ -104,6 +105,7 @@ type SidebarPanelProps = {
   topCategories: BackendCategory[]
   topTopics: BackendTopic[]
   authed: boolean
+  userRole: "user" | "publisher" | "admin" | null
   setAuthed: (value: boolean) => void
   siteName: string
   onNavigate: () => void
@@ -119,6 +121,7 @@ function SidebarPanel({
   topCategories,
   topTopics,
   authed,
+  userRole,
   setAuthed,
   siteName,
   onNavigate,
@@ -265,16 +268,18 @@ function SidebarPanel({
           ) : null}
         </div>
 
-        <div className="mx-3 mt-4">
-          <Link
-            href="/become-publisher"
-            onClick={onBecomePublisher}
-            className="flex items-center justify-center gap-2 rounded-lg bg-primary/10 px-4 py-3 text-sm font-medium text-primary transition-colors hover:bg-primary/20"
-          >
-            <PenTool className="h-4 w-4" />
-            Нийтлэгч болох
-          </Link>
-        </div>
+        {userRole === "publisher" || userRole === "admin" ? null : (
+          <div className="mx-3 mt-4">
+            <Link
+              href="/become-publisher"
+              onClick={onBecomePublisher}
+              className="flex items-center justify-center gap-2 rounded-lg bg-primary/10 px-4 py-3 text-sm font-medium text-primary transition-colors hover:bg-primary/20"
+            >
+              <PenTool className="h-4 w-4" />
+              Нийтлэгч болох
+            </Link>
+          </div>
+        )}
       </div>
 
       <div className="border-t border-sidebar-border px-5 py-4">
@@ -312,12 +317,24 @@ export function AppSidebar() {
   const [topicsOpen, setTopicsOpen] = useState(true)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [authed, setAuthed] = useState(false)
+  const [userRole, setUserRole] = useState<"user" | "publisher" | "admin" | null>(
+    null
+  )
   const [categories, setCategories] = useState<BackendCategory[]>([])
   const [topics, setTopics] = useState<BackendTopic[]>([])
   const [siteName, setSiteName] = useState("Datanews.mn")
 
   useEffect(() => {
+    const localUser = getCurrentUser()
     setAuthed(isAuthenticated())
+    setUserRole(localUser?.role || null)
+
+    if (!getCurrentUser() || !isAuthenticated()) return
+    getMeApi()
+      .then((me) => {
+        setUserRole(me.role || null)
+      })
+      .catch(() => {})
   }, [])
 
   useEffect(() => {
@@ -421,6 +438,7 @@ export function AppSidebar() {
             topCategories={topCategories}
             topTopics={topTopics}
             authed={authed}
+            userRole={userRole}
             setAuthed={setAuthed}
             siteName={siteName}
             onNavigate={() => setMobileOpen(false)}
@@ -439,6 +457,7 @@ export function AppSidebar() {
           topCategories={topCategories}
           topTopics={topTopics}
           authed={authed}
+          userRole={userRole}
           setAuthed={setAuthed}
           siteName={siteName}
           onNavigate={() => {}}

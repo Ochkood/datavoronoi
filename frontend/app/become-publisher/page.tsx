@@ -4,7 +4,6 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import {
-  BarChart3,
   ArrowLeft,
   PenTool,
   TrendingUp,
@@ -17,7 +16,12 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { AppSidebar } from "@/components/app-sidebar"
-import { createFeedbackApi, getMeApi } from "@/lib/api"
+import {
+  createFeedbackApi,
+  getCategories,
+  getMeApi,
+  getTopics,
+} from "@/lib/api"
 import { getAccessToken } from "@/lib/auth"
 import { toast } from "sonner"
 
@@ -49,6 +53,8 @@ export default function BecomePublisherPage() {
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [isAuthed, setIsAuthed] = useState<boolean | null>(null)
+  const [domainOptions, setDomainOptions] = useState<string[]>([])
+  const [loadingDomains, setLoadingDomains] = useState(true)
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -68,8 +74,14 @@ export default function BecomePublisherPage() {
       setIsAuthed(false)
       return
     }
+
     getMeApi()
       .then((me) => {
+        if (me.role === "publisher" || me.role === "admin") {
+          toast.info("Та аль хэдийн нийтлэгч байна.")
+          router.replace("/dashboard")
+          return
+        }
         setIsAuthed(true)
         setFormData((prev) => ({
           ...prev,
@@ -81,14 +93,34 @@ export default function BecomePublisherPage() {
       .catch(() => setIsAuthed(false))
   }, [])
 
-  const categoryOptions = [
-    "Эдийн засаг",
-    "Технологи",
-    "Байгаль орчин",
-    "Эрүүл мэнд",
-    "Санхүү",
-    "Дэлхий",
-  ]
+  useEffect(() => {
+    let cancelled = false
+    setLoadingDomains(true)
+
+    Promise.all([getCategories(), getTopics()])
+      .then(([categories, topics]) => {
+        if (cancelled) return
+        const options = [
+          ...categories.map((c) => c.name).filter(Boolean),
+          ...topics.map((t) => `#${t.name}`).filter(Boolean),
+        ]
+        const unique = Array.from(new Set(options))
+        unique.sort((a, b) => a.localeCompare(b, "mn"))
+        setDomainOptions([...unique, "Бусад"])
+      })
+      .catch(() => {
+        if (cancelled) return
+        setDomainOptions(["Бусад"])
+      })
+      .finally(() => {
+        if (cancelled) return
+        setLoadingDomains(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const handleCategoryToggle = (category: string) => {
     setFormData((prev) => ({
@@ -146,11 +178,22 @@ export default function BecomePublisherPage() {
     }
   }
 
+  if (isAuthed === null && !isSubmitted) {
+    return (
+      <div className="flex min-h-screen bg-background">
+        <AppSidebar />
+        <main className="flex flex-1 items-center justify-center px-4 lg:ml-[260px]">
+          <p className="text-sm text-muted-foreground">Хуудас ачаалж байна...</p>
+        </main>
+      </div>
+    )
+  }
+
   if (isAuthed === false && !isSubmitted) {
     return (
       <div className="flex min-h-screen bg-background">
         <AppSidebar />
-        <main className="flex flex-1 items-center justify-center lg:ml-[260px] px-4">
+        <main className="flex flex-1 items-center justify-center px-4 lg:ml-[260px]">
           <div className="max-w-md rounded-2xl bg-card p-6 text-center ring-1 ring-border">
             <h1 className="text-xl font-bold text-foreground">Нийтлэгч болох</h1>
             <p className="mt-2 text-sm text-muted-foreground">
@@ -180,7 +223,7 @@ export default function BecomePublisherPage() {
     return (
       <div className="flex min-h-screen bg-background">
         <AppSidebar />
-        <main className="flex flex-1 items-center justify-center lg:ml-[260px] px-4">
+        <main className="flex flex-1 items-center justify-center px-4 lg:ml-[260px]">
           <div className="max-w-md text-center">
             <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-chart-4/20">
               <CheckCircle className="h-10 w-10 text-chart-4" />
@@ -217,7 +260,6 @@ export default function BecomePublisherPage() {
       <AppSidebar />
 
       <main className="flex-1 lg:ml-[260px]">
-        {/* Header */}
         <header className="sticky top-0 z-20 border-b border-border bg-card/95 backdrop-blur-sm">
           <div className="mx-auto max-w-4xl px-4 py-4 pl-14 md:px-6 lg:pl-6">
             <Link
@@ -231,7 +273,6 @@ export default function BecomePublisherPage() {
         </header>
 
         <div className="mx-auto max-w-4xl px-4 py-8 md:px-6">
-          {/* Hero */}
           <div className="text-center">
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
               <PenTool className="h-8 w-8 text-primary" />
@@ -245,7 +286,6 @@ export default function BecomePublisherPage() {
             </p>
           </div>
 
-          {/* Benefits */}
           <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {benefits.map((benefit) => (
               <div
@@ -265,18 +305,14 @@ export default function BecomePublisherPage() {
             ))}
           </div>
 
-          {/* Application Form */}
           <div className="mt-12 rounded-2xl bg-card p-6 ring-1 ring-border md:p-8">
-            <h2 className="text-xl font-bold text-foreground">
-              Хүсэлтийн маягт
-            </h2>
+            <h2 className="text-xl font-bold text-foreground">Хүсэлтийн маягт</h2>
             <p className="mt-1 text-sm text-muted-foreground">
               Доорх мэдээллийг бүрэн бөглөнө үү. Бид таны хүсэлтийг шалгаж,
               эргэж холбогдох болно.
             </p>
 
             <form onSubmit={handleSubmit} className="mt-8 space-y-6">
-              {/* Personal Info */}
               <div>
                 <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground">
                   <Users className="h-4 w-4 text-primary" />
@@ -344,7 +380,6 @@ export default function BecomePublisherPage() {
                 </div>
               </div>
 
-              {/* Professional Info */}
               <div>
                 <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground">
                   <FileText className="h-4 w-4 text-primary" />
@@ -401,36 +436,37 @@ export default function BecomePublisherPage() {
                 </div>
               </div>
 
-              {/* Categories */}
               <div>
                 <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground">
                   <TrendingUp className="h-4 w-4 text-primary" />
-                  Та аль салбарын судлаач вэ?{" "}
-                  <span className="text-destructive">*</span>
+                  Та аль салбарын судлаач вэ? <span className="text-destructive">*</span>
                 </h3>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Нэг болон түүнээс дээш ангилал сонгоно уу
+                  Нэг болон түүнээс дээш сонголт сонгоно уу
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2">
-                  {categoryOptions.map((category) => (
-                    <button
-                      key={category}
-                      type="button"
-                      onClick={() => handleCategoryToggle(category)}
-                      className={cn(
-                        "rounded-full px-4 py-2 text-sm font-medium transition-colors",
-                        formData.categories.includes(category)
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                      )}
-                    >
-                      {category}
-                    </button>
-                  ))}
+                  {loadingDomains ? (
+                    <span className="text-sm text-muted-foreground">Сонголтууд ачаалж байна...</span>
+                  ) : (
+                    domainOptions.map((category) => (
+                      <button
+                        key={category}
+                        type="button"
+                        onClick={() => handleCategoryToggle(category)}
+                        className={cn(
+                          "rounded-full px-4 py-2 text-sm font-medium transition-colors",
+                          formData.categories.includes(category)
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                        )}
+                      >
+                        {category}
+                      </button>
+                    ))
+                  )}
                 </div>
               </div>
 
-              {/* Sample Work */}
               <div>
                 <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground">
                   <Upload className="h-4 w-4 text-primary" />
@@ -452,7 +488,6 @@ export default function BecomePublisherPage() {
                 </div>
               </div>
 
-              {/* Bio */}
               <div>
                 <label className="block text-sm font-medium text-foreground">
                   Товч танилцуулга <span className="text-destructive">*</span>
@@ -469,7 +504,6 @@ export default function BecomePublisherPage() {
                 />
               </div>
 
-              {/* Terms */}
               <label className="flex items-start gap-3">
                 <input
                   type="checkbox"
@@ -481,31 +515,26 @@ export default function BecomePublisherPage() {
                   className="mt-0.5 h-4 w-4 rounded border-input text-primary focus:ring-primary"
                 />
                 <span className="text-sm text-muted-foreground">
-                  Би{" "}
-                  <Link href="/publisher-contract" className="text-primary hover:underline">
-                    Нийтлэгчийн гэрээ
-                  </Link>{" "}
-                  болон{" "}
-                  <Link href="/content-guidelines" className="text-primary hover:underline">
-                    Контентын удирдамж
-                  </Link>
+                  Би <Link href="/publisher-contract" className="text-primary hover:underline">Нийтлэгчийн гэрээ</Link>{" "}
+                  болон <Link href="/content-guidelines" className="text-primary hover:underline">Контентын удирдамж</Link>
                   -ыг уншиж, зөвшөөрч байна.
                 </span>
               </label>
 
-              {/* Submit */}
               <button
                 type="submit"
                 disabled={
                   isLoading ||
                   !formData.agreeTerms ||
-                  formData.categories.length === 0
+                  formData.categories.length === 0 ||
+                  loadingDomains
                 }
                 className={cn(
                   "flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90",
                   (isLoading ||
                     !formData.agreeTerms ||
-                    formData.categories.length === 0) &&
+                    formData.categories.length === 0 ||
+                    loadingDomains) &&
                     "cursor-not-allowed opacity-50"
                 )}
               >
