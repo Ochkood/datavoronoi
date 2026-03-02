@@ -205,6 +205,47 @@ export default function PostDetailPage() {
     }
   }
 
+  const shareUrl =
+    typeof window !== "undefined"
+      ? window.location.href
+      : `${process.env.NEXT_PUBLIC_SITE_URL || ""}/post/${id}`
+
+  const handleShareFacebook = () => {
+    const url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
+      shareUrl
+    )}`
+    window.open(url, "_blank", "noopener,noreferrer,width=640,height=720")
+  }
+
+  const handleShareX = () => {
+    const text = post ? `${post.title}` : "Datanews.mn"
+    const url = `https://twitter.com/intent/tweet?url=${encodeURIComponent(
+      shareUrl
+    )}&text=${encodeURIComponent(text)}`
+    window.open(url, "_blank", "noopener,noreferrer,width=640,height=720")
+  }
+
+  const handleCopyLink = async () => {
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareUrl)
+      } else {
+        const input = document.createElement("textarea")
+        input.value = shareUrl
+        input.style.position = "fixed"
+        input.style.opacity = "0"
+        document.body.appendChild(input)
+        input.focus()
+        input.select()
+        document.execCommand("copy")
+        document.body.removeChild(input)
+      }
+      toast.success("Линк хууллаа")
+    } catch {
+      toast.error("Линк хуулахад алдаа гарлаа")
+    }
+  }
+
   return (
     <div className="flex min-h-screen bg-background">
       <AppSidebar />
@@ -353,15 +394,24 @@ export default function PostDetailPage() {
               <div className="mt-10 rounded-xl bg-secondary/50 p-6">
                 <h3 className="text-sm font-semibold text-foreground">Хуваалцах</h3>
                 <div className="mt-3 flex flex-wrap gap-2">
-                  <button className="flex items-center gap-2 rounded-lg bg-[#1877F2] px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90">
+                  <button
+                    onClick={handleShareFacebook}
+                    className="flex items-center gap-2 rounded-lg bg-[#1877F2] px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90"
+                  >
                     <Facebook className="h-4 w-4" />
                     Facebook
                   </button>
-                  <button className="flex items-center gap-2 rounded-lg bg-[#1DA1F2] px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90">
+                  <button
+                    onClick={handleShareX}
+                    className="flex items-center gap-2 rounded-lg bg-[#1DA1F2] px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90"
+                  >
                     <Twitter className="h-4 w-4" />
-                    Twitter
+                    X
                   </button>
-                  <button className="flex items-center gap-2 rounded-lg bg-secondary px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-secondary/80">
+                  <button
+                    onClick={() => void handleCopyLink()}
+                    className="flex items-center gap-2 rounded-lg bg-secondary px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-secondary/80"
+                  >
                     <Link2 className="h-4 w-4" />
                     Линк хуулах
                   </button>
