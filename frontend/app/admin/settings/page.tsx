@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
+import Image from "next/image"
 import {
   Bell,
   Check,
@@ -15,6 +16,7 @@ import { cn } from "@/lib/utils"
 import {
   changeMyPasswordApi,
   getAdminSettingsApi,
+  uploadImageApi,
   updateAdminSettingsApi,
   type AdminSettings,
 } from "@/lib/api"
@@ -59,6 +61,12 @@ const defaultSettings: AdminSettings = {
     headingFont: "inter",
     sectionTitleFont: "inter",
     cardTitleFont: "inter",
+  },
+  sidebarBanner: {
+    enabled: false,
+    imageUrl: "",
+    linkUrl: "",
+    alt: "Сурталгааны баннер",
   },
 }
 
@@ -113,6 +121,7 @@ export default function AdminSettingsPage() {
   const [passwordLoading, setPasswordLoading] = useState(false)
   const [passwordError, setPasswordError] = useState("")
   const [passwordSuccess, setPasswordSuccess] = useState("")
+  const [bannerUploading, setBannerUploading] = useState(false)
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: "",
     newPassword: "",
@@ -145,6 +154,10 @@ export default function AdminSettingsPage() {
             ...defaultSettings.typography,
             ...data.typography,
           },
+          sidebarBanner: {
+            ...defaultSettings.sidebarBanner,
+            ...data.sidebarBanner,
+          },
         })
       })
       .catch((e) => {
@@ -159,9 +172,31 @@ export default function AdminSettingsPage() {
       email: settings.email,
       notifications: settings.notifications,
       typography: settings.typography,
+      sidebarBanner: settings.sidebarBanner,
     }),
     [settings]
   )
+
+  const handleBannerUpload = async (file?: File) => {
+    if (!file) return
+    setBannerUploading(true)
+    setError("")
+    try {
+      const uploadedUrl = await uploadImageApi(file, "banners")
+      setSettings((prev) => ({
+        ...prev,
+        sidebarBanner: {
+          ...prev.sidebarBanner,
+          imageUrl: uploadedUrl,
+          enabled: true,
+        },
+      }))
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Баннер upload хийх үед алдаа гарлаа")
+    } finally {
+      setBannerUploading(false)
+    }
+  }
 
   const handleSave = async () => {
     setSaving(true)
@@ -499,6 +534,84 @@ export default function AdminSettingsPage() {
                       <option value="inter">Inter</option>
                       <option value="finlandica">Finlandica</option>
                     </select>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-border bg-card p-6">
+                <h2 className="text-lg font-semibold text-foreground">Sidebar баннер</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Нүүр хуудасны баруун талын sidebar-ийн дээд хэсэгт харагдах сурталгааны баннер.
+                </p>
+                <div className="mt-4">
+                  <ToggleRow
+                    label="Баннер харуулах"
+                    checked={settings.sidebarBanner.enabled}
+                    onChange={(next) =>
+                      setSettings((prev) => ({
+                        ...prev,
+                        sidebarBanner: { ...prev.sidebarBanner, enabled: next },
+                      }))
+                    }
+                  />
+                </div>
+
+                <div className="mt-6 space-y-4">
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-foreground">Зураг оруулах</label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      disabled={bannerUploading}
+                      onChange={(e) => void handleBannerUpload(e.target.files?.[0])}
+                      className="h-10 w-full max-w-md rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground file:mr-3 file:rounded-md file:border-0 file:bg-secondary file:px-3 file:py-1.5 file:text-xs file:font-medium disabled:opacity-70"
+                    />
+                    {bannerUploading ? (
+                      <p className="mt-2 text-xs text-muted-foreground">Upload хийж байна...</p>
+                    ) : null}
+                  </div>
+
+                  {settings.sidebarBanner.imageUrl ? (
+                    <div className="relative h-32 w-full max-w-md overflow-hidden rounded-lg border border-border bg-muted/40">
+                      <Image
+                        src={settings.sidebarBanner.imageUrl}
+                        alt={settings.sidebarBanner.alt || "Сурталгааны баннер"}
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
+                  ) : null}
+
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-foreground">Очих холбоос (optional)</label>
+                    <input
+                      type="url"
+                      value={settings.sidebarBanner.linkUrl}
+                      onChange={(e) =>
+                        setSettings((prev) => ({
+                          ...prev,
+                          sidebarBanner: { ...prev.sidebarBanner, linkUrl: e.target.value },
+                        }))
+                      }
+                      className="h-10 w-full max-w-md rounded-lg border border-input bg-background px-3 text-sm text-foreground"
+                      placeholder="https://..."
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-foreground">Alt текст</label>
+                    <input
+                      type="text"
+                      value={settings.sidebarBanner.alt}
+                      onChange={(e) =>
+                        setSettings((prev) => ({
+                          ...prev,
+                          sidebarBanner: { ...prev.sidebarBanner, alt: e.target.value },
+                        }))
+                      }
+                      className="h-10 w-full max-w-md rounded-lg border border-input bg-background px-3 text-sm text-foreground"
+                      placeholder="Сурталгааны баннер"
+                    />
                   </div>
                 </div>
               </div>

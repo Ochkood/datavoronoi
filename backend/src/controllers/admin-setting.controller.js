@@ -56,6 +56,15 @@ function mergeAdminSettings(doc, payload, userId) {
     };
   }
 
+  if (payload.sidebarBanner) {
+    doc.sidebarBanner = {
+      enabled: payload.sidebarBanner.enabled ?? doc.sidebarBanner?.enabled ?? false,
+      imageUrl: payload.sidebarBanner.imageUrl ?? doc.sidebarBanner?.imageUrl ?? '',
+      linkUrl: payload.sidebarBanner.linkUrl ?? doc.sidebarBanner?.linkUrl ?? '',
+      alt: payload.sidebarBanner.alt ?? doc.sidebarBanner?.alt ?? 'Сурталгааны баннер',
+    };
+  }
+
   doc.updatedBy = userId;
 }
 
@@ -98,6 +107,12 @@ const getPublicAdminSettings = asyncHandler(async (req, res) => {
       headingFont: settings.typography?.headingFont || 'inter',
       sectionTitleFont: settings.typography?.sectionTitleFont || 'inter',
       cardTitleFont: settings.typography?.cardTitleFont || 'inter',
+    },
+    sidebarBanner: {
+      enabled: Boolean(settings.sidebarBanner?.enabled),
+      imageUrl: settings.sidebarBanner?.imageUrl || '',
+      linkUrl: settings.sidebarBanner?.linkUrl || '',
+      alt: settings.sidebarBanner?.alt || 'Сурталгааны баннер',
     },
     updatedAt: settings.updatedAt,
   };

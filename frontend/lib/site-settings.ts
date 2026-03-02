@@ -23,6 +23,12 @@ export type SiteSettings = {
     sectionTitleFont: "inter" | "finlandica"
     cardTitleFont: "inter" | "finlandica"
   }
+  sidebarBanner: {
+    enabled: boolean
+    imageUrl: string
+    linkUrl: string
+    alt: string
+  }
 }
 
 export const defaultSiteSettings: SiteSettings = {
@@ -51,6 +57,12 @@ export const defaultSiteSettings: SiteSettings = {
     sectionTitleFont: "inter",
     cardTitleFont: "inter",
   },
+  sidebarBanner: {
+    enabled: false,
+    imageUrl: "",
+    linkUrl: "",
+    alt: "Сурталгааны баннер",
+  },
 }
 
 export function mergeSiteSettings(
@@ -73,6 +85,10 @@ export function mergeSiteSettings(
     typography: {
       ...defaultSiteSettings.typography,
       ...(incoming.typography || {}),
+    },
+    sidebarBanner: {
+      ...defaultSiteSettings.sidebarBanner,
+      ...(incoming.sidebarBanner || {}),
     },
   }
 }

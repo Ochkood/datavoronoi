@@ -45,6 +45,12 @@ const adminSettingSchema = new mongoose.Schema(
         default: 'inter',
       },
     },
+    sidebarBanner: {
+      enabled: { type: Boolean, default: false },
+      imageUrl: { type: String, default: '' },
+      linkUrl: { type: String, default: '' },
+      alt: { type: String, default: 'Сурталгааны баннер' },
+    },
     updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   },
   { timestamps: true }

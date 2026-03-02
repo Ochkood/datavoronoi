@@ -46,6 +46,14 @@ const updateAdminSettingsSchema = z.object({
       cardTitleFont: fontChoice.optional(),
     })
     .optional(),
+  sidebarBanner: z
+    .object({
+      enabled: z.boolean().optional(),
+      imageUrl: optionalUrl,
+      linkUrl: optionalUrl,
+      alt: z.string().trim().max(180).optional(),
+    })
+    .optional(),
 });
 
 module.exports = {

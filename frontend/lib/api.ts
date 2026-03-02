@@ -178,6 +178,7 @@ export type UploadFolder =
   | "topics"
   | "editor"
   | "profiles"
+  | "banners"
 
 export type DashboardSummary = {
   stats: {
@@ -308,6 +309,12 @@ export type AdminSettings = {
     sectionTitleFont: "inter" | "finlandica"
     cardTitleFont: "inter" | "finlandica"
   }
+  sidebarBanner: {
+    enabled: boolean
+    imageUrl: string
+    linkUrl: string
+    alt: string
+  }
   updatedAt?: string
 }
 
@@ -335,6 +342,12 @@ export type PublicSiteSettings = {
     headingFont: "inter" | "finlandica"
     sectionTitleFont: "inter" | "finlandica"
     cardTitleFont: "inter" | "finlandica"
+  }
+  sidebarBanner: {
+    enabled: boolean
+    imageUrl: string
+    linkUrl: string
+    alt: string
   }
   updatedAt?: string
 }
@@ -1413,6 +1426,7 @@ export async function updateAdminSettingsApi(
     email: Partial<AdminSettings["email"]>
     notifications: Partial<AdminSettings["notifications"]>
     typography: Partial<AdminSettings["typography"]>
+    sidebarBanner: Partial<AdminSettings["sidebarBanner"]>
   }>
 ) {
   const res = await request<ApiResponse<{ settings: AdminSettings }>>(
