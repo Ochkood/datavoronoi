@@ -67,7 +67,7 @@ function CategoryCard({
             className={cn("h-4 w-4", categoryColorClass(category))}
             fallback={fallbackIcon}
           />
-          <span className="text-[11px] font-medium text-white/95">Ангилал</span>
+          <span className="text-[11px] font-medium text-white/95">{category.name}</span>
         </div>
 
         <div className="absolute bottom-3 left-3 right-3">
