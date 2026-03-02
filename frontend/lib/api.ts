@@ -748,6 +748,21 @@ export async function getPosts(params?: {
   page?: number
   limit?: number
 }) {
+  const data = await getPostsPage(params)
+  return data.items
+}
+
+export async function getPostsPage(params?: {
+  category?: string
+  topic?: string
+  q?: string
+  status?: "all" | "draft" | "pending" | "published" | "rejected"
+  featured?: "all" | "true" | "false"
+  author?: string
+  sort?: "latest" | "popular"
+  page?: number
+  limit?: number
+}) {
   const search = new URLSearchParams()
   if (params?.category) search.set("category", params.category)
   if (params?.topic) search.set("topic", params.topic)
@@ -760,8 +775,16 @@ export async function getPosts(params?: {
   if (params?.limit) search.set("limit", String(params.limit))
   const suffix = search.toString() ? `?${search.toString()}` : ""
 
-  const res = await request<ApiResponse<{ items: BackendPost[] }>>(`/posts${suffix}`)
-  return res.data.items.map(mapPost)
+  const res = await request<
+    ApiResponse<{
+      items: BackendPost[]
+      pagination: { total: number; page: number; limit: number; totalPages: number }
+    }>
+  >(`/posts${suffix}`)
+  return {
+    items: res.data.items.map(mapPost),
+    pagination: res.data.pagination,
+  }
 }
 
 export async function getTopAuthorsApi(params?: {

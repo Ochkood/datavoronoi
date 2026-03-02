@@ -3,7 +3,16 @@
 import { useEffect, useMemo, useState } from "react"
 import { useParams, notFound } from "next/navigation"
 import Image from "next/image"
-import { LayoutGrid, List, Newspaper, BarChart3, Calendar, Hash } from "lucide-react"
+import {
+  LayoutGrid,
+  List,
+  Newspaper,
+  BarChart3,
+  Calendar,
+  Hash,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react"
 import { cn } from "@/lib/utils"
 import { AppSidebar } from "@/components/app-sidebar"
 import { PostCard, type PostData } from "@/components/post-card"
@@ -11,11 +20,17 @@ import { TrendingSidebar } from "@/components/trending-sidebar"
 import { CategoryStatsView } from "@/components/category-stats"
 import { Skeleton } from "@/components/ui/skeleton"
 import type { CategoryStats } from "@/lib/data"
-import { getPosts, getTopicStatsApi, getTopics, type BackendTopic } from "@/lib/api"
+import {
+  getPostsPage,
+  getTopicStatsApi,
+  getTopics,
+  type BackendTopic,
+} from "@/lib/api"
 import { categoryTextClass } from "@/lib/color-palette"
 
 type TabType = "feed" | "stats"
 type FeedSort = "latest" | "popular"
+const PAGE_SIZE = 10
 
 export default function TopicPage() {
   const params = useParams()
@@ -25,6 +40,9 @@ export default function TopicPage() {
   const [topicPosts, setTopicPosts] = useState<PostData[]>([])
   const [loadingTopics, setLoadingTopics] = useState(true)
   const [loadingPosts, setLoadingPosts] = useState(true)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalPosts, setTotalPosts] = useState(0)
   const [stats, setStats] = useState<CategoryStats | null>(null)
   const [loadingStats, setLoadingStats] = useState(true)
 
@@ -59,17 +77,38 @@ export default function TopicPage() {
   }, [topic?.startDate])
 
   useEffect(() => {
+    setCurrentPage(1)
+  }, [topic?._id, feedSort])
+
+  useEffect(() => {
     if (!topic?._id) {
-      if (!loadingTopics) setLoadingPosts(false)
+      if (!loadingTopics) {
+        setLoadingPosts(false)
+        setTotalPages(1)
+        setTotalPosts(0)
+      }
       return
     }
 
     setLoadingPosts(true)
-    getPosts({ topic: topic._id, sort: feedSort })
-      .then((res) => setTopicPosts(res))
-      .catch(() => setTopicPosts([]))
+    getPostsPage({
+      topic: topic._id,
+      sort: feedSort,
+      page: currentPage,
+      limit: PAGE_SIZE,
+    })
+      .then((res) => {
+        setTopicPosts(res.items)
+        setTotalPages(Math.max(1, res.pagination.totalPages || 1))
+        setTotalPosts(res.pagination.total || 0)
+      })
+      .catch(() => {
+        setTopicPosts([])
+        setTotalPages(1)
+        setTotalPosts(0)
+      })
       .finally(() => setLoadingPosts(false))
-  }, [topic?._id, loadingTopics, feedSort])
+  }, [topic?._id, loadingTopics, feedSort, currentPage])
 
   useEffect(() => {
     setLoadingStats(true)
@@ -170,7 +209,7 @@ export default function TopicPage() {
                         Холбоотой мэдээ
                       </h2>
                       <p className="mt-0.5 text-xs text-muted-foreground">
-                        {topicPosts.length} нийтлэл
+                        {loadingPosts ? "..." : totalPosts} нийтлэл
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
@@ -265,19 +304,59 @@ export default function TopicPage() {
                       </div>
                     )
                   ) : topicPosts.length > 0 ? (
-                    viewMode === "grid" ? (
-                      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                        {topicPosts.map((post) => (
-                          <PostCard key={post.id} post={post} variant="default" />
-                        ))}
+                    <>
+                      {viewMode === "grid" ? (
+                        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                          {topicPosts.map((post) => (
+                            <PostCard key={post.id} post={post} variant="default" />
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="flex flex-col gap-4">
+                          {topicPosts.map((post) => (
+                            <PostCard key={post.id} post={post} variant="list" />
+                          ))}
+                        </div>
+                      )}
+
+                      <div className="mt-6 flex items-center justify-center gap-2">
+                        <button
+                          onClick={() =>
+                            setCurrentPage((prev) => Math.max(1, prev - 1))
+                          }
+                          disabled={currentPage <= 1}
+                          className={cn(
+                            "inline-flex items-center gap-1 rounded-lg border border-border px-3 py-2 text-sm",
+                            currentPage <= 1
+                              ? "cursor-not-allowed text-muted-foreground opacity-50"
+                              : "hover:bg-secondary"
+                          )}
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                          Өмнөх
+                        </button>
+
+                        <span className="rounded-lg bg-secondary px-3 py-2 text-sm text-foreground">
+                          {currentPage} / {totalPages}
+                        </span>
+
+                        <button
+                          onClick={() =>
+                            setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+                          }
+                          disabled={currentPage >= totalPages}
+                          className={cn(
+                            "inline-flex items-center gap-1 rounded-lg border border-border px-3 py-2 text-sm",
+                            currentPage >= totalPages
+                              ? "cursor-not-allowed text-muted-foreground opacity-50"
+                              : "hover:bg-secondary"
+                          )}
+                        >
+                          Дараах
+                          <ChevronRight className="h-4 w-4" />
+                        </button>
                       </div>
-                    ) : (
-                      <div className="flex flex-col gap-4">
-                        {topicPosts.map((post) => (
-                          <PostCard key={post.id} post={post} variant="list" />
-                        ))}
-                      </div>
-                    )
+                    </>
                   ) : (
                     <div className="flex flex-col items-center justify-center py-16 text-center">
                       <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted">

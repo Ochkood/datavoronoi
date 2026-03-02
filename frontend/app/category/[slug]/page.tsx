@@ -4,7 +4,17 @@ import { useEffect, useMemo, useState } from "react"
 import { useParams, notFound } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link"
-import { LayoutGrid, List, Newspaper, BarChart3, Trophy, Eye, FileText } from "lucide-react"
+import {
+  LayoutGrid,
+  List,
+  Newspaper,
+  BarChart3,
+  Trophy,
+  Eye,
+  FileText,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react"
 import { cn } from "@/lib/utils"
 import { DynamicIcon } from "@/components/admin/icon-picker"
 import { AppSidebar } from "@/components/app-sidebar"
@@ -15,7 +25,7 @@ import { categoryBgClass, categoryTextClass } from "@/lib/color-palette"
 import {
   getCategories,
   getCategoryStatsApi,
-  getPosts,
+  getPostsPage,
   getTopAuthorsApi,
   type BackendCategory,
   type TopAuthor,
@@ -24,6 +34,7 @@ import type { CategoryStats } from "@/lib/data"
 
 type TabType = "feed" | "stats"
 type FeedSort = "latest" | "popular"
+const PAGE_SIZE = 10
 
 export default function CategoryPage() {
   const params = useParams()
@@ -34,6 +45,9 @@ export default function CategoryPage() {
   const [topAuthors, setTopAuthors] = useState<TopAuthor[]>([])
   const [loadingCategories, setLoadingCategories] = useState(true)
   const [loadingPosts, setLoadingPosts] = useState(true)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalPosts, setTotalPosts] = useState(0)
   const [loadingAuthors, setLoadingAuthors] = useState(true)
   const [stats, setStats] = useState<CategoryStats | null>(null)
   const [loadingStats, setLoadingStats] = useState(true)
@@ -58,17 +72,38 @@ export default function CategoryPage() {
   )
 
   useEffect(() => {
+    setCurrentPage(1)
+  }, [category?._id, feedSort])
+
+  useEffect(() => {
     if (!category?._id) {
-      if (!loadingCategories) setLoadingPosts(false)
+      if (!loadingCategories) {
+        setLoadingPosts(false)
+        setTotalPages(1)
+        setTotalPosts(0)
+      }
       return
     }
 
     setLoadingPosts(true)
-    getPosts({ category: category._id, sort: feedSort })
-      .then((res) => setPosts(res))
-      .catch(() => setPosts([]))
+    getPostsPage({
+      category: category._id,
+      sort: feedSort,
+      page: currentPage,
+      limit: PAGE_SIZE,
+    })
+      .then((res) => {
+        setPosts(res.items)
+        setTotalPages(Math.max(1, res.pagination.totalPages || 1))
+        setTotalPosts(res.pagination.total || 0)
+      })
+      .catch(() => {
+        setPosts([])
+        setTotalPages(1)
+        setTotalPosts(0)
+      })
       .finally(() => setLoadingPosts(false))
-  }, [category?._id, loadingCategories, feedSort])
+  }, [category?._id, loadingCategories, feedSort, currentPage])
 
   useEffect(() => {
     if (!category?._id) {
@@ -185,7 +220,7 @@ export default function CategoryPage() {
                         {categoryName} мэдээ
                       </h2>
                       <p className="mt-0.5 text-xs text-muted-foreground">
-                        {posts.length} нийтлэл
+                        {loadingPosts ? "..." : totalPosts} нийтлэл
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
@@ -280,19 +315,59 @@ export default function CategoryPage() {
                       </div>
                     )
                   ) : posts.length > 0 ? (
-                    viewMode === "grid" ? (
-                      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                        {posts.map((post) => (
-                          <PostCard key={post.id} post={post} variant="default" />
-                        ))}
+                    <>
+                      {viewMode === "grid" ? (
+                        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                          {posts.map((post) => (
+                            <PostCard key={post.id} post={post} variant="default" />
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="flex flex-col gap-4">
+                          {posts.map((post) => (
+                            <PostCard key={post.id} post={post} variant="list" />
+                          ))}
+                        </div>
+                      )}
+
+                      <div className="mt-6 flex items-center justify-center gap-2">
+                        <button
+                          onClick={() =>
+                            setCurrentPage((prev) => Math.max(1, prev - 1))
+                          }
+                          disabled={currentPage <= 1}
+                          className={cn(
+                            "inline-flex items-center gap-1 rounded-lg border border-border px-3 py-2 text-sm",
+                            currentPage <= 1
+                              ? "cursor-not-allowed text-muted-foreground opacity-50"
+                              : "hover:bg-secondary"
+                          )}
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                          Өмнөх
+                        </button>
+
+                        <span className="rounded-lg bg-secondary px-3 py-2 text-sm text-foreground">
+                          {currentPage} / {totalPages}
+                        </span>
+
+                        <button
+                          onClick={() =>
+                            setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+                          }
+                          disabled={currentPage >= totalPages}
+                          className={cn(
+                            "inline-flex items-center gap-1 rounded-lg border border-border px-3 py-2 text-sm",
+                            currentPage >= totalPages
+                              ? "cursor-not-allowed text-muted-foreground opacity-50"
+                              : "hover:bg-secondary"
+                          )}
+                        >
+                          Дараах
+                          <ChevronRight className="h-4 w-4" />
+                        </button>
                       </div>
-                    ) : (
-                      <div className="flex flex-col gap-4">
-                        {posts.map((post) => (
-                          <PostCard key={post.id} post={post} variant="list" />
-                        ))}
-                      </div>
-                    )
+                    </>
                   ) : (
                     <div className="flex flex-col items-center justify-center py-16 text-center">
                       <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted">
