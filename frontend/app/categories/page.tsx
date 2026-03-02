@@ -1,8 +1,19 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
+import Image from "next/image"
 import Link from "next/link"
-import { FolderTree, ArrowRight, Globe, TrendingUp, Cpu, Leaf, Heart, Building2 } from "lucide-react"
+import {
+  FolderTree,
+  ArrowRight,
+  Globe,
+  TrendingUp,
+  Cpu,
+  Leaf,
+  Heart,
+  Building2,
+  FileText,
+} from "lucide-react"
 import type { ElementType } from "react"
 import { cn } from "@/lib/utils"
 import { AppSidebar } from "@/components/app-sidebar"
@@ -21,6 +32,65 @@ const fallbackCategoryIconBySlug: Record<string, ElementType> = {
 
 function categoryColorClass(category: BackendCategory) {
   return categoryTextClass(category.color, category.slug)
+}
+
+function CategoryCard({
+  category,
+  highlight = false,
+}: {
+  category: BackendCategory
+  highlight?: boolean
+}) {
+  const fallbackIcon = fallbackCategoryIconBySlug[category.slug] || Globe
+  const image = category.bannerImage || "/placeholder.jpg"
+
+  return (
+    <Link
+      href={`/category/${category.slug}`}
+      className={cn(
+        "group overflow-hidden rounded-2xl bg-card ring-1 ring-border transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:ring-border/80",
+        highlight && "ring-primary/20"
+      )}
+    >
+      <div className="relative h-40 w-full overflow-hidden">
+        <Image
+          src={image}
+          alt={category.name}
+          fill
+          className="object-cover transition-transform duration-500 group-hover:scale-105"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/35 to-black/10" />
+
+        <div className="absolute left-3 top-3 inline-flex items-center gap-2 rounded-full bg-black/45 px-2.5 py-1 backdrop-blur-sm">
+          <DynamicIcon
+            name={category.icon}
+            className={cn("h-4 w-4", categoryColorClass(category))}
+            fallback={fallbackIcon}
+          />
+          <span className="text-[11px] font-medium text-white/95">Ангилал</span>
+        </div>
+
+        <div className="absolute bottom-3 left-3 right-3">
+          <h3 className="line-clamp-1 text-base font-semibold text-white">
+            {category.name}
+          </h3>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between gap-3 p-4">
+        <div className="min-w-0">
+          <p className="line-clamp-2 text-xs leading-relaxed text-muted-foreground">
+            {category.description || "Энэ ангиллын өгөгдөлд суурилсан мэдээ, шинжилгээ."}
+          </p>
+          <div className="mt-2 inline-flex items-center gap-1.5 rounded-md bg-secondary px-2 py-1 text-[11px] text-secondary-foreground">
+            <FileText className="h-3.5 w-3.5" />
+            <span>{category.postsCount || 0} мэдээ</span>
+          </div>
+        </div>
+        <ArrowRight className="h-4 w-4 flex-shrink-0 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-foreground" />
+      </div>
+    </Link>
+  )
 }
 
 export default function CategoriesPage() {
@@ -75,33 +145,9 @@ export default function CategoriesPage() {
             <section className="mb-10">
               <h2 className="mb-4 text-lg font-bold text-foreground">TOP-10 Ангилал</h2>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {topCategories.map((category) => {
-                  const fallbackIcon = fallbackCategoryIconBySlug[category.slug] || Globe
-                  return (
-                    <Link
-                      key={category._id}
-                      href={`/category/${category.slug}`}
-                      className="group rounded-xl bg-card p-4 ring-1 ring-border transition-all hover:shadow-md hover:ring-border/80"
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary">
-                          <DynamicIcon
-                            name={category.icon}
-                            className={cn("h-5 w-5", categoryColorClass(category))}
-                            fallback={fallbackIcon}
-                          />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <h3 className="truncate font-semibold text-card-foreground">{category.name}</h3>
-                          <p className="mt-0.5 text-xs text-muted-foreground">
-                            Нийтлэл: {category.postsCount || 0}
-                          </p>
-                        </div>
-                        <ArrowRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-foreground" />
-                      </div>
-                    </Link>
-                  )
-                })}
+                {topCategories.map((category) => (
+                  <CategoryCard key={category._id} category={category} highlight />
+                ))}
               </div>
             </section>
           )}
@@ -110,33 +156,9 @@ export default function CategoriesPage() {
             <section>
               <h2 className="mb-4 text-lg font-bold text-foreground">Бусад ангиллууд</h2>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {otherCategories.map((category) => {
-                  const fallbackIcon = fallbackCategoryIconBySlug[category.slug] || Globe
-                  return (
-                    <Link
-                      key={category._id}
-                      href={`/category/${category.slug}`}
-                      className="group rounded-xl bg-card p-4 ring-1 ring-border transition-all hover:shadow-md hover:ring-border/80"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary">
-                          <DynamicIcon
-                            name={category.icon}
-                            className={cn("h-5 w-5", categoryColorClass(category))}
-                            fallback={fallbackIcon}
-                          />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <h3 className="truncate font-semibold text-card-foreground">{category.name}</h3>
-                          <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">
-                            {category.description || "Тайлбар байхгүй"}
-                          </p>
-                        </div>
-                        <ArrowRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-foreground" />
-                      </div>
-                    </Link>
-                  )
-                })}
+                {otherCategories.map((category) => (
+                  <CategoryCard key={category._id} category={category} />
+                ))}
               </div>
             </section>
           )}
