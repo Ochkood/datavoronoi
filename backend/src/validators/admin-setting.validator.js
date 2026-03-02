@@ -2,6 +2,7 @@ const { z } = require('zod');
 
 const optionalText = z.string().max(500).optional();
 const optionalUrl = z.string().trim().max(400).optional();
+const optionalEmail = z.union([z.string().trim().email(), z.literal('')]).optional();
 const fontChoice = z.enum(['inter', 'finlandica']);
 
 const updateAdminSettingsSchema = z.object({
@@ -10,7 +11,7 @@ const updateAdminSettingsSchema = z.object({
       siteName: z.string().trim().min(2).max(120).optional(),
       siteDescription: optionalText,
       siteUrl: optionalUrl,
-      contactEmail: z.string().email().optional(),
+      contactEmail: optionalEmail,
       contactPhone: z.string().max(50).optional(),
       contactAddress: z.string().max(240).optional(),
       social: z
@@ -25,8 +26,8 @@ const updateAdminSettingsSchema = z.object({
   email: z
     .object({
       fromName: z.string().trim().min(2).max(120).optional(),
-      fromEmail: z.string().email().optional(),
-      replyTo: z.string().email().optional(),
+      fromEmail: optionalEmail,
+      replyTo: optionalEmail,
       newsletterEnabled: z.boolean().optional(),
     })
     .optional(),
