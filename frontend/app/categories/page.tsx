@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils"
 import { AppSidebar } from "@/components/app-sidebar"
 import { DynamicIcon } from "@/components/admin/icon-picker"
 import { getCategories, type BackendCategory } from "@/lib/api"
+import { categoryTextClass } from "@/lib/color-palette"
 
 const fallbackCategoryIconBySlug: Record<string, ElementType> = {
   economy: TrendingUp,
@@ -18,28 +19,8 @@ const fallbackCategoryIconBySlug: Record<string, ElementType> = {
   world: Globe,
 }
 
-const colorClassByToken: Record<string, string> = {
-  economy: "text-chart-1",
-  technology: "text-chart-2",
-  world: "text-chart-3",
-  environment: "text-chart-4",
-  finance: "text-chart-5",
-  health: "text-destructive",
-  "chart-1": "text-chart-1",
-  "chart-2": "text-chart-2",
-  "chart-3": "text-chart-3",
-  "chart-4": "text-chart-4",
-  "chart-5": "text-chart-5",
-  primary: "text-primary",
-  destructive: "text-destructive",
-}
-
 function categoryColorClass(category: BackendCategory) {
-  const raw = (category.color || "").trim()
-  if (!raw) return colorClassByToken[category.slug] || "text-primary"
-  if (raw.startsWith("text-")) return raw
-  if (raw.startsWith("bg-")) return raw.replace("bg-", "text-")
-  return colorClassByToken[raw] || colorClassByToken[category.slug] || "text-primary"
+  return categoryTextClass(category.color, category.slug)
 }
 
 export default function CategoriesPage() {

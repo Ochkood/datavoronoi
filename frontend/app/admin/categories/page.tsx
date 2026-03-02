@@ -25,6 +25,11 @@ import {
   updateCategoryApi,
 } from "@/lib/api"
 import { IconPicker, DynamicIcon } from "@/components/admin/icon-picker"
+import {
+  COLOR_OPTIONS,
+  categoryBgClass,
+  normalizeColorToken,
+} from "@/lib/color-palette"
 
 type EditCategoryForm = {
   name: string
@@ -42,23 +47,6 @@ const initialForm: EditCategoryForm = {
   color: "chart-1",
   icon: "",
   bannerImage: "",
-}
-
-const colorBgMap: Record<string, string> = {
-  "chart-1": "bg-chart-1",
-  "chart-2": "bg-chart-2",
-  "chart-3": "bg-chart-3",
-  "chart-4": "bg-chart-4",
-  "chart-5": "bg-chart-5",
-  primary: "bg-primary",
-  destructive: "bg-destructive",
-}
-
-function normalizeColor(color?: string) {
-  if (!color) return "chart-1"
-  if (color.startsWith("text-")) return color.replace("text-", "")
-  if (color.startsWith("bg-")) return color.replace("bg-", "")
-  return color
 }
 
 export default function AdminCategoriesPage() {
@@ -109,7 +97,7 @@ export default function AdminCategoriesPage() {
       name: cat.name,
       slug: cat.slug,
       description: cat.description || "",
-      color: normalizeColor(cat.color),
+      color: normalizeColorToken(cat.color, "chart-1"),
       icon: cat.icon || "",
       bannerImage: cat.bannerImage || "",
     })
@@ -226,7 +214,7 @@ export default function AdminCategoriesPage() {
                     <div
                       className={cn(
                         "flex h-12 w-12 items-center justify-center rounded-xl -mt-10 relative z-10 border-4 border-card text-white",
-                        colorBgMap[normalizeColor(cat.color)] || "bg-chart-1"
+                        categoryBgClass(cat.color, cat.slug)
                       )}
                     >
                       <DynamicIcon name={cat.icon} className="h-6 w-6" fallback={FolderTree} />
@@ -425,20 +413,23 @@ export default function AdminCategoriesPage() {
                 <div>
                   <label className="mb-1.5 block text-sm font-medium text-foreground">Өнгө</label>
                   <div className="flex h-10 items-center gap-2">
-                    {["chart-1", "chart-2", "chart-3", "chart-4", "chart-5", "primary", "destructive"].map(
-                      (color) => (
+                    {COLOR_OPTIONS.map((color) => (
                         <button
-                          key={color}
+                          key={color.token}
                           type="button"
-                          onClick={() => setFormData({ ...formData, color })}
+                          onClick={() =>
+                            setFormData({ ...formData, color: color.token })
+                          }
                           className={cn(
                             "h-7 w-7 rounded-full border-2 transition-all hover:scale-110",
-                            colorBgMap[color],
-                            formData.color === color ? "border-foreground" : "border-transparent"
+                            color.bgClass,
+                            formData.color === color.token
+                              ? "border-foreground"
+                              : "border-transparent"
                           )}
+                          title={color.label}
                         />
-                      )
-                    )}
+                      ))}
                   </div>
                 </div>
               </div>

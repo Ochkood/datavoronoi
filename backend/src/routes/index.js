@@ -8,6 +8,7 @@ const uploadRoutes = require('./upload.routes');
 const dashboardRoutes = require('./dashboard.routes');
 const notificationRoutes = require('./notification.routes');
 const feedbackRoutes = require('./feedback.routes');
+const newsletterRoutes = require('./newsletter.routes');
 
 const router = express.Router();
 
@@ -24,5 +25,6 @@ router.use('/uploads', uploadRoutes);
 router.use('/dashboard', dashboardRoutes);
 router.use('/notifications', notificationRoutes);
 router.use('/feedback', feedbackRoutes);
+router.use('/newsletter', newsletterRoutes);
 
 module.exports = router;

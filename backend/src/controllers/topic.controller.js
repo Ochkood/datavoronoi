@@ -37,7 +37,7 @@ const listTopics = asyncHandler(async (req, res) => {
 });
 
 const createTopic = asyncHandler(async (req, res) => {
-  const { name, slug, description, image, featured, startDate, endDate } = req.body;
+  const { name, slug, description, color, image, featured, startDate, endDate } = req.body;
 
   if (!name || !slug) {
     throw new ApiError(400, 'name and slug are required');
@@ -52,6 +52,7 @@ const createTopic = asyncHandler(async (req, res) => {
     name,
     slug,
     description,
+    color,
     image,
     featured,
     startDate,
@@ -63,7 +64,7 @@ const createTopic = asyncHandler(async (req, res) => {
 
 const updateTopic = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const { name, slug, description, image, featured, startDate, endDate } = req.body;
+  const { name, slug, description, color, image, featured, startDate, endDate } = req.body;
 
   const topic = await Topic.findById(id);
   if (!topic) {
@@ -80,6 +81,7 @@ const updateTopic = asyncHandler(async (req, res) => {
   if (name !== undefined) topic.name = name;
   if (slug !== undefined) topic.slug = slug;
   if (description !== undefined) topic.description = description;
+  if (color !== undefined) topic.color = color;
   if (image !== undefined) topic.image = image;
   if (featured !== undefined) topic.featured = featured;
   if (startDate !== undefined) topic.startDate = startDate || null;

@@ -60,6 +60,12 @@ export default function PostDetailPage() {
   const [currentUserId, setCurrentUserId] = useState("")
 
   useEffect(() => {
+    if (typeof window === "undefined") return
+    // Force top position when navigating between posts on mobile/tablet.
+    window.scrollTo(0, 0)
+  }, [id])
+
+  useEffect(() => {
     setIsLoading(true)
     getPostById(id)
       .then((p) => {

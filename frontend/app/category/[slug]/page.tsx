@@ -11,6 +11,7 @@ import { AppSidebar } from "@/components/app-sidebar"
 import { PostCard, type PostData } from "@/components/post-card"
 import { CategoryStatsView } from "@/components/category-stats"
 import { Skeleton } from "@/components/ui/skeleton"
+import { categoryBgClass, categoryTextClass } from "@/lib/color-palette"
 import {
   getCategories,
   getCategoryStatsApi,
@@ -94,24 +95,12 @@ export default function CategoryPage() {
     notFound()
   }
 
-  const categoryColorMap: Record<string, string> = {
-    economy: "text-chart-1",
-    technology: "text-chart-2",
-    world: "text-chart-3",
-    environment: "text-chart-4",
-    finance: "text-chart-5",
-    health: "text-destructive",
-  }
-  const categoryBgMap: Record<string, string> = {
-    economy: "bg-chart-1",
-    technology: "bg-chart-2",
-    world: "bg-chart-3",
-    environment: "bg-chart-4",
-    finance: "bg-chart-5",
-    health: "bg-destructive",
-  }
-  const categoryColor = category ? categoryColorMap[category.slug] || "text-primary" : "text-primary"
-  const categoryBgColor = category ? categoryBgMap[category.slug] || "bg-primary" : "bg-primary"
+  const categoryColor = category
+    ? categoryTextClass(category.color, category.slug)
+    : "text-primary"
+  const categoryBgColor = category
+    ? categoryBgClass(category.color, category.slug)
+    : "bg-primary"
   const categoryName = category?.name || "..."
   const categoryDescription = category?.description || ""
   return (

@@ -12,6 +12,7 @@ import { CategoryStatsView } from "@/components/category-stats"
 import { Skeleton } from "@/components/ui/skeleton"
 import type { CategoryStats } from "@/lib/data"
 import { getPosts, getTopicStatsApi, getTopics, type BackendTopic } from "@/lib/api"
+import { categoryTextClass } from "@/lib/color-palette"
 
 type TabType = "feed" | "stats"
 type FeedSort = "latest" | "popular"
@@ -43,6 +44,9 @@ export default function TopicPage() {
     () => topics.find((t) => t.slug === slug),
     [topics, slug]
   )
+  const topicColorClass = topic
+    ? categoryTextClass(topic.color, topic.slug)
+    : "text-primary"
   const formattedStartDate = useMemo(() => {
     if (!topic?.startDate) return null
     const parsed = new Date(topic.startDate)
@@ -102,7 +106,7 @@ export default function TopicPage() {
             <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 <div className="flex items-center gap-2 text-card/80">
-                  <Hash className="h-4 w-4" />
+                  <Hash className={cn("h-4 w-4", topicColorClass)} />
                   <span className="text-xs font-medium uppercase tracking-wider">Сэдэв</span>
                   {formattedStartDate && (
                     <>

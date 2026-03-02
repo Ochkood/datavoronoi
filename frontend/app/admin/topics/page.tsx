@@ -25,11 +25,17 @@ import {
   uploadImageApi,
   updateTopicApi,
 } from "@/lib/api"
+import {
+  COLOR_OPTIONS,
+  categoryTextClass,
+  normalizeColorToken,
+} from "@/lib/color-palette"
 
 type TopicForm = {
   name: string
   slug: string
   description: string
+  color: string
   image: string
   featured: boolean
   startDate: string
@@ -40,6 +46,7 @@ const initialForm: TopicForm = {
   name: "",
   slug: "",
   description: "",
+  color: "chart-2",
   image: "",
   featured: false,
   startDate: "",
@@ -94,6 +101,7 @@ export default function AdminTopicsPage() {
       name: topic.name,
       slug: topic.slug,
       description: topic.description || "",
+      color: normalizeColorToken(topic.color, "chart-2"),
       image: topic.image || "",
       featured: Boolean(topic.featured),
       startDate: topic.startDate ? topic.startDate.slice(0, 10) : "",
@@ -116,6 +124,7 @@ export default function AdminTopicsPage() {
         name: formData.name.trim(),
         slug: formData.slug.trim(),
         description: formData.description.trim(),
+        color: formData.color,
         image: formData.image.trim(),
         featured: formData.featured,
         startDate: formData.startDate || undefined,
@@ -235,7 +244,9 @@ export default function AdminTopicsPage() {
 
                   <div className="mt-4 flex items-center justify-between border-t border-border pt-4">
                     <div className="flex items-center gap-1.5 text-sm">
-                      <Hash className="h-4 w-4 text-muted-foreground" />
+                      <Hash
+                        className={cn("h-4 w-4", categoryTextClass(topic.color, topic.slug))}
+                      />
                       <span className="text-muted-foreground">Сэдэв</span>
                     </div>
 
@@ -401,6 +412,27 @@ export default function AdminTopicsPage() {
                   placeholder="Сэдвийн тайлбар"
                   className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 />
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-foreground">Өнгө</label>
+                <div className="flex flex-wrap items-center gap-2">
+                  {COLOR_OPTIONS.map((color) => (
+                    <button
+                      key={color.token}
+                      type="button"
+                      onClick={() => setFormData({ ...formData, color: color.token })}
+                      className={cn(
+                        "h-7 w-7 rounded-full border-2 transition-all hover:scale-110",
+                        color.bgClass,
+                        formData.color === color.token
+                          ? "border-foreground"
+                          : "border-transparent"
+                      )}
+                      title={color.label}
+                    />
+                  ))}
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">

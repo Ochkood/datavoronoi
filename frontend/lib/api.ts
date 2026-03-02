@@ -2,6 +2,7 @@ import type { AuthUser } from "@/lib/auth"
 import { clearAuth, getAccessToken, getRefreshToken, setAccessToken } from "@/lib/auth"
 import type { PostData } from "@/components/post-card"
 import type { CategoryStats } from "@/lib/data"
+import { categoryBadgeClass } from "@/lib/color-palette"
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api"
 const API_ORIGIN = API_BASE.replace(/\/api\/?$/, "")
@@ -38,6 +39,7 @@ type BackendPost = {
     _id?: string
     name?: string
     slug?: string
+    color?: string
   }
   topics?: Array<{
     _id: string
@@ -62,6 +64,7 @@ export type BackendTopic = {
   name: string
   slug: string
   description?: string
+  color?: string
   image?: string
   featured?: boolean
   startDate?: string
@@ -76,18 +79,6 @@ function toRelativeDate(dateString?: string): string {
   return d.toLocaleDateString("mn-MN")
 }
 
-function categoryColorBySlug(slug?: string): string {
-  const map: Record<string, string> = {
-    economy: "bg-chart-1/15 text-chart-1",
-    technology: "bg-chart-2/15 text-chart-2",
-    world: "bg-chart-3/15 text-chart-3",
-    environment: "bg-chart-4/15 text-chart-4",
-    finance: "bg-chart-5/15 text-chart-5",
-    health: "bg-destructive/15 text-destructive",
-  }
-  return map[slug || ""] || "bg-secondary text-secondary-foreground"
-}
-
 function mapPost(post: BackendPost): PostData {
   return {
     id: post.shortId || post._id,
@@ -99,7 +90,7 @@ function mapPost(post: BackendPost): PostData {
     contentHtml: post.content || "",
     category: post.category?.name || "Бусад",
     categorySlug: post.category?.slug || "",
-    categoryColor: categoryColorBySlug(post.category?.slug),
+    categoryColor: categoryBadgeClass(post.category?.color, post.category?.slug),
     image: post.featuredImage || "/placeholder.jpg",
     author: post.author?.name || "Unknown",
     authorAvatar:
@@ -318,6 +309,25 @@ export type AdminFeedbackList = {
   stats: Record<FeedbackStatus, number>
 }
 
+export type NewsletterSubscriberItem = {
+  id: string
+  email: string
+  status: "active" | "unsubscribed"
+  source: string
+  subscribedAt: string
+  createdAt: string
+}
+
+export type NewsletterSubscriberList = {
+  items: NewsletterSubscriberItem[]
+  pagination: {
+    total: number
+    page: number
+    limit: number
+    totalPages: number
+  }
+}
+
 export type BackendNotification = {
   _id: string
   type: "comment" | "like" | "approved" | "rejected" | "system"
@@ -435,6 +445,15 @@ type BackendFeedback = {
   createdAt: string
 }
 
+type BackendNewsletterSubscriber = {
+  _id: string
+  email: string
+  status: "active" | "unsubscribed"
+  source?: string
+  subscribedAt?: string
+  createdAt: string
+}
+
 function mapDashboardPost(post: BackendPost): DashboardPost {
   return {
     id: post._id,
@@ -492,6 +511,19 @@ function mapAdminFeedback(item: BackendFeedback): AdminFeedbackItem {
     status: item.status,
     replyMessage: item.replyMessage || "",
     replySentAt: item.replySentAt,
+    createdAt: item.createdAt,
+  }
+}
+
+function mapNewsletterSubscriber(
+  item: BackendNewsletterSubscriber
+): NewsletterSubscriberItem {
+  return {
+    id: item._id,
+    email: item.email,
+    status: item.status || "active",
+    source: item.source || "sidebar",
+    subscribedAt: item.subscribedAt || item.createdAt,
     createdAt: item.createdAt,
   }
 }
@@ -783,6 +815,7 @@ export async function createTopicApi(payload: {
   name: string
   slug: string
   description?: string
+  color?: string
   image?: string
   featured?: boolean
   startDate?: string
@@ -801,6 +834,7 @@ export async function updateTopicApi(
     name: string
     slug: string
     description?: string
+    color?: string
     image?: string
     featured?: boolean
     startDate?: string
@@ -1093,6 +1127,26 @@ export async function createFeedbackApi(payload: {
   return mapAdminFeedback(res.data.feedback)
 }
 
+export async function subscribeNewsletterApi(payload: {
+  email: string
+  source?: string
+}) {
+  const res = await request<
+    ApiResponse<{
+      subscriber: BackendNewsletterSubscriber
+      alreadySubscribed: boolean
+    }>
+  >("/newsletter/subscribe", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  })
+
+  return {
+    subscriber: mapNewsletterSubscriber(res.data.subscriber),
+    alreadySubscribed: Boolean(res.data.alreadySubscribed),
+  }
+}
+
 export async function getAdminFeedbackApi(params?: {
   page?: number
   limit?: number
@@ -1144,6 +1198,32 @@ export async function deleteFeedbackApi(id: string) {
   await request<ApiResponse<{ message: string }>>(`/feedback/${id}`, {
     method: "DELETE",
   })
+}
+
+export async function getAdminNewsletterSubscribersApi(params?: {
+  page?: number
+  limit?: number
+  q?: string
+  status?: "all" | "active" | "unsubscribed"
+}) {
+  const search = new URLSearchParams()
+  if (params?.page) search.set("page", String(params.page))
+  if (params?.limit) search.set("limit", String(params.limit))
+  if (params?.q) search.set("q", params.q)
+  if (params?.status) search.set("status", params.status)
+  const suffix = search.toString() ? `?${search.toString()}` : ""
+
+  const res = await request<
+    ApiResponse<{
+      items: BackendNewsletterSubscriber[]
+      pagination: NewsletterSubscriberList["pagination"]
+    }>
+  >(`/newsletter/admin/subscribers${suffix}`)
+
+  return {
+    items: res.data.items.map(mapNewsletterSubscriber),
+    pagination: res.data.pagination,
+  }
 }
 
 export async function updateUserApi(

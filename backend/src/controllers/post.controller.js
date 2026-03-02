@@ -105,7 +105,7 @@ const listPosts = asyncHandler(async (req, res) => {
   const [items, total] = await Promise.all([
     Post.find(filter)
       .populate('author', 'name avatar role slug')
-      .populate('category', 'name slug')
+      .populate('category', 'name slug color')
       .populate('topics', 'name slug')
       .sort(sortQuery)
       .skip(skip)
@@ -188,7 +188,7 @@ const listAdminPosts = asyncHandler(async (req, res) => {
   const [items, total] = await Promise.all([
     Post.find(filter)
       .populate('author', 'name avatar role slug')
-      .populate('category', 'name slug')
+      .populate('category', 'name slug color')
       .populate('topics', 'name slug')
       .sort({ createdAt: -1 })
       .skip(skip)
@@ -277,7 +277,7 @@ const getPostMetaById = asyncHandler(async (req, res) => {
 
   const post = await Post.findOne(identifierQuery)
     .populate('author', 'name')
-    .populate('category', 'name slug')
+    .populate('category', 'name slug color')
     .populate('topics', 'name slug')
     .select(
       'title excerpt content featuredImage status visibility createdAt publishedAt author category topics'
@@ -308,7 +308,7 @@ const getPostById = asyncHandler(async (req, res) => {
     { new: true }
   )
     .populate('author', 'name avatar bio role slug')
-    .populate('category', 'name slug')
+    .populate('category', 'name slug color')
     .populate('topics', 'name slug');
 
   if (!post) {

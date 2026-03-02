@@ -15,6 +15,7 @@ import {
   ChevronRight,
   BarChart3,
   Bell,
+  Mail,
   LogOut,
   Search,
   UserCog,
@@ -30,6 +31,7 @@ const mainNavItems = [
   { label: "Сэдэв", icon: Hash, href: "/admin/topics" },
   { label: "Хэрэглэгчид", icon: Users, href: "/admin/users" },
   { label: "Санал хүсэлт", icon: MessageSquare, href: "/admin/feedback" },
+  { label: "Товхимол", icon: Mail, href: "/admin/newsletter" },
   { label: "Статистик", icon: BarChart3, href: "/admin/analytics" },
 ]
 

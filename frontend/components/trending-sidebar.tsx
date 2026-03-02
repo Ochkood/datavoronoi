@@ -4,20 +4,10 @@ import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { TrendingUp, ArrowUpRight } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { getPosts } from "@/lib/api"
+import { getPosts, subscribeNewsletterApi } from "@/lib/api"
 import type { PostData } from "@/components/post-card"
 import { Skeleton } from "@/components/ui/skeleton"
-
-const popularTags = [
-  "Эдийн засаг",
-  "Инфографик",
-  "AI",
-  "Монгол",
-  "Статистик",
-  "Дэлхий",
-  "Технологи",
-  "Эрүүл мэнд",
-]
+import { toast } from "sonner"
 
 function extractTextColorClass(categoryColor: string) {
   const parts = categoryColor.split(" ")
@@ -28,6 +18,8 @@ function extractTextColorClass(categoryColor: string) {
 export function TrendingSidebar() {
   const [items, setItems] = useState<PostData[]>([])
   const [loading, setLoading] = useState(true)
+  const [email, setEmail] = useState("")
+  const [subscribing, setSubscribing] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -64,6 +56,32 @@ export function TrendingSidebar() {
       })),
     [items]
   )
+
+  const handleSubscribe = async () => {
+    const normalized = email.trim().toLowerCase()
+    if (!normalized) {
+      toast.error("Имэйл хаягаа оруулна уу")
+      return
+    }
+
+    setSubscribing(true)
+    try {
+      const res = await subscribeNewsletterApi({
+        email: normalized,
+        source: "trending_sidebar",
+      })
+      setEmail("")
+      toast.success(
+        res.alreadySubscribed
+          ? "Та аль хэдийн бүртгэлтэй байна"
+          : "Амжилттай бүртгэгдлээ"
+      )
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Бүртгэхэд алдаа гарлаа")
+    } finally {
+      setSubscribing(false)
+    }
+  }
 
   return (
     <aside className="space-y-6">
@@ -114,22 +132,6 @@ export function TrendingSidebar() {
         </div>
       </div>
 
-      <div className="rounded-xl bg-card p-5 ring-1 ring-border">
-        <h2 className="mb-3 text-sm font-bold text-card-foreground">
-          Түгээмэл шошго
-        </h2>
-        <div className="flex flex-wrap gap-2">
-          {popularTags.map((tag) => (
-            <button
-              key={tag}
-              className="rounded-full border border-border bg-secondary/50 px-3 py-1 text-xs font-medium text-secondary-foreground transition-colors hover:border-primary hover:bg-primary hover:text-primary-foreground"
-            >
-              {tag}
-            </button>
-          ))}
-        </div>
-      </div>
-
       <div className="rounded-xl bg-primary p-5 text-primary-foreground">
         <h2 className="text-sm font-bold">Мэдээллийн товхимол</h2>
         <p className="mt-1.5 text-xs leading-relaxed text-primary-foreground/80">
@@ -139,10 +141,22 @@ export function TrendingSidebar() {
           <input
             type="email"
             placeholder="Имэйл хаяг"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault()
+                void handleSubscribe()
+              }
+            }}
             className="flex-1 rounded-lg bg-primary-foreground/15 px-3 py-2 text-xs text-primary-foreground placeholder:text-primary-foreground/50 outline-none focus:ring-1 focus:ring-primary-foreground/30"
           />
-          <button className="rounded-lg bg-primary-foreground px-3 py-2 text-xs font-semibold text-primary transition-colors hover:bg-primary-foreground/90">
-            Бүртгүүлэх
+          <button
+            onClick={() => void handleSubscribe()}
+            disabled={subscribing}
+            className="rounded-lg bg-primary-foreground px-3 py-2 text-xs font-semibold text-primary transition-colors hover:bg-primary-foreground/90 disabled:opacity-60"
+          >
+            {subscribing ? "..." : "Бүртгүүлэх"}
           </button>
         </div>
       </div>
