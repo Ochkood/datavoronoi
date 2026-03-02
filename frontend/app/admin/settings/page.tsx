@@ -847,7 +847,7 @@ export default function AdminSettingsPage() {
                   </div>
 
                   <div>
-                    <label className="mb-1.5 block text-sm font-medium text-foreground">Эрэмбэ (sort)</label>
+                    <label className="mb-1.5 block text-sm font-medium text-foreground">Ээлжлэх дараалал</label>
                     <input
                       type="number"
                       value={bannerForm.sortOrder}
@@ -859,6 +859,9 @@ export default function AdminSettingsPage() {
                       }
                       className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
                     />
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Бага тоо түрүүлж гарна. Олон баннер бол энэ дарааллаар fade-ээр ээлжилнэ.
+                    </p>
                   </div>
 
                   <div className="flex items-end">
@@ -956,7 +959,7 @@ export default function AdminSettingsPage() {
                                 ? `Category: ${item.category?.name || "-"}`
                                 : `Topic: ${item.topic?.name || "-"}`}
                             {" • "}
-                            sort: {item.sortOrder}
+                            дараалал: {item.sortOrder}
                           </p>
                         </div>
                         <div className="flex items-center gap-2">

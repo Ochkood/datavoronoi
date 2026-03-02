@@ -12,6 +12,7 @@ type SidebarBannerProps = {
 export function SidebarBanner({ pageType = "home", targetId }: SidebarBannerProps) {
   const [items, setItems] = useState<BannerItem[]>([])
   const [index, setIndex] = useState(0)
+  const [visible, setVisible] = useState(true)
 
   useEffect(() => {
     let cancelled = false
@@ -26,11 +27,13 @@ export function SidebarBanner({ pageType = "home", targetId }: SidebarBannerProp
           if (cancelled) return
           setItems(rows)
           setIndex(0)
+          setVisible(true)
         })
         .catch(() => {
           if (cancelled) return
           setItems([])
           setIndex(0)
+          setVisible(true)
         })
     }
 
@@ -45,10 +48,18 @@ export function SidebarBanner({ pageType = "home", targetId }: SidebarBannerProp
 
   useEffect(() => {
     if (items.length <= 1) return
+    let timeoutId: number | null = null
     const timer = window.setInterval(() => {
-      setIndex((prev) => (prev + 1) % items.length)
+      setVisible(false)
+      timeoutId = window.setTimeout(() => {
+        setIndex((prev) => (prev + 1) % items.length)
+        setVisible(true)
+      }, 180)
     }, 5000)
-    return () => window.clearInterval(timer)
+    return () => {
+      window.clearInterval(timer)
+      if (timeoutId) window.clearTimeout(timeoutId)
+    }
   }, [items])
 
   const active = useMemo(() => {
@@ -70,7 +81,7 @@ export function SidebarBanner({ pageType = "home", targetId }: SidebarBannerProp
           <img
             src={active.imageUrl}
             alt={active.alt || active.title || "Сурталгааны баннер"}
-            className="h-auto w-full object-contain"
+            className={`h-auto w-full object-contain transition-opacity duration-300 ${visible ? "opacity-100" : "opacity-0"}`}
             loading="lazy"
           />
         </Link>
@@ -78,7 +89,7 @@ export function SidebarBanner({ pageType = "home", targetId }: SidebarBannerProp
         <img
           src={active.imageUrl}
           alt={active.alt || active.title || "Сурталгааны баннер"}
-          className="h-auto w-full object-contain"
+          className={`h-auto w-full object-contain transition-opacity duration-300 ${visible ? "opacity-100" : "opacity-0"}`}
           loading="lazy"
         />
       )}

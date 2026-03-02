@@ -181,31 +181,27 @@ const getPublicBanners = asyncHandler(async (req, res) => {
       .sort({ sortOrder: 1, createdAt: -1 })
       .limit(limit);
   } else if (pageType === 'category') {
-    const specific = targetId
+    rows = targetId
       ? await Banner.find({ ...base, targetType: 'category', category: targetId })
           .sort({ sortOrder: 1, createdAt: -1 })
           .limit(limit)
       : [];
-    const remains = Math.max(0, limit - specific.length);
-    const home = remains
-      ? await Banner.find({ ...base, targetType: 'home' })
-          .sort({ sortOrder: 1, createdAt: -1 })
-          .limit(remains)
-      : [];
-    rows = [...specific, ...home];
+    if (rows.length === 0) {
+      rows = await Banner.find({ ...base, targetType: 'home' })
+        .sort({ sortOrder: 1, createdAt: -1 })
+        .limit(limit);
+    }
   } else if (pageType === 'topic') {
-    const specific = targetId
+    rows = targetId
       ? await Banner.find({ ...base, targetType: 'topic', topic: targetId })
           .sort({ sortOrder: 1, createdAt: -1 })
           .limit(limit)
       : [];
-    const remains = Math.max(0, limit - specific.length);
-    const home = remains
-      ? await Banner.find({ ...base, targetType: 'home' })
-          .sort({ sortOrder: 1, createdAt: -1 })
-          .limit(remains)
-      : [];
-    rows = [...specific, ...home];
+    if (rows.length === 0) {
+      rows = await Banner.find({ ...base, targetType: 'home' })
+        .sort({ sortOrder: 1, createdAt: -1 })
+        .limit(limit);
+    }
   } else {
     throw new ApiError(400, 'Invalid pageType');
   }
