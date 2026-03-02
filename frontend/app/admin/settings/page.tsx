@@ -169,6 +169,12 @@ export default function AdminSettingsPage() {
     try {
       const next = await updateAdminSettingsApi(savePayload)
       setSettings((prev) => ({ ...prev, ...next }))
+      if (typeof window !== "undefined") {
+        const typography =
+          next.typography || settings.typography || defaultSettings.typography
+        localStorage.setItem("dn_site_typography", JSON.stringify(typography))
+        window.dispatchEvent(new Event("dn-site-settings-updated"))
+      }
       setSaved(true)
       setTimeout(() => setSaved(false), 2200)
     } catch (e) {

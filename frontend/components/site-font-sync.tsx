@@ -32,6 +32,34 @@ function applyFontVars(choices: {
 
 export function SiteFontSync() {
   useEffect(() => {
+    const applyFromLocalStorage = () => {
+      if (typeof window === "undefined") return
+      const raw = localStorage.getItem("dn_site_typography")
+      if (!raw) return
+      try {
+        const parsed = JSON.parse(raw) as {
+          headingFont?: "inter" | "finlandica"
+          sectionTitleFont?: "inter" | "finlandica"
+          cardTitleFont?: "inter" | "finlandica"
+        }
+        if (
+          parsed.headingFont &&
+          parsed.sectionTitleFont &&
+          parsed.cardTitleFont
+        ) {
+          applyFontVars({
+            headingFont: parsed.headingFont,
+            sectionTitleFont: parsed.sectionTitleFont,
+            cardTitleFont: parsed.cardTitleFont,
+          })
+        }
+      } catch {
+        // no-op
+      }
+    }
+
+    applyFromLocalStorage()
+
     let cancelled = false
     getPublicAdminSettingsApi()
       .then((incoming) => {
@@ -43,11 +71,16 @@ export function SiteFontSync() {
         if (cancelled) return
       })
 
+    const handleUpdated = () => applyFromLocalStorage()
+    window.addEventListener("dn-site-settings-updated", handleUpdated)
+    window.addEventListener("storage", handleUpdated)
+
     return () => {
       cancelled = true
+      window.removeEventListener("dn-site-settings-updated", handleUpdated)
+      window.removeEventListener("storage", handleUpdated)
     }
   }, [])
 
   return null
 }
-

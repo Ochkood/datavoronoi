@@ -12,7 +12,7 @@ const inter = Inter({
 })
 
 const finlandica = Finlandica({ 
-  subsets: ["latin"],
+  subsets: ["latin", "cyrillic"],
   variable: '--font-finlandica',
 })
 
