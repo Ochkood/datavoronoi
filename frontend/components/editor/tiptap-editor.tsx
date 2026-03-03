@@ -106,7 +106,7 @@ export function TiptapEditor({
   const [chartItems, setChartItems] = useState<CategoryStats["charts"]>([])
   const [chartForm, setChartForm] = useState({
     title: "",
-    type: "area" as "area" | "line" | "bar" | "pie",
+    type: "area" as "area" | "line" | "bar" | "pie" | "compare",
     dataLabel: "",
     dataLabel2: "",
     dataLabel3: "",
@@ -376,10 +376,10 @@ export function TiptapEditor({
           : []
       )
       setChartEditIndex(null)
-      setChartForm({
-        title: "",
-        type: "area",
-        dataLabel: "",
+        setChartForm({
+          title: "",
+          type: "area",
+          dataLabel: "",
         dataLabel2: "",
         dataLabel3: "",
         dataLabel4: "",
@@ -492,6 +492,10 @@ export function TiptapEditor({
     const hasSecondSeries = data.some((item) => item.value2 !== undefined)
     const hasThirdSeries = data.some((item) => item.value3 !== undefined)
     const hasFourthSeries = data.some((item) => item.value4 !== undefined)
+
+    if (chartForm.type === "compare" && !hasSecondSeries) {
+      return
+    }
 
     const nextItem = {
       title,
@@ -1163,7 +1167,7 @@ export function TiptapEditor({
                 onChange={(e) =>
                   setChartForm((prev) => ({
                     ...prev,
-                    type: e.target.value as "area" | "line" | "bar" | "pie",
+                    type: e.target.value as "area" | "line" | "bar" | "pie" | "compare",
                   }))
                 }
                 className="h-10 rounded-lg border border-input bg-background px-3 text-sm"
@@ -1172,6 +1176,7 @@ export function TiptapEditor({
                 <option value="line">Line</option>
                 <option value="bar">Bar</option>
                 <option value="pie">Pie</option>
+                <option value="compare">Comparison Matrix</option>
               </select>
               <input
                 type="text"
@@ -1223,7 +1228,11 @@ export function TiptapEditor({
             <textarea
               value={chartDataInput}
               onChange={(e) => setChartDataInput(e.target.value)}
-              placeholder={"Дата оруулга\\nмөр бүрт: нэр:утга эсвэл нэр:утга:утга2(:утга3:утга4)\\n2022:3.8:8.0\\n2023:2.0:6.7"}
+              placeholder={
+                chartForm.type === "compare"
+                  ? "Comparison өгөгдөл\nмөр бүрт: metric:value1:value2(:value3:value4)\nMilitary Budget:24.4:31.0\nPopulation:9.9:89.7"
+                  : "Дата оруулга\nмөр бүрт: нэр:утга эсвэл нэр:утга:утга2(:утга3:утга4)\n2022:3.8:8.0\n2023:2.0:6.7"
+              }
               rows={6}
               className="mt-3 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
             />
@@ -1260,7 +1269,8 @@ export function TiptapEditor({
                           type:
                             item.type === "line" ||
                             item.type === "bar" ||
-                            item.type === "pie"
+                            item.type === "pie" ||
+                            item.type === "compare"
                               ? item.type
                               : "area",
                           dataLabel: item.dataLabel || "",

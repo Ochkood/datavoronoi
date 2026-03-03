@@ -92,7 +92,7 @@ function StatCard({ item }: { item: StatItem }) {
 
 interface ChartCardProps {
   title: string
-  type: "line" | "bar" | "area" | "pie"
+  type: "line" | "bar" | "area" | "pie" | "compare"
   data: ChartDataPoint[]
   dataKey?: string
   dataKey2?: string
@@ -147,6 +147,7 @@ function ChartCard({
     "var(--chart-3)",
     "var(--chart-5)",
   ]
+  const compareGridTemplate = `minmax(0,1.4fr) repeat(${Math.max(series.length, 1)}, minmax(0,1fr))`
 
   return (
     <div className={cn("rounded-xl bg-card p-4 ring-1 ring-border", fullWidth && "lg:col-span-2")}>
@@ -158,9 +159,61 @@ function ChartCard({
           <BarChart3 className="h-4 w-4 text-muted-foreground" />
         )}
       </div>
-      <div className="h-[200px] w-full">
-        <ResponsiveContainer width="100%" height="100%">
-          {type === "area" ? (
+      {type === "compare" ? (
+        <div className="overflow-hidden rounded-lg border border-border bg-slate-900/95 text-slate-100">
+          <div
+            className="grid gap-0 border-b border-slate-700/80 bg-slate-800/90 text-[11px] font-semibold"
+            style={{ gridTemplateColumns: compareGridTemplate }}
+          >
+            <div className="px-3 py-2 text-slate-300">Metric</div>
+            {series.map((item, idx) => (
+              <div
+                key={`compare-header-${item.key}`}
+                className={cn(
+                  "px-3 py-2 text-right",
+                  idx === 0 && "text-cyan-300",
+                  idx === 1 && "text-rose-300",
+                  idx === 2 && "text-amber-300",
+                  idx === 3 && "text-lime-300"
+                )}
+              >
+                {item.label}
+              </div>
+            ))}
+          </div>
+          <div>
+            {data.map((row, rowIdx) => {
+              const values = [row.value, row.value2, row.value3, row.value4]
+              return (
+                <div
+                  key={`compare-row-${row.name}-${rowIdx}`}
+                  className="grid border-b border-slate-700/60 last:border-b-0"
+                  style={{ gridTemplateColumns: compareGridTemplate }}
+                >
+                  <div className="px-3 py-2 text-xs text-slate-200">{row.name}</div>
+                  {series.map((item, idx) => (
+                    <div
+                      key={`compare-val-${item.key}-${rowIdx}`}
+                      className={cn(
+                        "px-3 py-2 text-right text-sm font-semibold",
+                        idx === 0 && "text-cyan-300",
+                        idx === 1 && "text-rose-300",
+                        idx === 2 && "text-amber-300",
+                        idx === 3 && "text-lime-300"
+                      )}
+                    >
+                      {values[idx] !== undefined ? String(values[idx]) : "-"}
+                    </div>
+                  ))}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      ) : (
+        <div className="h-[200px] w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            {type === "area" ? (
             <AreaChart data={data} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
               <defs>
                 {seriesKeys.map((key, idx) => (
@@ -272,8 +325,8 @@ function ChartCard({
                 />
               ))}
             </BarChart>
-          ) : (
-            <PieChart>
+            ) : (
+              <PieChart>
               <Tooltip
                 contentStyle={{
                   backgroundColor: "var(--card)",
@@ -302,10 +355,11 @@ function ChartCard({
                   />
                 ))}
               </Pie>
-            </PieChart>
-          )}
-        </ResponsiveContainer>
-      </div>
+              </PieChart>
+            )}
+          </ResponsiveContainer>
+        </div>
+      )}
       {link && (
         <div className="mt-3 flex justify-end">
           <a

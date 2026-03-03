@@ -266,7 +266,7 @@ export interface CategoryStats {
   highlights: StatItem[]
   charts: {
     title: string
-    type: "line" | "bar" | "area" | "pie"
+    type: "line" | "bar" | "area" | "pie" | "compare"
     data: ChartDataPoint[]
     dataKey?: string
     dataKey2?: string
