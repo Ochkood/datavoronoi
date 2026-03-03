@@ -106,7 +106,14 @@ export function TiptapEditor({
   const [chartItems, setChartItems] = useState<CategoryStats["charts"]>([])
   const [chartForm, setChartForm] = useState({
     title: "",
-    type: "area" as "area" | "line" | "bar" | "pie" | "compare",
+    type: "area" as
+      | "area"
+      | "line"
+      | "bar"
+      | "pie"
+      | "compare"
+      | "groupedHorizontalBar",
+    sortDescending: false,
     metricLabel: "Metric",
     dataLabel: "",
     dataLabel2: "",
@@ -147,6 +154,7 @@ export function TiptapEditor({
     setChartForm({
       title: "",
       type: "area",
+      sortDescending: false,
       metricLabel: "Metric",
       dataLabel: "",
       dataLabel2: "",
@@ -383,6 +391,7 @@ export function TiptapEditor({
       setChartForm({
         title: "",
         type: "area",
+        sortDescending: false,
         metricLabel: "Metric",
         dataLabel: "",
         dataLabel2: "",
@@ -480,11 +489,24 @@ export function TiptapEditor({
         const parts = line.split(":")
         const name = (parts[0] || "").trim()
         const row: Record<string, string | number> = { name }
-        for (let i = 1; i < parts.length; i += 1) {
-          const parsed = parseFloat(parts[i] || "")
-          if (Number.isNaN(parsed)) continue
-          const key = i === 1 ? "value" : `value${i}`
-          row[key] = parsed
+        const valueParts = parts.slice(1)
+        let numbers: number[] = []
+
+        if (valueParts.length === 1) {
+          const extracted = String(valueParts[0] || "").match(/-?\d+(\.\d+)?/g) || []
+          numbers = extracted.map((item) => Number(item)).filter((n) => !Number.isNaN(n))
+        } else {
+          numbers = valueParts
+            .map((part) => {
+              const found = String(part).match(/-?\d+(\.\d+)?/)
+              return found ? Number(found[0]) : Number.NaN
+            })
+            .filter((n) => !Number.isNaN(n))
+        }
+
+        for (let i = 0; i < numbers.length; i += 1) {
+          const key = i === 0 ? "value" : `value${i + 1}`
+          row[key] = numbers[i]
         }
         return row
       })
@@ -526,6 +548,10 @@ export function TiptapEditor({
     const nextItem = {
       title,
       type: chartForm.type,
+      sortDescending:
+        chartForm.type === "groupedHorizontalBar"
+          ? chartForm.sortDescending
+          : undefined,
       data: data as CategoryStats["charts"][number]["data"],
       metricLabel: chartForm.type === "compare" ? chartForm.metricLabel.trim() || "Metric" : undefined,
       dataKeys: dynamicDataKeys,
@@ -549,6 +575,7 @@ export function TiptapEditor({
     setChartForm({
       title: "",
       type: "area",
+      sortDescending: false,
       metricLabel: "Metric",
       dataLabel: "",
       dataLabel2: "",
@@ -1198,7 +1225,13 @@ export function TiptapEditor({
                 onChange={(e) =>
                   setChartForm((prev) => ({
                     ...prev,
-                    type: e.target.value as "area" | "line" | "bar" | "pie" | "compare",
+                    type: e.target.value as
+                      | "area"
+                      | "line"
+                      | "bar"
+                      | "pie"
+                      | "compare"
+                      | "groupedHorizontalBar",
                   }))
                 }
                 className="h-10 rounded-lg border border-input bg-background px-3 text-sm"
@@ -1208,7 +1241,24 @@ export function TiptapEditor({
                 <option value="bar">Bar</option>
                 <option value="pie">Pie</option>
                 <option value="compare">Comparison Matrix</option>
+                <option value="groupedHorizontalBar">Grouped Horizontal Bar</option>
               </select>
+              {chartForm.type === "groupedHorizontalBar" ? (
+                <label className="inline-flex h-10 items-center gap-2 rounded-lg border border-input bg-background px-3 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={chartForm.sortDescending}
+                    onChange={(e) =>
+                      setChartForm((prev) => ({
+                        ...prev,
+                        sortDescending: e.target.checked,
+                      }))
+                    }
+                    className="h-4 w-4 rounded border-border"
+                  />
+                  Утгаар буурахаар эрэмбэлэх
+                </label>
+              ) : null}
               <input
                 type="text"
                 value={chartForm.dataLabel}
@@ -1281,8 +1331,10 @@ export function TiptapEditor({
               onChange={(e) => setChartDataInput(e.target.value)}
               placeholder={
                 chartForm.type === "compare"
-                  ? "Comparison өгөгдөл\nмөр бүрт: metric:value1:value2(:value3:value4)\nMilitary Budget:24.4:31.0\nPopulation:9.9:89.7"
-                  : "Дата оруулга\nмөр бүрт: нэр:утга эсвэл нэр:утга:утга2(:утга3:утга4)\n2022:3.8:8.0\n2023:2.0:6.7"
+                  ? "Comparison өгөгдөл\nмөр бүрт: metric:value1:value2(:value3:value4...)\nMilitary Budget:24.4:31.0\nPopulation:9.9:89.7"
+                  : chartForm.type === "groupedHorizontalBar"
+                    ? "Grouped Horizontal өгөгдөл\nмөр бүрт: нэр:value1:value2:value3... эсвэл нэр: Gold 18, Silver 12, Bronze 11\nNorway:18:12:11\nUSA: Gold 12, Silver 12, Bronze 9"
+                    : "Дата оруулга\nмөр бүрт: нэр:утга эсвэл нэр:утга:утга2(:утга3:утга4...)\n2022:3.8:8.0\n2023:2.0:6.7"
               }
               rows={6}
               className="mt-3 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
@@ -1321,9 +1373,11 @@ export function TiptapEditor({
                             item.type === "line" ||
                             item.type === "bar" ||
                             item.type === "pie" ||
-                            item.type === "compare"
+                            item.type === "compare" ||
+                            item.type === "groupedHorizontalBar"
                               ? item.type
                               : "area",
+                          sortDescending: Boolean(item.sortDescending),
                           metricLabel: item.metricLabel || "Metric",
                           dataLabel: item.dataLabel || "",
                           dataLabel2: item.dataLabel2 || "",

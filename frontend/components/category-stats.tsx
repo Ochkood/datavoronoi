@@ -92,8 +92,9 @@ function StatCard({ item }: { item: StatItem }) {
 
 interface ChartCardProps {
   title: string
-  type: "line" | "bar" | "area" | "pie" | "compare"
+  type: "line" | "bar" | "area" | "pie" | "compare" | "groupedHorizontalBar"
   data: ChartDataPoint[]
+  sortDescending?: boolean
   metricLabel?: string
   dataKeys?: string[]
   dataLabels?: Array<string | undefined>
@@ -115,6 +116,7 @@ function ChartCard({
   title,
   type,
   data,
+  sortDescending = false,
   metricLabel,
   dataKeys,
   dataLabels,
@@ -175,6 +177,15 @@ function ChartCard({
     "var(--destructive)",
   ]
   const compareGridTemplate = `minmax(0,1.4fr) repeat(${Math.max(series.length, 1)}, minmax(0,1fr))`
+  const sortedData =
+    type === "groupedHorizontalBar" && sortDescending
+      ? [...data].sort((a, b) => {
+          const sum = (row: ChartDataPoint) =>
+            series.reduce((acc, s) => acc + Number(row[s.key] || 0), 0)
+          return sum(b) - sum(a)
+        })
+      : data
+  const chartHeight = type === "groupedHorizontalBar" ? Math.max(220, data.length * 52) : 200
   const compareTextClasses = [
     "text-cyan-300",
     "text-rose-300",
@@ -212,7 +223,7 @@ function ChartCard({
             ))}
           </div>
           <div>
-            {data.map((row, rowIdx) => {
+            {sortedData.map((row, rowIdx) => {
               return (
                 <div
                   key={`compare-row-${row.name}-${rowIdx}`}
@@ -237,7 +248,7 @@ function ChartCard({
           </div>
         </div>
       ) : (
-        <div className="h-[200px] w-full">
+        <div className="w-full" style={{ height: chartHeight }}>
           <ResponsiveContainer width="100%" height="100%">
             {type === "area" ? (
             <AreaChart data={data} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
@@ -351,6 +362,42 @@ function ChartCard({
                 />
               ))}
             </BarChart>
+            ) : type === "groupedHorizontalBar" ? (
+              <BarChart data={sortedData} layout="vertical" margin={{ top: 5, right: 8, left: 8, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" horizontal={false} />
+                <XAxis
+                  type="number"
+                  tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                  axisLine={{ stroke: "var(--border)" }}
+                  tickLine={false}
+                />
+                <YAxis
+                  type="category"
+                  dataKey="name"
+                  width={92}
+                  tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "var(--card)",
+                    border: "1px solid var(--border)",
+                    borderRadius: "8px",
+                    fontSize: "12px",
+                  }}
+                />
+                <Legend wrapperStyle={{ fontSize: "11px" }} />
+                {series.map((item, idx) => (
+                  <Bar
+                    key={item.key}
+                    dataKey={item.key}
+                    fill={seriesColors[idx % seriesColors.length]}
+                    radius={[3, 3, 3, 3]}
+                    name={item.label}
+                  />
+                ))}
+              </BarChart>
             ) : (
               <PieChart>
               <Tooltip
@@ -453,6 +500,7 @@ export function CategoryStatsView({
                 title={chart.title}
                 type={chart.type}
                 data={chart.data}
+                sortDescending={chart.sortDescending}
                 dataKey={chart.dataKey}
                 dataKey2={chart.dataKey2}
                 dataKey3={chart.dataKey3}
