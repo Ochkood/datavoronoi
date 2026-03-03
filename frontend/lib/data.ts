@@ -260,6 +260,7 @@ export interface ChartDataPoint {
   value2?: number
   value3?: number
   value4?: number
+  [key: string]: string | number | undefined
 }
 
 export interface CategoryStats {
@@ -268,6 +269,9 @@ export interface CategoryStats {
     title: string
     type: "line" | "bar" | "area" | "pie" | "compare"
     data: ChartDataPoint[]
+    metricLabel?: string
+    dataKeys?: string[]
+    dataLabels?: Array<string | undefined>
     dataKey?: string
     dataKey2?: string
     dataKey3?: string

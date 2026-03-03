@@ -94,6 +94,9 @@ interface ChartCardProps {
   title: string
   type: "line" | "bar" | "area" | "pie" | "compare"
   data: ChartDataPoint[]
+  metricLabel?: string
+  dataKeys?: string[]
+  dataLabels?: Array<string | undefined>
   dataKey?: string
   dataKey2?: string
   dataKey3?: string
@@ -112,6 +115,9 @@ function ChartCard({
   title,
   type,
   data,
+  metricLabel,
+  dataKeys,
+  dataLabels,
   dataKey = "value",
   dataKey2,
   dataKey3,
@@ -133,12 +139,31 @@ function ChartCard({
                     color === "text-chart-5" ? "var(--chart-5)" :
                     color === "text-destructive" ? "var(--destructive)" : "var(--primary)"
 
-  const series = [
-    { key: dataKey, label: dataLabel || dataKey || "value" },
-    { key: dataKey2, label: dataLabel2 || dataKey2 || "value2" },
-    { key: dataKey3, label: dataLabel3 || dataKey3 || "value3" },
-    { key: dataKey4, label: dataLabel4 || dataKey4 || "value4" },
-  ].filter((item): item is { key: string; label: string } => Boolean(item.key))
+  const normalizedDataKeys =
+    Array.isArray(dataKeys) && dataKeys.length > 0
+      ? dataKeys.filter(Boolean)
+      : [dataKey, dataKey2, dataKey3, dataKey4].filter(
+          (key): key is string => Boolean(key)
+        )
+
+  const series = normalizedDataKeys.map((key, idx) => {
+    const explicitLabel = Array.isArray(dataLabels) ? dataLabels[idx] : undefined
+    const legacyLabel =
+      idx === 0
+        ? dataLabel
+        : idx === 1
+          ? dataLabel2
+          : idx === 2
+            ? dataLabel3
+            : idx === 3
+              ? dataLabel4
+              : undefined
+
+    return {
+      key,
+      label: explicitLabel || legacyLabel || key,
+    }
+  })
 
   const seriesKeys = series.map((s) => s.key)
   const seriesColors = [
@@ -146,8 +171,19 @@ function ChartCard({
     "var(--chart-2)",
     "var(--chart-3)",
     "var(--chart-5)",
+    "var(--chart-4)",
+    "var(--destructive)",
   ]
   const compareGridTemplate = `minmax(0,1.4fr) repeat(${Math.max(series.length, 1)}, minmax(0,1fr))`
+  const compareTextClasses = [
+    "text-cyan-300",
+    "text-rose-300",
+    "text-amber-300",
+    "text-lime-300",
+    "text-violet-300",
+    "text-teal-300",
+    "text-fuchsia-300",
+  ]
 
   return (
     <div className={cn("rounded-xl bg-card p-4 ring-1 ring-border", fullWidth && "lg:col-span-2")}>
@@ -165,17 +201,11 @@ function ChartCard({
             className="grid gap-0 border-b border-slate-700/80 bg-slate-800/90 text-[11px] font-semibold"
             style={{ gridTemplateColumns: compareGridTemplate }}
           >
-            <div className="px-3 py-2 text-slate-300">Metric</div>
+            <div className="px-3 py-2 text-slate-300">{metricLabel?.trim() || "Metric"}</div>
             {series.map((item, idx) => (
               <div
                 key={`compare-header-${item.key}`}
-                className={cn(
-                  "px-3 py-2 text-right",
-                  idx === 0 && "text-cyan-300",
-                  idx === 1 && "text-rose-300",
-                  idx === 2 && "text-amber-300",
-                  idx === 3 && "text-lime-300"
-                )}
+                className={cn("px-3 py-2 text-right", compareTextClasses[idx % compareTextClasses.length])}
               >
                 {item.label}
               </div>
@@ -183,7 +213,6 @@ function ChartCard({
           </div>
           <div>
             {data.map((row, rowIdx) => {
-              const values = [row.value, row.value2, row.value3, row.value4]
               return (
                 <div
                   key={`compare-row-${row.name}-${rowIdx}`}
@@ -196,13 +225,10 @@ function ChartCard({
                       key={`compare-val-${item.key}-${rowIdx}`}
                       className={cn(
                         "px-3 py-2 text-right text-sm font-semibold",
-                        idx === 0 && "text-cyan-300",
-                        idx === 1 && "text-rose-300",
-                        idx === 2 && "text-amber-300",
-                        idx === 3 && "text-lime-300"
+                        compareTextClasses[idx % compareTextClasses.length]
                       )}
                     >
-                      {values[idx] !== undefined ? String(values[idx]) : "-"}
+                      {row[item.key] !== undefined ? String(row[item.key]) : "-"}
                     </div>
                   ))}
                 </div>
@@ -431,10 +457,13 @@ export function CategoryStatsView({
                 dataKey2={chart.dataKey2}
                 dataKey3={chart.dataKey3}
                 dataKey4={chart.dataKey4}
+                dataKeys={chart.dataKeys}
                 dataLabel={chart.dataLabel}
                 dataLabel2={chart.dataLabel2}
                 dataLabel3={chart.dataLabel3}
                 dataLabel4={chart.dataLabel4}
+                dataLabels={chart.dataLabels}
+                metricLabel={chart.metricLabel}
                 color={categoryColor}
                 icon={chart.icon}
                 link={chart.link}

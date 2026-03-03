@@ -107,10 +107,12 @@ export function TiptapEditor({
   const [chartForm, setChartForm] = useState({
     title: "",
     type: "area" as "area" | "line" | "bar" | "pie" | "compare",
+    metricLabel: "Metric",
     dataLabel: "",
     dataLabel2: "",
     dataLabel3: "",
     dataLabel4: "",
+    extraDataLabels: "",
     link: "",
   })
   const [chartDataInput, setChartDataInput] = useState("")
@@ -145,10 +147,12 @@ export function TiptapEditor({
     setChartForm({
       title: "",
       type: "area",
+      metricLabel: "Metric",
       dataLabel: "",
       dataLabel2: "",
       dataLabel3: "",
       dataLabel4: "",
+      extraDataLabels: "",
       link: "",
     })
     setChartDataInput("")
@@ -376,13 +380,15 @@ export function TiptapEditor({
           : []
       )
       setChartEditIndex(null)
-        setChartForm({
-          title: "",
-          type: "area",
-          dataLabel: "",
+      setChartForm({
+        title: "",
+        type: "area",
+        metricLabel: "Metric",
+        dataLabel: "",
         dataLabel2: "",
         dataLabel3: "",
         dataLabel4: "",
+        extraDataLabels: "",
         link: "",
       })
       setChartDataInput("")
@@ -471,44 +477,67 @@ export function TiptapEditor({
       .split("\n")
       .filter((line) => line.trim())
       .map((line) => {
-        const [name, value, value2, value3, value4] = line.split(":")
-        const n1 = parseFloat(value || "")
-        const n2 = value2 !== undefined ? parseFloat(value2) : undefined
-        const n3 = value3 !== undefined ? parseFloat(value3) : undefined
-        const n4 = value4 !== undefined ? parseFloat(value4) : undefined
-
-        return {
-          name: (name || "").trim(),
-          value: Number.isNaN(n1) ? 0 : n1,
-          ...(n2 !== undefined && !Number.isNaN(n2) ? { value2: n2 } : {}),
-          ...(n3 !== undefined && !Number.isNaN(n3) ? { value3: n3 } : {}),
-          ...(n4 !== undefined && !Number.isNaN(n4) ? { value4: n4 } : {}),
+        const parts = line.split(":")
+        const name = (parts[0] || "").trim()
+        const row: Record<string, string | number> = { name }
+        for (let i = 1; i < parts.length; i += 1) {
+          const parsed = parseFloat(parts[i] || "")
+          if (Number.isNaN(parsed)) continue
+          const key = i === 1 ? "value" : `value${i}`
+          row[key] = parsed
         }
+        return row
       })
-      .filter((item) => item.name)
+      .filter((item) => typeof item.name === "string" && item.name)
 
     if (data.length === 0) return
 
-    const hasSecondSeries = data.some((item) => item.value2 !== undefined)
-    const hasThirdSeries = data.some((item) => item.value3 !== undefined)
-    const hasFourthSeries = data.some((item) => item.value4 !== undefined)
+    const maxSeries = data.reduce((max, row) => {
+      let count = 0
+      while (true) {
+        const key = count === 0 ? "value" : `value${count + 1}`
+        if (row[key] === undefined) break
+        count += 1
+      }
+      return Math.max(max, count)
+    }, 0)
 
-    if (chartForm.type === "compare" && !hasSecondSeries) {
+    if (maxSeries === 0) return
+    if (chartForm.type === "compare" && maxSeries < 2) {
       return
     }
+
+    const dynamicDataKeys = Array.from({ length: maxSeries }, (_, idx) =>
+      idx === 0 ? "value" : `value${idx + 1}`
+    )
+    const baseLabels = [
+      chartForm.dataLabel.trim(),
+      chartForm.dataLabel2.trim(),
+      chartForm.dataLabel3.trim(),
+      chartForm.dataLabel4.trim(),
+    ]
+    const extraLabels = chartForm.extraDataLabels
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean)
+    const inputLabels = [...baseLabels, ...extraLabels]
+    const dynamicDataLabels = dynamicDataKeys.map((key, idx) => inputLabels[idx] || key)
 
     const nextItem = {
       title,
       type: chartForm.type,
-      data,
-      dataKey: "value" as const,
-      dataKey2: hasSecondSeries ? ("value2" as const) : undefined,
-      dataKey3: hasThirdSeries ? ("value3" as const) : undefined,
-      dataKey4: hasFourthSeries ? ("value4" as const) : undefined,
-      dataLabel: chartForm.dataLabel.trim() || undefined,
-      dataLabel2: hasSecondSeries ? chartForm.dataLabel2.trim() || undefined : undefined,
-      dataLabel3: hasThirdSeries ? chartForm.dataLabel3.trim() || undefined : undefined,
-      dataLabel4: hasFourthSeries ? chartForm.dataLabel4.trim() || undefined : undefined,
+      data: data as CategoryStats["charts"][number]["data"],
+      metricLabel: chartForm.type === "compare" ? chartForm.metricLabel.trim() || "Metric" : undefined,
+      dataKeys: dynamicDataKeys,
+      dataLabels: dynamicDataLabels,
+      dataKey: dynamicDataKeys[0],
+      dataKey2: dynamicDataKeys[1],
+      dataKey3: dynamicDataKeys[2],
+      dataKey4: dynamicDataKeys[3],
+      dataLabel: dynamicDataLabels[0],
+      dataLabel2: dynamicDataLabels[1],
+      dataLabel3: dynamicDataLabels[2],
+      dataLabel4: dynamicDataLabels[3],
       link: chartForm.link.trim() || undefined,
     }
 
@@ -520,10 +549,12 @@ export function TiptapEditor({
     setChartForm({
       title: "",
       type: "area",
+      metricLabel: "Metric",
       dataLabel: "",
       dataLabel2: "",
       dataLabel3: "",
       dataLabel4: "",
+      extraDataLabels: "",
       link: "",
     })
     setChartDataInput("")
@@ -1215,6 +1246,26 @@ export function TiptapEditor({
                 className="h-10 rounded-lg border border-input bg-background px-3 text-sm"
               />
               <input
+                type="text"
+                value={chartForm.extraDataLabels}
+                onChange={(e) =>
+                  setChartForm((prev) => ({ ...prev, extraDataLabels: e.target.value }))
+                }
+                placeholder="Series 5+ нэрс (таслалаар, optional)"
+                className="h-10 rounded-lg border border-input bg-background px-3 text-sm sm:col-span-2"
+              />
+              {chartForm.type === "compare" ? (
+                <input
+                  type="text"
+                  value={chartForm.metricLabel}
+                  onChange={(e) =>
+                    setChartForm((prev) => ({ ...prev, metricLabel: e.target.value }))
+                  }
+                  placeholder="Зүүн баганын гарчиг (ж: Metric)"
+                  className="h-10 rounded-lg border border-input bg-background px-3 text-sm sm:col-span-2"
+                />
+              ) : null}
+              <input
                 type="url"
                 value={chartForm.link}
                 onChange={(e) =>
@@ -1273,10 +1324,12 @@ export function TiptapEditor({
                             item.type === "compare"
                               ? item.type
                               : "area",
+                          metricLabel: item.metricLabel || "Metric",
                           dataLabel: item.dataLabel || "",
                           dataLabel2: item.dataLabel2 || "",
                           dataLabel3: item.dataLabel3 || "",
                           dataLabel4: item.dataLabel4 || "",
+                          extraDataLabels: (item.dataLabels || []).slice(4).filter(Boolean).join(", "),
                           link: item.link || "",
                         })
                         const rows = (item.data || [])
