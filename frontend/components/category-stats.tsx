@@ -364,54 +364,69 @@ function ChartCard({
               ))}
             </BarChart>
             ) : type === "groupedHorizontalBar" ? (
-              <BarChart data={sortedData} layout="vertical" margin={{ top: 5, right: 8, left: 8, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" horizontal={false} />
-                <XAxis
-                  type="number"
-                  tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
-                  axisLine={{ stroke: "var(--border)" }}
-                  tickLine={false}
-                />
-                <YAxis
-                  type="category"
-                  dataKey="name"
-                  width={92}
-                  tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "var(--card)",
-                    border: "1px solid var(--border)",
-                    borderRadius: "8px",
-                    fontSize: "12px",
-                  }}
-                />
-                <Legend wrapperStyle={{ fontSize: "11px" }} />
-                {series.map((item, idx) => (
-                  <Bar
-                    key={item.key}
-                    dataKey={item.key}
-                    fill={seriesColors[idx % seriesColors.length]}
-                    radius={[3, 3, 3, 3]}
-                    name={item.label}
-                    stackId="total"
-                  >
-                    <LabelList
+              <>
+                <div className="mb-2 flex flex-wrap items-center gap-3 px-1 text-[11px] font-medium text-muted-foreground">
+                  {series.map((item, idx) => (
+                    <span
+                      key={`series-top-${item.key}`}
+                      className="inline-flex items-center gap-1.5"
+                    >
+                      <span
+                        className="inline-block h-2.5 w-2.5 rounded-full"
+                        style={{ backgroundColor: seriesColors[idx % seriesColors.length] }}
+                      />
+                      {item.label}
+                    </span>
+                  ))}
+                </div>
+                <BarChart data={sortedData} layout="vertical" margin={{ top: 5, right: 8, left: 8, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" horizontal={false} />
+                  <XAxis
+                    type="number"
+                    tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                    axisLine={{ stroke: "var(--border)" }}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    type="category"
+                    dataKey="name"
+                    width={92}
+                    tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "var(--card)",
+                      border: "1px solid var(--border)",
+                      borderRadius: "8px",
+                      fontSize: "12px",
+                    }}
+                  />
+                  {series.map((item, idx) => (
+                    <Bar
+                      key={item.key}
                       dataKey={item.key}
-                      position="insideRight"
-                      fill="#ffffff"
-                      fontSize={11}
-                      formatter={(value: unknown) => {
-                        const num = Number(value)
-                        if (Number.isNaN(num) || num <= 0) return ""
-                        return String(num)
-                      }}
-                    />
-                  </Bar>
-                ))}
-              </BarChart>
+                      fill={seriesColors[idx % seriesColors.length]}
+                      radius={[3, 3, 3, 3]}
+                      name={item.label}
+                      stackId="total"
+                    >
+                      <LabelList
+                        dataKey={item.key}
+                        position="insideRight"
+                        fill="#ffffff"
+                        fontSize={11}
+                        formatter={(value: unknown) => {
+                          const num = Number(value)
+                          if (Number.isNaN(num) || num <= 0) return ""
+                          return String(num)
+                        }}
+                      />
+                    </Bar>
+                  ))}
+                </BarChart>
+              </>
             ) : (
               <PieChart>
               <Tooltip
