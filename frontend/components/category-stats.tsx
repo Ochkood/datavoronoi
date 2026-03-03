@@ -27,6 +27,7 @@ import {
   Tooltip,
   ResponsiveContainer,
   Legend,
+  LabelList,
 } from "recharts"
 
 interface CategoryStatsProps {
@@ -395,7 +396,20 @@ function ChartCard({
                     fill={seriesColors[idx % seriesColors.length]}
                     radius={[3, 3, 3, 3]}
                     name={item.label}
-                  />
+                    stackId="total"
+                  >
+                    <LabelList
+                      dataKey={item.key}
+                      position="insideRight"
+                      fill="#ffffff"
+                      fontSize={11}
+                      formatter={(value: unknown) => {
+                        const num = Number(value)
+                        if (Number.isNaN(num) || num <= 0) return ""
+                        return String(num)
+                      }}
+                    />
+                  </Bar>
                 ))}
               </BarChart>
             ) : (
