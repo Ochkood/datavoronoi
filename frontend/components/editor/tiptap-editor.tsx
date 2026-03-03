@@ -40,6 +40,7 @@ import {
   ArrowUpRight,
   BarChart3,
   Plus,
+  Pencil,
   Trash2,
   X,
 } from "lucide-react"
@@ -48,7 +49,11 @@ import { useCallback, useEffect, useRef, useState, type ChangeEvent } from "reac
 import { createPortal } from "react-dom"
 import { uploadImageApi } from "@/lib/api"
 import type { CategoryStats } from "@/lib/data"
-import { createPostEmbedToken } from "@/lib/post-embeds"
+import {
+  createPostEmbedToken,
+  parsePostEmbedToken,
+  type PostEmbedKind,
+} from "@/lib/post-embeds"
 
 interface TiptapEditorProps {
   content?: string
@@ -71,10 +76,17 @@ export function TiptapEditor({
   const [showHighlightModal, setShowHighlightModal] = useState(false)
   const [showChartModal, setShowChartModal] = useState(false)
   const [isMounted, setIsMounted] = useState(false)
+  const [editingEmbedKind, setEditingEmbedKind] = useState<PostEmbedKind | null>(null)
+  const [editingEmbedRange, setEditingEmbedRange] = useState<{
+    from: number
+    to: number
+  } | null>(null)
   const [highlightBlockTitle, setHighlightBlockTitle] = useState("Гол үзүүлэлтүүд")
   const [highlightsPerRow, setHighlightsPerRow] = useState<2 | 3>(3)
+  const [highlightEditIndex, setHighlightEditIndex] = useState<number | null>(null)
   const [chartBlockTitle, setChartBlockTitle] = useState("Статистик график")
   const [chartsPerRow, setChartsPerRow] = useState<1 | 2>(2)
+  const [chartEditIndex, setChartEditIndex] = useState<number | null>(null)
   const [highlightItems, setHighlightItems] = useState<CategoryStats["highlights"]>([])
   const [highlightForm, setHighlightForm] = useState<{
     label: string
@@ -107,6 +119,9 @@ export function TiptapEditor({
   const latestContentRef = useRef(content || "")
 
   const resetHighlightBuilder = useCallback(() => {
+    setEditingEmbedKind(null)
+    setEditingEmbedRange(null)
+    setHighlightEditIndex(null)
     setHighlightBlockTitle("Гол үзүүлэлтүүд")
     setHighlightsPerRow(3)
     setHighlightItems([])
@@ -121,6 +136,9 @@ export function TiptapEditor({
   }, [])
 
   const resetChartBuilder = useCallback(() => {
+    setEditingEmbedKind(null)
+    setEditingEmbedRange(null)
+    setChartEditIndex(null)
     setChartBlockTitle("Статистик график")
     setChartsPerRow(2)
     setChartItems([])
@@ -285,22 +303,122 @@ export function TiptapEditor({
     setShowYoutubeInput(false)
   }, [editor, youtubeUrl])
 
+  const findEmbedTokenAtSelection = useCallback(
+    (kind: PostEmbedKind) => {
+      if (!editor) return null
+      const { state } = editor
+      const { $from } = state.selection
+      const parent = $from.parent
+      if (!parent.isTextblock) return null
+
+      const text = parent.textContent || ""
+      if (!text.includes("[[DV_EMBED:")) return null
+
+      const offset = $from.parentOffset
+      const tokenRegex = /\[\[DV_EMBED:[A-Za-z0-9_-]+\]\]/g
+      let match: RegExpExecArray | null
+      while ((match = tokenRegex.exec(text))) {
+        const token = match[0]
+        const start = match.index
+        const end = start + token.length
+        if (offset < start || offset > end) continue
+        const parsed = parsePostEmbedToken(token)
+        if (!parsed || parsed.kind !== kind) return null
+        const parentStart = $from.start()
+        return {
+          embed: parsed,
+          from: parentStart + start,
+          to: parentStart + end,
+        }
+      }
+      return null
+    },
+    [editor]
+  )
+
+  const openHighlightBuilder = useCallback(() => {
+    const selected = findEmbedTokenAtSelection("highlights")
+    if (selected) {
+      setEditingEmbedKind("highlights")
+      setEditingEmbedRange({ from: selected.from, to: selected.to })
+      setHighlightBlockTitle(selected.embed.title || "Гол үзүүлэлтүүд")
+      setHighlightsPerRow(selected.embed.highlightsPerRow === 2 ? 2 : 3)
+      setHighlightItems(
+        Array.isArray(selected.embed.stats.highlights)
+          ? selected.embed.stats.highlights
+          : []
+      )
+      setHighlightEditIndex(null)
+      setHighlightForm({
+        label: "",
+        value: "",
+        change: "",
+        changeType: "neutral",
+        description: "",
+        link: "",
+      })
+    } else {
+      resetHighlightBuilder()
+    }
+    setShowHighlightModal(true)
+  }, [findEmbedTokenAtSelection, resetHighlightBuilder])
+
+  const openChartBuilder = useCallback(() => {
+    const selected = findEmbedTokenAtSelection("charts")
+    if (selected) {
+      setEditingEmbedKind("charts")
+      setEditingEmbedRange({ from: selected.from, to: selected.to })
+      setChartBlockTitle(selected.embed.title || "Статистик график")
+      setChartsPerRow(selected.embed.chartsPerRow === 1 ? 1 : 2)
+      setChartItems(
+        Array.isArray(selected.embed.stats.charts)
+          ? selected.embed.stats.charts
+          : []
+      )
+      setChartEditIndex(null)
+      setChartForm({
+        title: "",
+        type: "area",
+        dataLabel: "",
+        dataLabel2: "",
+        dataLabel3: "",
+        dataLabel4: "",
+        link: "",
+      })
+      setChartDataInput("")
+    } else {
+      resetChartBuilder()
+    }
+    setShowChartModal(true)
+  }, [findEmbedTokenAtSelection, resetChartBuilder])
+
+  const closeHighlightBuilder = useCallback(() => {
+    setShowHighlightModal(false)
+    resetHighlightBuilder()
+  }, [resetHighlightBuilder])
+
+  const closeChartBuilder = useCallback(() => {
+    setShowChartModal(false)
+    resetChartBuilder()
+  }, [resetChartBuilder])
+
   const addHighlightItem = useCallback(() => {
     if (!highlightForm.label.trim() || !highlightForm.value.trim()) return
 
-    setHighlightItems((prev) => [
-      ...prev,
-      {
-        label: highlightForm.label.trim(),
-        value: highlightForm.value.trim(),
-        change: highlightForm.change.trim() || undefined,
-        changeType: highlightForm.change.trim()
-          ? highlightForm.changeType
-          : undefined,
-        description: highlightForm.description.trim() || undefined,
-        link: highlightForm.link.trim() || undefined,
-      },
-    ])
+    const nextItem = {
+      label: highlightForm.label.trim(),
+      value: highlightForm.value.trim(),
+      change: highlightForm.change.trim() || undefined,
+      changeType: highlightForm.change.trim() ? highlightForm.changeType : undefined,
+      description: highlightForm.description.trim() || undefined,
+      link: highlightForm.link.trim() || undefined,
+    }
+
+    setHighlightItems((prev) => {
+      if (highlightEditIndex === null) return [...prev, nextItem]
+      return prev.map((item, idx) => (idx === highlightEditIndex ? nextItem : item))
+    })
+    setHighlightEditIndex(null)
     setHighlightForm((prev) => ({
       ...prev,
       label: "",
@@ -310,7 +428,7 @@ export function TiptapEditor({
       link: "",
       changeType: "neutral",
     }))
-  }, [highlightForm])
+  }, [highlightEditIndex, highlightForm])
 
   const insertHighlightsEmbed = useCallback(() => {
     if (!editor || highlightItems.length === 0) return
@@ -324,10 +442,26 @@ export function TiptapEditor({
         charts: [],
       },
     })
-    editor.chain().focus().insertContent(`\n${token}\n`).run()
+    if (
+      editingEmbedKind === "highlights" &&
+      editingEmbedRange &&
+      editingEmbedRange.to > editingEmbedRange.from
+    ) {
+      editor.chain().focus().insertContentAt(editingEmbedRange, token).run()
+    } else {
+      editor.chain().focus().insertContent(`\n${token}\n`).run()
+    }
     setShowHighlightModal(false)
     resetHighlightBuilder()
-  }, [editor, highlightBlockTitle, highlightItems, highlightsPerRow, resetHighlightBuilder])
+  }, [
+    editingEmbedKind,
+    editingEmbedRange,
+    editor,
+    highlightBlockTitle,
+    highlightItems,
+    highlightsPerRow,
+    resetHighlightBuilder,
+  ])
 
   const addChartItem = useCallback(() => {
     const title = chartForm.title.trim()
@@ -359,23 +493,26 @@ export function TiptapEditor({
     const hasThirdSeries = data.some((item) => item.value3 !== undefined)
     const hasFourthSeries = data.some((item) => item.value4 !== undefined)
 
-    setChartItems((prev) => [
-      ...prev,
-      {
-        title,
-        type: chartForm.type,
-        data,
-        dataKey: "value",
-        dataKey2: hasSecondSeries ? "value2" : undefined,
-        dataKey3: hasThirdSeries ? "value3" : undefined,
-        dataKey4: hasFourthSeries ? "value4" : undefined,
-        dataLabel: chartForm.dataLabel.trim() || undefined,
-        dataLabel2: hasSecondSeries ? chartForm.dataLabel2.trim() || undefined : undefined,
-        dataLabel3: hasThirdSeries ? chartForm.dataLabel3.trim() || undefined : undefined,
-        dataLabel4: hasFourthSeries ? chartForm.dataLabel4.trim() || undefined : undefined,
-        link: chartForm.link.trim() || undefined,
-      },
-    ])
+    const nextItem = {
+      title,
+      type: chartForm.type,
+      data,
+      dataKey: "value" as const,
+      dataKey2: hasSecondSeries ? ("value2" as const) : undefined,
+      dataKey3: hasThirdSeries ? ("value3" as const) : undefined,
+      dataKey4: hasFourthSeries ? ("value4" as const) : undefined,
+      dataLabel: chartForm.dataLabel.trim() || undefined,
+      dataLabel2: hasSecondSeries ? chartForm.dataLabel2.trim() || undefined : undefined,
+      dataLabel3: hasThirdSeries ? chartForm.dataLabel3.trim() || undefined : undefined,
+      dataLabel4: hasFourthSeries ? chartForm.dataLabel4.trim() || undefined : undefined,
+      link: chartForm.link.trim() || undefined,
+    }
+
+    setChartItems((prev) => {
+      if (chartEditIndex === null) return [...prev, nextItem]
+      return prev.map((item, idx) => (idx === chartEditIndex ? nextItem : item))
+    })
+    setChartEditIndex(null)
     setChartForm({
       title: "",
       type: "area",
@@ -386,7 +523,7 @@ export function TiptapEditor({
       link: "",
     })
     setChartDataInput("")
-  }, [chartDataInput, chartForm])
+  }, [chartDataInput, chartEditIndex, chartForm])
 
   const insertChartsEmbed = useCallback(() => {
     if (!editor || chartItems.length === 0) return
@@ -400,10 +537,26 @@ export function TiptapEditor({
         charts: chartItems,
       },
     })
-    editor.chain().focus().insertContent(`\n${token}\n`).run()
+    if (
+      editingEmbedKind === "charts" &&
+      editingEmbedRange &&
+      editingEmbedRange.to > editingEmbedRange.from
+    ) {
+      editor.chain().focus().insertContentAt(editingEmbedRange, token).run()
+    } else {
+      editor.chain().focus().insertContent(`\n${token}\n`).run()
+    }
     setShowChartModal(false)
     resetChartBuilder()
-  }, [chartBlockTitle, chartItems, chartsPerRow, editor, resetChartBuilder])
+  }, [
+    chartBlockTitle,
+    chartItems,
+    chartsPerRow,
+    editingEmbedKind,
+    editingEmbedRange,
+    editor,
+    resetChartBuilder,
+  ])
 
   if (!editor) {
     return null
@@ -733,8 +886,7 @@ export function TiptapEditor({
 
         <ToolbarButton
           onClick={() => {
-            resetHighlightBuilder()
-            setShowHighlightModal(true)
+            openHighlightBuilder()
           }}
           preventMouseDown={false}
           title="Голлох үзүүлэлт оруулах"
@@ -743,8 +895,7 @@ export function TiptapEditor({
         </ToolbarButton>
         <ToolbarButton
           onClick={() => {
-            resetChartBuilder()
-            setShowChartModal(true)
+            openChartBuilder()
           }}
           preventMouseDown={false}
           title="Инфо график оруулах"
@@ -767,11 +918,13 @@ export function TiptapEditor({
           <div className="w-full max-w-2xl rounded-xl border border-border bg-card p-5 shadow-xl">
             <div className="mb-4 flex items-center justify-between">
               <h3 className="text-lg font-semibold text-foreground">
-                Голлох үзүүлэлт оруулах
+                {editingEmbedKind === "highlights"
+                  ? "Голлох үзүүлэлт засах"
+                  : "Голлох үзүүлэлт оруулах"}
               </h3>
               <button
                 type="button"
-                onClick={() => setShowHighlightModal(false)}
+                onClick={closeHighlightBuilder}
                 className="rounded-md p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
               >
                 <X className="h-4 w-4" />
@@ -874,7 +1027,7 @@ export function TiptapEditor({
                 className="inline-flex items-center gap-1 rounded-md border border-border px-3 py-1.5 text-sm hover:bg-secondary"
               >
                 <Plus className="h-4 w-4" />
-                Карт нэмэх
+                {highlightEditIndex === null ? "Карт нэмэх" : "Карт шинэчлэх"}
               </button>
             </div>
 
@@ -892,6 +1045,28 @@ export function TiptapEditor({
                     </p>
                     <button
                       type="button"
+                      onClick={() => {
+                        setHighlightEditIndex(idx)
+                        setHighlightForm({
+                          label: item.label || "",
+                          value: item.value || "",
+                          change: item.change || "",
+                          changeType:
+                            item.changeType === "positive" ||
+                            item.changeType === "negative" ||
+                            item.changeType === "neutral"
+                              ? item.changeType
+                              : "neutral",
+                          description: item.description || "",
+                          link: item.link || "",
+                        })
+                      }}
+                      className="rounded-md p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
                       onClick={() =>
                         setHighlightItems((prev) => prev.filter((_, i) => i !== idx))
                       }
@@ -907,7 +1082,7 @@ export function TiptapEditor({
             <div className="mt-4 flex justify-end gap-2">
               <button
                 type="button"
-                onClick={() => setShowHighlightModal(false)}
+                onClick={closeHighlightBuilder}
                 className="rounded-lg border border-border px-3 py-2 text-sm hover:bg-secondary"
               >
                 Болих
@@ -932,10 +1107,14 @@ export function TiptapEditor({
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
           <div className="w-full max-w-3xl rounded-xl border border-border bg-card p-5 shadow-xl">
             <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-foreground">Инфо график оруулах</h3>
+              <h3 className="text-lg font-semibold text-foreground">
+                {editingEmbedKind === "charts"
+                  ? "Инфо график засах"
+                  : "Инфо график оруулах"}
+              </h3>
               <button
                 type="button"
-                onClick={() => setShowChartModal(false)}
+                onClick={closeChartBuilder}
                 className="rounded-md p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
               >
                 <X className="h-4 w-4" />
@@ -1056,7 +1235,7 @@ export function TiptapEditor({
                 className="inline-flex items-center gap-1 rounded-md border border-border px-3 py-1.5 text-sm hover:bg-secondary"
               >
                 <Plus className="h-4 w-4" />
-                График нэмэх
+                {chartEditIndex === null ? "График нэмэх" : "График шинэчлэх"}
               </button>
             </div>
 
@@ -1074,6 +1253,42 @@ export function TiptapEditor({
                     </p>
                     <button
                       type="button"
+                      onClick={() => {
+                        setChartEditIndex(idx)
+                        setChartForm({
+                          title: item.title || "",
+                          type:
+                            item.type === "line" ||
+                            item.type === "bar" ||
+                            item.type === "pie"
+                              ? item.type
+                              : "area",
+                          dataLabel: item.dataLabel || "",
+                          dataLabel2: item.dataLabel2 || "",
+                          dataLabel3: item.dataLabel3 || "",
+                          dataLabel4: item.dataLabel4 || "",
+                          link: item.link || "",
+                        })
+                        const rows = (item.data || [])
+                          .map((row) => {
+                            const values = [
+                              String(row.name ?? ""),
+                              String(row.value ?? ""),
+                            ]
+                            if (row.value2 !== undefined) values.push(String(row.value2))
+                            if (row.value3 !== undefined) values.push(String(row.value3))
+                            if (row.value4 !== undefined) values.push(String(row.value4))
+                            return values.join(":")
+                          })
+                          .join("\n")
+                        setChartDataInput(rows)
+                      }}
+                      className="rounded-md p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
                       onClick={() =>
                         setChartItems((prev) => prev.filter((_, i) => i !== idx))
                       }
@@ -1089,7 +1304,7 @@ export function TiptapEditor({
             <div className="mt-4 flex justify-end gap-2">
               <button
                 type="button"
-                onClick={() => setShowChartModal(false)}
+                onClick={closeChartBuilder}
                 className="rounded-lg border border-border px-3 py-2 text-sm hover:bg-secondary"
               >
                 Болих
